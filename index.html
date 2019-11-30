@@ -1,0 +1,317 @@
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+<style>
+  html {
+    margin: 0;
+    min-height: 100%;
+    background-color: #fff;
+    font-family: Arial,sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    color: #333;
+  }
+
+  body {
+    margin: 0 auto;
+  }
+
+  .zoomed {
+    cursor: zoom-out;
+  }
+
+  #cameras {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .lcc-camera {
+    max-width: 320px;
+    flex: auto auto auto;
+    position: relative;
+    margin: 0.5em;
+    overflow: hidden;
+    border-radius: 4px;
+    background-color: black;
+    box-shadow: 0px 0px 2px 1px rgba(0,0,0,0.16);
+    transition: all .2s ease;
+    cursor: zoom-in;
+  }
+
+
+@media only screen
+  and (min-device-width: 320px)
+  and (max-device-width: 480px) {
+    .lcc-camera {
+      width: 100%;
+      max-width: initial;
+    }
+  }
+
+  .lcc-camera:hover {
+    box-shadow: 0px 0px 3px 0px rgba(0,0,0,0.5);
+  }
+
+  .lcc-camera h4 {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    color: black;
+    margin: 0;
+    padding: 0;
+    background: rgba(255,255,255,1);
+    font-size: 14px;
+    width: 100%;
+    font-weight: 300;
+    line-height: 2em;
+    text-align: center;
+    transition: all .2s ease;
+  }
+
+  .lcc-camera.zoomed h4, .lcc-camera.zoomed:hover h4 {
+    font-size: 5px;
+    line-height: 1.5em;
+  }
+
+  .lcc-camera:hover h4 {
+    font-size: 10px;
+    line-height: 1.5em;
+  }
+
+  .lcc-camera img {
+    display: block;
+    width: 100%;
+  }
+
+  #indicator {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: gray;
+    padding-right: 1em;
+    padding-left: 1em;
+    line-height: 1.5em;
+  }
+
+  #road-status {
+    width: 300px;
+    margin: 0 auto;
+    margin-top: 1em;
+    display: block;
+    border-radius: 10px;
+    background-color: #fff;
+    box-shadow: 0px 0px 2px 1px rgba(0,0,0,0.16);
+    transition: all .3s ease;
+  }
+
+  #road-status img {
+    width: 100%;
+    margin-top: 1em;
+    margin-bottom: 1em;
+  }
+
+  #range {
+    margin: 0 auto;
+    padding: 1em;
+    display: block;
+  }
+
+  #zoom {
+    margin: 0 auto;
+    width: 400px;
+  }
+
+  #zoom button {
+    width: 30%
+  }
+</style>
+</head>
+<body>
+  <header id="road-status">
+    <img src="https://www.udottraffic.utah.gov/AnimatedGifs/100032.gif">
+  </header>
+
+  <main id="cameras">
+    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux14604.jpeg"                       /> <h4>Mouth of LCC                </h4></div>
+    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux16265.jpeg"                       /> <h4>Upper Vault                 </h4></div>
+    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux16266.jpeg"                       /> <h4>Lisa Falls                  </h4></div>
+    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux16267.jpeg"                       /> <h4>Seven Turns                 </h4></div>
+    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux16268.jpeg"                       /> <h4>Tanners Flat                </h4></div>
+    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux16269.jpeg"                       /> <h4>White Pine                  </h4></div>
+    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux16270.jpeg"                       /> <h4>White Pine Parking Lot      </h4></div>
+    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux16606.jpeg"                       /> <h4>Wasatch Blvd at Bengal Blvd </h4></div>
+    <div class="lcc-camera"> <img src="https://media.alta.com/resources/mtncam/Superior.jpg"                       /> <h4>Mount Superior              </h4></div>
+    <div class="lcc-camera"> <img src="https://media.alta.com/resources/mtncam/Highrustler.jpg"                    /> <h4>High Rustler                </h4></div>
+    <div class="lcc-camera"> <img src="https://media.alta.com/resources/mtncam/Greeley.jpg"                        /> <h4>East Greely                 </h4></div>
+    <div class="lcc-camera"> <img src="https://media.alta.com/resources/mtncam/Devilscastle.jpg"                   /> <h4>Devil's Castle              </h4></div>
+    <div class="lcc-camera"> <img src="https://media.alta.com/resources/mtncam/sugar_peak.jpg"                     /> <h4>Sugarloaf Peak              </h4></div>
+    <div class="lcc-camera"> <img src="https://media.alta.com/resources/mtncam/collins_dtc.jpg"                    /> <h4>Salt Lake Valley            </h4></div>
+    <div class="lcc-camera"> <img src="https://media.alta.com/resources/mtncam/Albion.jpg"                         /> <h4>Albion Basin                </h4></div>
+    <div class="lcc-camera"> <img src="https://backend.roundshot.com/cams/48fc223c0ed88474ecc2f884bf39de63/medium" /> <h4>Powder Paradise             </h4></div>
+    <div class="lcc-camera"> <img src="https://backend.roundshot.com/cams/44cfff4ff2a218a1178dbb105d95846a/medium" /> <h4>Hidden Peak                 </h4></div>
+  </main>
+
+  <div id="indicator">
+    Refreshing...
+  </div>
+</body>
+
+<script module>
+  function fragment(string) {
+    const template = document.createElement('template');
+    template.innerHTML = string;
+    return template.content
+  }
+
+  async function assert(assertion, message) {
+    const value = await assertion();
+    const string = assertion.toString().replace('() => ', '');
+    if (value) {
+      console.log(`pass: ${string}`)
+      return true;
+    } else {
+      const message = `expected: 'true' but got: '${value}' for: ${string}`;
+      console.log(`fail: ${message}`);
+    }
+  }
+
+  async function test(name, execution) {
+    const groupName = `test: ${name}`;
+    console.group(groupName);
+    await execution();
+    console.groupEnd(groupName);
+  }
+
+  const TIMEOUT = 30000;
+  const indicator = document.querySelector('#indicator');
+  const cameraStyle = document.createElement('style');
+  const range = document.querySelector('#range');
+
+  function allCameras() {
+    return document.querySelectorAll('.lcc-camera');
+  }
+
+  document.addEventListener('click', () => {
+    if (scaled) {
+        scaled.style.transform = "scale(1)"
+        scaled = null
+      }
+  });
+
+  let scaled = null;
+  let index = 1;
+
+  function zoomIn(element) {
+    element.style.transform = 'scale(3)';
+    element.style.zIndex = index++;
+    element.setAttribute('class', 'lcc-camera zoomed')
+    scaled = element;
+  }
+
+  function zoomOut(element) {
+    scaled = element;
+    scaled.style.transform = 'scale(1)'
+    scaled.style.zIndex = 0;
+    scaled.setAttribute('class', 'lcc-camera')
+  }
+
+  function handleZoom(e) {
+      const camera = e.target.closest('.lcc-camera');
+      if (camera === null) {
+        return;
+      }
+
+
+      if (scaled) {
+        if (scaled === camera) {
+          zoomOut(scaled);
+          return;
+        }
+        zoomOut(scaled);
+      }
+      //camera.scrollIntoView();
+      zoomIn(camera);
+      e.stopPropagation();
+  }
+
+  test('handleZoom', () => {
+    const doc = fragment`
+    <div id="cameras">
+      <div class="lcc-camera">
+        <img>
+      </div>
+      <div class="lcc-camera">
+        <img>
+    </div>
+    `
+    let stopPropagationWasCalled = false;
+    const camera = doc.querySelector('.lcc-camera:first-child');
+    const otherCamera = doc.querySelector('.lcc-camera:last-child');
+
+    handleZoom({
+      target: camera,
+      stopPropagation() { stopPropagationWasCalled = true; }
+    });
+
+    assert(() => camera.style.transform.includes('scale(3)'));
+    assert(() => !otherCamera.style.transform.includes('scale(3)'));
+    assert(() => stopPropagationWasCalled);
+    assert(() => camera.className.includes('zoomed'));
+    assert(() => !otherCamera.className.includes('zoomed'));
+    assert(() => scaled === camera);
+    assert(() => scaled !== otherCamera);
+
+    stopPropagationWasCalled = false;
+
+    handleZoom({
+      target: otherCamera,
+      stopPropagation() { stopPropagationWasCalled = true; }
+    });
+
+    assert(() => otherCamera.style.transform.includes('scale(3)'));
+    assert(() => !camera.style.transform.includes('scale(3)'));
+    assert(() => stopPropagationWasCalled);
+    assert(() => otherCamera.className.includes('zoomed'));
+    assert(() => !camera.className.includes('zoomed'));
+    assert(() => scaled === otherCamera);
+    assert(() => scaled !== camera);
+  });
+
+  document.body.addEventListener('click', handleZoom);
+
+  function reloadImages() {
+    allCameras().forEach(camera => {
+      const img = camera.querySelector('img');
+      img._oldsrc = img._oldsrc || img.src;
+      img.src = `${img._oldsrc}?_=${Date.now()}`;
+    });
+
+    indicator.style.display = 'block';
+    setTimeout(reloadImages, TIMEOUT);
+    setTimeout(() => indicator.style.display = 'none', 1000)
+    console.log('reload');
+  }
+
+  const HOT_RELOAD_TIMEOUT = location.hostname === 'localhost'  ?  200 : 60_000;
+
+  async function main() {
+    setTimeout(reloadImages, TIMEOUT);
+    hotReload();
+  }
+
+  async function hotReload() {
+    const etag = async () => (await fetch("/", { method: "HEAD" })).headers.get('etag');
+    const sleep = async time => new Promise(resolve => setTimeout(resolve, time));
+    const original = await etag();
+
+    while (original === await etag()) {
+      await sleep(location.port === "8888" ? 1000 : 60_000);
+    }
+
+    location.reload();
+  }
+
+  main();
+</script>
