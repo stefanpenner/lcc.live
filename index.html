@@ -1,6 +1,7 @@
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <style>
   html {
     margin: 0;
@@ -28,21 +29,19 @@
 
   .lcc-camera {
     max-width: 320px;
-    flex: auto auto auto;
     position: relative;
-    margin: 0.5em;
+    margin: 0.3em;
     overflow: hidden;
-    border-radius: 4px;
+    border-radius: 10px;
     background-color: black;
     box-shadow: 0px 0px 2px 1px rgba(0,0,0,0.16);
     transition: all .2s ease;
     cursor: zoom-in;
+    padding-bottom: 1em;
+    background: white;
   }
 
-
-@media only screen
-  and (min-device-width: 320px)
-  and (max-device-width: 480px) {
+  @media only screen and (max-width: 667px) {
     .lcc-camera {
       width: 100%;
       max-width: initial;
@@ -82,6 +81,7 @@
   .lcc-camera img {
     display: block;
     width: 100%;
+    background: black;
   }
 
   #indicator {
@@ -96,20 +96,29 @@
   }
 
   #road-status {
-    width: 300px;
-    margin: 0 auto;
-    margin-top: 1em;
     display: block;
-    border-radius: 10px;
-    background-color: #fff;
-    box-shadow: 0px 0px 2px 1px rgba(0,0,0,0.16);
     transition: all .3s ease;
+    position: sticky;
+    top: 0;
+    left: 0px;
+    z-index: 2;
+    background-color: rgb(61,64,60);
+    background-color: rgb(47,47,47);
+    width: 100%;
+    box-shadow: 0 0 5px black;
+    opacity: 0.9;
+    height: 48px;
   }
 
   #road-status img {
-    width: 100%;
-    margin-top: 1em;
-    margin-bottom: 1em;
+    height: 55px;
+    margin: 0 auto;
+    display: block;
+    position: relative;
+    top: -3px;
+    -webkit-clip-path: inset(8px 1px 8px 1px);
+    clip-path: inset(8px 1px 8px 1px);
+    border-radius: 50px;
   }
 
   #range {
@@ -204,6 +213,7 @@
   let index = 1;
 
   function zoomIn(element) {
+    if (window.innerWidth < 660) { return; }
     element.style.transform = 'scale(3)';
     element.style.zIndex = index++;
     element.setAttribute('class', 'lcc-camera zoomed')
