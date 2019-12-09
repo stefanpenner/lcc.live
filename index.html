@@ -203,8 +203,8 @@
   const cameraStyle = document.createElement('style');
   const range = document.querySelector('#range');
 
-  function allCameras() {
-    return document.querySelectorAll('.lcc-camera');
+  function allImages() {
+    return document.querySelectorAll('img');
   }
 
   document.addEventListener('click', () => {
@@ -297,8 +297,7 @@
   document.body.addEventListener('click', handleZoom);
 
   function reloadImages() {
-    allCameras().forEach(camera => {
-      const img = camera.querySelector('img');
+    allImages().forEach(img=> {
       img._oldsrc = img._oldsrc || img.src;
       img.src = `${img._oldsrc}?_=${Date.now()}`;
     });
