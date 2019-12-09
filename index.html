@@ -1,7 +1,7 @@
 <head>
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0"/>
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="white">
 <style>
   html {
     margin: 0;
@@ -16,6 +16,8 @@
 
   body {
     margin: 0 auto;
+    height: 100%;
+    overflow: auto;
   }
 
   .zoomed {
@@ -26,10 +28,6 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    overflow: scroll;
-    height: calc(100vh - 48px /* header height */);
-    overflow-y: scroll; /* has to be scroll, not auto */
-    -webkit-overflow-scrolling: touch;
   }
 
   .lcc-camera {
@@ -39,7 +37,7 @@
     overflow: hidden;
     border-radius: 10px;
     background-color: black;
-    box-shadow: 0px 0px 2px 1px rgba(0,0,0,0.16);
+    box-shadow: 0px 0px 1px 0px rgba(0,0,0,0.3);
     transition: all .2s ease;
     cursor: zoom-in;
     padding-bottom: 1em;
@@ -54,7 +52,7 @@
   }
 
   .lcc-camera:hover {
-    box-shadow: 0px 0px 3px 0px rgba(0,0,0,0.5);
+    box-shadow: 0px 0px 2px 0px rgba(0,0,0,0.6);
   }
 
   .lcc-camera h4 {
@@ -101,35 +99,39 @@
   }
 
   #road-status {
+    height: 100px;
     display: block;
-    transition: all .3s ease;
+    transition: height 0.2s ease;
     position: sticky;
     top: 0;
     left: 0px;
     z-index: 2;
-    background-color: rgb(61,64,60);
-    background-color: rgb(47,47,47);
-    width: 100%;
-    box-shadow: 0 0 5px black;
     opacity: 0.9;
-    height: 48px;
+    width: 100%;
   }
 
   #road-status img {
-    height: 55px;
+    height: 100px;
     margin: 0 auto;
     display: block;
     position: relative;
-    top: -3px;
-    -webkit-clip-path: inset(8px 1px 8px 1px);
-    clip-path: inset(8px 1px 8px 1px);
-    border-radius: 50px;
+    transition: height 0.2s ease;
   }
 
-  #range {
-    margin: 0 auto;
-    padding: 1em;
-    display: block;
+  #road-status.top {
+    margin: 1em 0;
+    border-bottom: none;
+  }
+
+
+  #road-status.floater {
+    height: 38px;
+    background: white;
+  }
+  #road-status.floater img { height: 38px; }
+
+  #road-status.scrolling-back-up, #road-status.scrolling-back-up img {
+    height: 100px;
   }
 
   #zoom {
@@ -143,30 +145,30 @@
 </style>
 </head>
 <body>
-  <header id="road-status">
+  <header id="road-status" class="top">
     <img src="https://www.udottraffic.utah.gov/AnimatedGifs/100032.gif">
   </header>
 
   <main id="cameras">
-    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux14604.jpeg"                       /> <h4>Mouth of LCC                </h4></div>
-    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux16265.jpeg"                       /> <h4>Upper Vault                 </h4></div>
-    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux16266.jpeg"                       /> <h4>Lisa Falls                  </h4></div>
-    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux16267.jpeg"                       /> <h4>Seven Turns                 </h4></div>
-    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux16268.jpeg"                       /> <h4>Tanners Flat                </h4></div>
-    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux16269.jpeg"                       /> <h4>White Pine                  </h4></div>
-    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux16270.jpeg"                       /> <h4>White Pine Parking Lot      </h4></div>
-    <div class="lcc-camera"> <img src="https://udottraffic.utah.gov/1_devices/aux16606.jpeg"                       /> <h4>Wasatch Blvd at Bengal Blvd </h4></div>
-    <div class="lcc-camera"> <img src="https://media.alta.com/resources/mtncam/Superior.jpg"                       /> <h4>Mount Superior              </h4></div>
-    <div class="lcc-camera"> <img src="https://media.alta.com/resources/mtncam/Highrustler.jpg"                    /> <h4>High Rustler                </h4></div>
-    <div class="lcc-camera"> <img src="https://media.alta.com/resources/mtncam/Greeley.jpg"                        /> <h4>East Greely                 </h4></div>
-    <div class="lcc-camera"> <img src="https://media.alta.com/resources/mtncam/Devilscastle.jpg"                   /> <h4>Devil's Castle              </h4></div>
-    <div class="lcc-camera"> <img src="https://media.alta.com/resources/mtncam/sugar_peak.jpg"                     /> <h4>Sugarloaf Peak              </h4></div>
-    <div class="lcc-camera"> <img src="https://media.alta.com/resources/mtncam/collins_dtc.jpg"                    /> <h4>Salt Lake Valley            </h4></div>
-    <div class="lcc-camera"> <img src="https://media.alta.com/resources/mtncam/Albion.jpg"                         /> <h4>Albion Basin                </h4></div>
-    <div class="lcc-camera"> <img src="https://backend.roundshot.com/cams/48fc223c0ed88474ecc2f884bf39de63/medium" /> <h4>Powder Paradise             </h4></div>
-    <div class="lcc-camera"> <img src="https://backend.roundshot.com/cams/44cfff4ff2a218a1178dbb105d95846a/medium" /> <h4>Hidden Peak                 </h4></div>
-  </main>
-
+    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux14604.jpeg"                        /> <h4>Mouth of LCC                </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux16265.jpeg"                        /> <h4>Upper Vault                 </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux16266.jpeg"                        /> <h4>Lisa Falls                  </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux16267.jpeg"                        /> <h4>Seven Turns                 </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux16268.jpeg"                        /> <h4>Tanners Flat                </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux16269.jpeg"                        /> <h4>White Pine                  </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux16270.jpeg"                        /> <h4>White Pine Parking Lot      </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux16606.jpeg"                        /> <h4>Wasatch Blvd at Bengal Blvd </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://media.alta.com/resources/mtncam/Superior.jpg"                        /> <h4>Mount Superior              </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://media.alta.com/resources/mtncam/Highrustler.jpg"                     /> <h4>High Rustler                </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://media.alta.com/resources/mtncam/Greeley.jpg"                         /> <h4>East Greely                 </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://media.alta.com/resources/mtncam/Devilscastle.jpg"                    /> <h4>Devil's Castle              </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://media.alta.com/resources/mtncam/sugar_peak.jpg"                      /> <h4>Sugarloaf Peak              </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://media.alta.com/resources/mtncam/collins_dtc.jpg"                     /> <h4>Salt Lake Valley            </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://media.alta.com/resources/mtncam/Albion.jpg"                          /> <h4>Albion Basin                </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://backend.roundshot.com/cams/48fc223c0ed88474ecc2f884bf39de63/medium"  /> <h4>Powder Paradise             </h4></div>
+    <div class="lcc-camera"> <img data-reload="30000" src="https://backend.roundshot.com/cams/44cfff4ff2a218a1178dbb105d95846a/medium"  /> <h4>Hidden Peak                 </h4></div>
+    <div class="lcc-camera"> <img data-reload="1000" src="https://b9.hdrelay.com/camera/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4/snapshot" /> <h4>Snowbird  Cam 1</h4></div>
+    <div class="lcc-camera"> <img data-reload="1000" src="https://b9.hdrelay.com/camera/db2a69c5-66e9-4c48-a713-919eaf191fc1/snapshot" /> <h4>Snowbird  Cam 2</h4></div>
   <div id="indicator">
     Refreshing...
   </div>
@@ -298,20 +300,46 @@
 
   function reloadImages() {
     allImages().forEach(img=> {
-      img._oldsrc = img._oldsrc || img.src;
-      img.src = `${img._oldsrc}?_=${Date.now()}`;
+      img._last = img._last || Date.now();
+      const reload = Number(img.dataset.reload) || 30000;
+      console.log(Date.now() - img._last, reload);
+      if (Date.now() - img._last > reload) {
+        img._last = Date.now();
+        img._oldsrc = img._oldsrc || img.src;
+        img.src = `${img._oldsrc}?_=${Date.now()}`;
+      }
     });
 
     indicator.style.display = 'block';
-    setTimeout(reloadImages, TIMEOUT);
+    setTimeout(reloadImages, 1000);
     setTimeout(() => indicator.style.display = 'none', 1000)
     console.log('reload');
   }
 
-  const HOT_RELOAD_TIMEOUT = location.hostname === 'localhost'  ?  200 : 60_000;
+  const HOT_RELOADTIMEOUT = location.hostname === 'localhost'  ?  200 : 60000;
+
+  function floater() {
+    let lastScrollTop = 0;
+    document.body.addEventListener('scroll', function(e) {
+      const { classList } = document.querySelector('#road-status');
+      const { scrollTop } = document.body;
+      const scrollingDown = lastScrollTop - scrollTop < 0;
+
+      if (scrollTop <= 5) {
+        classList.add('top');
+        classList.remove('floater');
+      } else {
+        classList.remove('top');
+        classList.add('floater');
+      }
+
+      lastScrollTop = scrollTop;
+    });
+  }
 
   async function main() {
-    setTimeout(reloadImages, TIMEOUT);
+    setTimeout(reloadImages, 10);
+    floater();
     hotReload();
   }
 
@@ -321,7 +349,7 @@
     const original = await etag();
 
     while (original === await etag()) {
-      await sleep(location.port === "8888" ? 1000 : 60_000);
+      await sleep(location.port === "8888" ? 1000 : 60000);
     }
 
     location.reload();
