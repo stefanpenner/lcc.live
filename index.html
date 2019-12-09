@@ -1,12 +1,10 @@
 <head>
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0,viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="white">
 <style>
   html {
     margin: 0;
-    min-height: 100%;
-    overflow: hidden;
     background-color: #fff;
     font-family: Arial,sans-serif;
     font-size: 14px;
@@ -16,7 +14,6 @@
 
   body {
     margin: 0 auto;
-    height: 100%;
     overflow: auto;
   }
 
@@ -25,6 +22,7 @@
   }
 
   #cameras {
+    margin: 2em 0;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -48,6 +46,14 @@
     .lcc-camera {
       width: 100%;
       max-width: initial;
+      cursor: auto;
+    }
+
+    .zoomed {
+      cursor: auto;
+    }
+    .zoomed {
+      cursor: auto;
     }
   }
 
@@ -82,32 +88,22 @@
   }
 
   .lcc-camera img {
+    min-height: 50px;
     display: block;
     width: 100%;
     background: black;
   }
 
-  #indicator {
-    display: none;
-    position: absolute;
-    top: 0;
-    left: 0;
-    background: gray;
-    padding-right: 1em;
-    padding-left: 1em;
-    line-height: 1.5em;
-  }
-
   #road-status {
     height: 100px;
     display: block;
-    transition: height 0.2s ease;
     position: sticky;
     top: 0;
     left: 0px;
     z-index: 2;
     opacity: 0.9;
     width: 100%;
+    transition: opacity 0.2s ease;
   }
 
   #road-status img {
@@ -115,11 +111,10 @@
     margin: 0 auto;
     display: block;
     position: relative;
-    transition: height 0.2s ease;
   }
 
   #road-status.top {
-    margin: 1em 0;
+    margin: 2em 0;
     border-bottom: none;
   }
 
@@ -146,7 +141,7 @@
 </head>
 <body>
   <header id="road-status" class="top">
-    <img src="https://www.udottraffic.utah.gov/AnimatedGifs/100032.gif">
+    <img data-reload="5000" src="https://www.udottraffic.utah.gov/AnimatedGifs/100032.gif" onclick="document.body.scrollTop = document.documentElement.scrollTop = 0;">
   </header>
 
   <main id="cameras">
@@ -167,11 +162,8 @@
     <div class="lcc-camera"> <img data-reload="30000" src="https://media.alta.com/resources/mtncam/Albion.jpg"                          /> <h4>Albion Basin                </h4></div>
     <div class="lcc-camera"> <img data-reload="30000" src="https://backend.roundshot.com/cams/48fc223c0ed88474ecc2f884bf39de63/medium"  /> <h4>Powder Paradise             </h4></div>
     <div class="lcc-camera"> <img data-reload="30000" src="https://backend.roundshot.com/cams/44cfff4ff2a218a1178dbb105d95846a/medium"  /> <h4>Hidden Peak                 </h4></div>
-    <div class="lcc-camera"> <img data-reload="1000" src="https://b9.hdrelay.com/camera/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4/snapshot" /> <h4>Snowbird  Cam 1</h4></div>
-    <div class="lcc-camera"> <img data-reload="1000" src="https://b9.hdrelay.com/camera/db2a69c5-66e9-4c48-a713-919eaf191fc1/snapshot" /> <h4>Snowbird  Cam 2</h4></div>
-  <div id="indicator">
-    Refreshing...
-  </div>
+    <div class="lcc-camera"> <img data-reload="1000" src="https://b9.hdrelay.com/camera/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4/snapshot"  /> <h4>Snowbird  Cam 1</h4></div>
+    <div class="lcc-camera"> <img data-reload="1000" src="https://b9.hdrelay.com/camera/db2a69c5-66e9-4c48-a713-919eaf191fc1/snapshot"  /> <h4>Snowbird  Cam 2</h4></div>
 </body>
 
 <script module>
@@ -298,29 +290,30 @@
 
   document.body.addEventListener('click', handleZoom);
 
+  allImages().forEach(img => {
+    img._last = Date.now();
+    img._oldsrc = img.src;
+  });
+
   function reloadImages() {
     allImages().forEach(img=> {
-      img._last = img._last || Date.now();
       const reload = Number(img.dataset.reload) || 30000;
-      console.log(Date.now() - img._last, reload);
-      if (Date.now() - img._last > reload) {
-        img._last = Date.now();
-        img._oldsrc = img._oldsrc || img.src;
-        img.src = `${img._oldsrc}?_=${Date.now()}`;
+      const now = Date.now();
+      if (now - img._last > reload) {
+        img._last = now;
+        img.src = `${img._oldsrc}?_=${now}`;
+        console.log("update")
       }
     });
 
-    indicator.style.display = 'block';
-    setTimeout(reloadImages, 1000);
-    setTimeout(() => indicator.style.display = 'none', 1000)
-    console.log('reload');
+    setTimeout(reloadImages, 500);
   }
 
   const HOT_RELOADTIMEOUT = location.hostname === 'localhost'  ?  200 : 60000;
 
   function floater() {
     let lastScrollTop = 0;
-    document.body.addEventListener('scroll', function(e) {
+    document.addEventListener('scroll', function(e) {
       const { classList } = document.querySelector('#road-status');
       const { scrollTop } = document.body;
       const scrollingDown = lastScrollTop - scrollTop < 0;
@@ -328,7 +321,9 @@
       if (scrollTop <= 5) {
         classList.add('top');
         classList.remove('floater');
+        document.body.classList.remove('floater')
       } else {
+        document.body.classList.remove('floater')
         classList.remove('top');
         classList.add('floater');
       }
@@ -338,7 +333,7 @@
   }
 
   async function main() {
-    setTimeout(reloadImages, 10);
+    setTimeout(reloadImages, 500);
     floater();
     hotReload();
   }
