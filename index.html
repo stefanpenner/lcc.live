@@ -25,10 +25,6 @@
     margin: 0 auto;
   }
 
-  .zoomed {
-    cursor: zoom-out;
-  }
-
   #cameras {
     margin: 2em 0;
     display: flex;
@@ -60,6 +56,7 @@
     .zoomed {
       cursor: auto;
     }
+
     .zoomed {
       cursor: auto;
     }
@@ -83,11 +80,6 @@
     line-height: 2em;
     text-align: center;
     transition: all .2s ease;
-  }
-
-  .lcc-camera.zoomed h4, .lcc-camera.zoomed:hover h4 {
-    font-size: 5px;
-    line-height: 1.5em;
   }
 
   .lcc-camera:hover h4 {
@@ -126,7 +118,6 @@
     border-bottom: none;
   }
 
-
   #road-status.floater {
     height: 38px;
     background: white;
@@ -137,13 +128,31 @@
     height: 100px;
   }
 
-  #zoom {
-    margin: 0 auto;
-    width: 400px;
+  #overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.5);
+    z-index: 3;
+    display: none;
+    cursor: zoom-out;
   }
 
-  #zoom button {
-    width: 30%
+  #overlay .lcc-camera {
+    max-width: initial;
+    height: auto;
+    margin: 0 auto;
+    cursor: zoom-out;
+    margin-top: 50px;
+    max-height: calc(100vh - 100px);
+    max-width: calc(100vw - 100px);
+  }
+  #overlay .lcc-camera img {
+    max-height: calc(100vh - 100px);
+    max-width: calc(100vw - 100px);
+    object-fit: contain;
   }
 </style>
 </head>
@@ -172,6 +181,8 @@
     <div class="lcc-camera"> <img data-reload="30000" src="https://backend.roundshot.com/cams/44cfff4ff2a218a1178dbb105d95846a/medium"  alt="Hidden Peak"/><h4>Hidden Peak</h4></div>
     <div class="lcc-camera"> <img data-reload="1000" src="https://b9.hdrelay.com/camera/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4/snapshot"  alt="Snowbird Cam 1"/><h4>Snowbird Cam 1</h4></div>
     <div class="lcc-camera"> <img data-reload="1000" src="https://b9.hdrelay.com/camera/db2a69c5-66e9-4c48-a713-919eaf191fc1/snapshot"  alt="Snowbird Cam 2"/><h4>Snowbird Cam 2</h4></div>
+  </main>
+  <div id="overlay"> </div>
 </body>
 
 <script module>
@@ -211,117 +222,124 @@
     reloadImages();
   });
 
-  document.addEventListener('click', () => {
-    if (scaled) {
-        scaled.style.transform = "scale(1)"
-        scaled = null
-      }
+  const overlay = document.querySelector('#overlay');
+  function closeOverlay() {
+    overlay.style.display = 'none';
+    [...overlay.childNodes].forEach(x => x.remove());
+  }
+
+  overlay.addEventListener('click', () => {
+    if (overlay.style.display === 'block') {
+      closeOverlay();
+    } else {
+    }
   });
 
   let scaled = null;
   let index = 1;
 
-  function zoomIn(element) {
-    if (window.innerWidth < 660) { return; }
-    element.style.transform = 'scale(3)';
-    element.style.zIndex = index++;
-    element.setAttribute('class', 'lcc-camera zoomed')
-    scaled = element;
-  }
+  const maxWidth = window.matchMedia('(max-width: 667px)');
 
-  function zoomOut(element) {
-    scaled = element;
-    scaled.style.transform = 'scale(1)'
-    scaled.style.zIndex = 0;
-    scaled.setAttribute('class', 'lcc-camera')
-  }
+  maxWidth.addListener(e => {
+    if (e.matches) {
+      closeOverlay();
+    }
+  });
 
   function handleZoom(e) {
-      const camera = e.target.closest('.lcc-camera');
-      if (camera === null) {
-        return;
-      }
+    if (maxWidth.matches) {
+      return;
+    }
 
+    if (e.target.closest('body') === null) {
+      // current node is detached, exit early
+      return;
+    }
 
-      if (scaled) {
-        if (scaled === camera) {
-          zoomOut(scaled);
-          return;
-        }
-        zoomOut(scaled);
-      }
-      //camera.scrollIntoView();
-      zoomIn(camera);
-      e.stopPropagation();
+    const camera = e.target.closest('.lcc-camera');
+
+    if (camera === null) {
+      return;
+    }
+
+    if (overlay.style.display === 'block') {
+      closeOverlay();
+    } else {
+      const cloned = camera.cloneNode(true);
+
+      cloned._last = Date.now();
+      cloned._oldsrc = cloned.src;
+      cloned.classList.add('zoomed');
+
+      overlay.appendChild(cloned);
+      overlay.style.display = 'block';
+    }
   }
 
-  test('handleZoom', () => {
-    const doc = fragment`
-    <div id="cameras">
-      <div class="lcc-camera">
-        <img>
-      </div>
-      <div class="lcc-camera">
-        <img>
-    </div>
-    `
-    let stopPropagationWasCalled = false;
-    const camera = doc.querySelector('.lcc-camera:first-child');
-    const otherCamera = doc.querySelector('.lcc-camera:last-child');
-
-    handleZoom({
-      target: camera,
-      stopPropagation() { stopPropagationWasCalled = true; }
-    });
-
-    assert(() => camera.style.transform.includes('scale(3)'));
-    assert(() => !otherCamera.style.transform.includes('scale(3)'));
-    assert(() => stopPropagationWasCalled);
-    assert(() => camera.className.includes('zoomed'));
-    assert(() => !otherCamera.className.includes('zoomed'));
-    assert(() => scaled === camera);
-    assert(() => scaled !== otherCamera);
-
-    stopPropagationWasCalled = false;
-
-    handleZoom({
-      target: otherCamera,
-      stopPropagation() { stopPropagationWasCalled = true; }
-    });
-
-    assert(() => otherCamera.style.transform.includes('scale(3)'));
-    assert(() => !camera.style.transform.includes('scale(3)'));
-    assert(() => stopPropagationWasCalled);
-    assert(() => otherCamera.className.includes('zoomed'));
-    assert(() => !camera.className.includes('zoomed'));
-    assert(() => scaled === otherCamera);
-    assert(() => scaled !== camera);
-  });
+//  test('handleZoom', () => {
+//  const doc = fragment`
+//  <div id="cameras">
+//    <div class="lcc-camera">
+//      <img>
+//    </div>
+//    <div class="lcc-camera">
+//      <img>
+//  </div>
+//  `
+//  let stopPropagationWasCalled = false;
+//  const camera = doc.querySelector('.lcc-camera:first-child');
+//  const otherCamera = doc.querySelector('.lcc-camera:last-child');
+//
+//  handleZoom({
+//    target: camera,
+//    stopPropagation() { stopPropagationWasCalled = true; }
+//  });
+//
+//  assert(() => camera.style.transform.includes('scale(3)'));
+//  assert(() => !otherCamera.style.transform.includes('scale(3)'));
+//  assert(() => stopPropagationWasCalled);
+//  assert(() => camera.className.includes('zoomed'));
+//  assert(() => !otherCamera.className.includes('zoomed'));
+//  assert(() => scaled === camera);
+//  assert(() => scaled !== otherCamera);
+//
+//  stopPropagationWasCalled = false;
+//
+//  handleZoom({
+//    target: otherCamera,
+//    stopPropagation() { stopPropagationWasCalled = true; }
+//  });
+//
+//  assert(() => otherCamera.style.transform.includes('scale(3)'));
+//  assert(() => !camera.style.transform.includes('scale(3)'));
+//  assert(() => stopPropagationWasCalled);
+//  assert(() => otherCamera.className.includes('zoomed'));
+//  assert(() => !camera.className.includes('zoomed'));
+//  assert(() => scaled === otherCamera);
+//  assert(() => scaled !== camera);
+//});
 
   document.body.addEventListener('click', handleZoom);
-
-  allImages().forEach(img => {
-    img._last = Date.now();
-    img._oldsrc = img.src;
-  });
-
-
   function doReload() {
-    allImages().forEach(img=> {
+    allImages().forEach(img => {
+      if (img._last === undefined)  {
+        img._last = Date.now();
+        img._oldsrc = img.src;
+      }
+
       const reload = Number(img.dataset.reload) || 30000;
       const now = Date.now();
+
       if (now - img._last > reload) {
         img._last = now;
         img.src = `${img._oldsrc}?_=${now}`;
-        console.log("update")
       }
     });
   }
 
   function reloadImages() {
     doReload();
-
-    setTimeout(reloadImages, 500);
+    setTimeout(reloadImages, 200);
   }
 
   const HOT_RELOADTIMEOUT = location.hostname === 'localhost'  ?  200 : 60000;
@@ -375,4 +393,5 @@ if('serviceWorker' in navigator) {
            .then(function() { console.log("Service Worker Registered"); });
 }
 </script>
+
 </html>
