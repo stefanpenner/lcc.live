@@ -206,6 +206,11 @@
     return document.querySelectorAll('img');
   }
 
+  document.addEventListener('visibilitychange', () => {
+    console.log('visibilitychange');
+    reloadImages();
+  });
+
   document.addEventListener('click', () => {
     if (scaled) {
         scaled.style.transform = "scale(1)"
@@ -300,7 +305,8 @@
     img._oldsrc = img.src;
   });
 
-  function reloadImages() {
+
+  function doReload() {
     allImages().forEach(img=> {
       const reload = Number(img.dataset.reload) || 30000;
       const now = Date.now();
@@ -310,6 +316,10 @@
         console.log("update")
       }
     });
+  }
+
+  function reloadImages() {
+    doReload();
 
     setTimeout(reloadImages, 500);
   }
