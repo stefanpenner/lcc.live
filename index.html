@@ -370,6 +370,7 @@
     setTimeout(reloadImages, 500);
     floater();
     hotReload();
+    document.addEventListener('keyup', e => e.key === 'Escape' && closeOverlay());
   }
 
   async function hotReload() {
