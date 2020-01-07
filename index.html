@@ -232,6 +232,7 @@
     if (overlay.style.display === 'block') {
       closeOverlay();
     } else {
+
     }
   });
 
@@ -374,12 +375,12 @@
   }
 
   async function hotReload() {
-    const etag = async () => (await fetch("/", { method: "HEAD" })).headers.get('etag');
+    const etag = async () => (await fetch('/', { method: 'HEAD' })).headers.get('etag');
     const sleep = async time => new Promise(resolve => setTimeout(resolve, time));
     const original = await etag();
 
     while (original === await etag()) {
-      await sleep(location.port === "8888" ? 1000 : 60000);
+      await sleep(location.port === '8888' ? 1000 : 60000);
     }
 
     location.reload();
@@ -391,7 +392,7 @@
 if('serviceWorker' in navigator) {
   navigator.serviceWorker
            .register('/sw.js')
-           .then(function() { console.log("Service Worker Registered"); });
+           .then(function() { console.log('Service Worker Registered'); });
 }
 </script>
 
