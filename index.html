@@ -135,10 +135,11 @@
     left: 0;
     height: 100%;
     width: 100%;
-    background-color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(0, 0, 0, 0.8);
     z-index: 3;
     display: none;
     cursor: zoom-out;
+    backdrop-filter: blur(20px);
   }
 
   #overlay .lcc-camera {
@@ -147,14 +148,24 @@
     margin: 0 auto;
     cursor: zoom-out;
     margin-top: 50px;
+    background-color: transparent;
     max-height: calc(100vh - 100px);
     max-width: calc(100vw - 100px);
+    border: none;
+    box-shadow: none;
   }
+
+  #overlay .lcc-camera h4 {
+    display: none;
+  }
+
   #overlay .lcc-camera img {
+    background-color: transparent;
     max-height: calc(100vh - 100px);
     max-width: calc(100vw - 100px);
     object-fit: contain;
   }
+
 </style>
 </head>
 <body>
