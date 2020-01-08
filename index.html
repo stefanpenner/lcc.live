@@ -312,6 +312,7 @@
     cameraWasClicked(camera) {
       if (!camera.closest('body')) { return; }
       const cloned = camera.cloneNode(true);
+      cloned.removeAttribute('tab-index')
       this.empty();
       this.appendChild(cloned);
       this.show();
