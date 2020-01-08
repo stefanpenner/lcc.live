@@ -267,10 +267,11 @@
     if (overlay.style.display === 'block') {
       closeOverlay();
     } else {
+
       const cloned = camera.cloneNode(true);
 
-      cloned._last = Date.now();
-      cloned._oldsrc = cloned.src;
+      cloned._last = camera._last;
+      cloned._oldsrc = camera._oldsrc;
       cloned.classList.add('zoomed');
 
       overlay.appendChild(cloned);
