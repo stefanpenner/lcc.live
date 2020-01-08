@@ -379,7 +379,7 @@
 
     const maxWidth = window.matchMedia('(max-width: 667px)');
 
-    maxWidth.addListener(e => e.matches && document.querySelector('the-overlay').close());
+    maxWidth.addListener(e => e.matches && document.querySelector('the-overlay').hide());
 
     document.body.addEventListener('click', e => {
       maxWidth.matches === false && bodyClick(e, document.querySelector('the-overlay'));
