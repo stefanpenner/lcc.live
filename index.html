@@ -136,6 +136,10 @@
     backdrop-filter: blur(20px);
   }
 
+  the-overlay h4 {
+    display: none;
+  }
+
   the-overlay img {
     cursor: zoom-out;
     background-color: transparent;
@@ -249,15 +253,15 @@
 
   const suite = new TestRunner();
 
-  function isCamera(target) {
-    return target.closest('camera-feed') !== null;
+  function findCamera(target) {
+    return target.closest('camera-feed')
   }
 
-  suite.test('isCamera', async function() {
-    assert(() => isCamera(firstChild`<h1></h1>`) === false);
-    assert(() => isCamera(firstChild`<camera-feed></camera-feed>`) === true);
-    assert(() => isCamera(firstChild`<camera-feed><div></div></camera-feed>`.querySelector('div')) === true);
-    assert(() => isCamera(firstChild`<parent><div></div><camera-feed><p></p></camera-feed></parent>`.querySelector('div')) === false);
+  suite.test('findCame', async function() {
+    assert(() => findCamera(firstChild`<h1></h1>`) === null);
+    assert(() => findCamera(firstChild`<camera-feed></camera-feed>`) === null);
+    assert(() => findCamera(firstChild`<camera-feed><div></div></camera-feed>`.querySelector('div')).tagName === 'CAMERA_FEED');
+    assert(() => findCamera(firstChild`<parent><div></div><camera-feed><p></p></camera-feed></parent>`.querySelector('div')) === null);
   });
 
   const IMAGE_SRCS = new WeakMap();
@@ -304,6 +308,7 @@
     }
 
     cameraWasClicked(camera) {
+      if (!camera.closest('body')) { return; }
       const cloned = camera.cloneNode(true);
       this.empty();
       this.appendChild(cloned);
@@ -414,8 +419,9 @@
     maxWidth.addListener(e => e.matches && document.querySelector('the-overlay').hide());
 
     document.body.addEventListener('click', e => {
-      if (maxWidth.matches === false && isCamera(e.target)) {
-        document.querySelector('the-overlay').cameraWasClicked(e.target);
+      let camera;
+      if (maxWidth.matches === false && (camera = findCamera(e.target))) {
+        document.querySelector('the-overlay').cameraWasClicked(camera);
       };
     });
 
