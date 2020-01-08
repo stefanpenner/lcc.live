@@ -223,8 +223,10 @@
   }
 
   class TestRunner {
-    tests = [];
-    running = false;
+    constructor() {
+      this.tests = [];
+      this.running = false;
+    }
 
     test(name, execution) {
       const groupName = `test: ${name}`;
