@@ -189,7 +189,7 @@
   <the-overlay></the-overlay>
 </body>
 
-<script module>
+<script type="module">
   (async function hotReload() {
     const etag = async () => (await fetch('/', { method: 'HEAD' })).headers.get('etag');
     const sleep = async time => new Promise(resolve => setTimeout(resolve, time));
@@ -203,47 +203,71 @@
   }());
 </script>
 
-<script module>
-
+<script type="module">
+  // test helpers
   function fragment(string) {
     const template = document.createElement('template');
     template.innerHTML = string;
     return template.content
   }
 
+  function firstChild(string) {
+    return fragment(string).firstChild;
+  }
+
   async function assert(assertion, message) {
     const value = await assertion();
     const string = assertion.toString().replace('() => ', '');
+
     if (value) {
       console.log(`pass: ${string}`)
       return true;
     } else {
-      const message = `expected: 'true' but got: '${value}' for: ${string}`;
-      console.log(`fail: ${message}`);
+      throw new Error(`expected: 'true' but got: '${value}' for: ${string}`);
     }
   }
 
-  async function test(name, execution) {
-    const groupName = `test: ${name}`;
-    console.group(groupName);
-    await execution();
-    console.groupEnd(groupName);
-  }
+  class TestRunner {
+    tests = [];
+    running = false;
 
-  function bodyClick(e, overlay) {
-    if (e.target.closest('body') === null) {
-      // current node is detached, exit early
-      return;
+    test(name, execution) {
+      const groupName = `test: ${name}`;
+
+      this.tests.push({
+        groupName,
+        name,
+        execution
+      });
     }
 
-    const camera = e.target.closest('camera-feed');
-
-    if (camera === null) {
-      return;
+    async runTests() {
+      try {
+        this.running = true;
+        while (this.tests.length !== 0) {
+          const { groupName, execution } = this.tests.pop();
+          console.group(groupName);
+          await execution();
+          console.groupEnd(groupName);
+        }
+      } finally {
+        this.running = false;
+      }
     }
-
-    overlay.cameraWasClicked(camera);
   }
+
+  const suite = new TestRunner();
+
+  function isCamera(target) {
+    return target.closest('camera-feed') !== null;
+  }
+
+  suite.test('isCamera', async function() {
+    assert(() => isCamera(firstChild`<h1></h1>`) === false);
+    assert(() => isCamera(firstChild`<camera-feed></camera-feed>`) === true);
+    assert(() => isCamera(firstChild`<camera-feed><div></div></camera-feed>`.querySelector('div')) === true);
+    assert(() => isCamera(firstChild`<parent><div></div><camera-feed><p></p></camera-feed></parent>`.querySelector('div')) === false);
+  });
 
   const IMAGE_SRCS = new WeakMap();
   const RELOAD_IMAGE = Symbol('reload image');
@@ -256,19 +280,32 @@
     this.src = `${IMAGE_SRCS.get(this)}?_=${Date.now()}`;
   }
 
+  suite.test('image[RELOAD_IMAGE]', async function() {
+    const image = new Image();
+    image.src = 'foo';
+    image[RELOAD_IMAGE]();
+
+    assert(() => /=\d+$/.test(image.src));
+    const src = image.src;
+    await new Promise(resolve => setTimeout(resolve, 10));
+    image[RELOAD_IMAGE]();
+    assert(() => /=\d+$/.test(image.src));
+    assert(() => image.src !== src);
+  });
+
   class Overlay extends HTMLElement {
     constructor() {
       super();
       this.addEventListener('click', () => this.hide());
     }
 
-    removeChildNodes() {
+    empty() {
       [...this.childNodes].forEach(x => x.remove());
     }
 
     hide() {
       this.style.display = 'none';
-      this.removeChildNodes();
+      this.empty();
     }
 
     show() {
@@ -277,7 +314,7 @@
 
     cameraWasClicked(camera) {
       const cloned = camera.cloneNode(true);
-      this.removeChildNodes();
+      this.empty();
       this.appendChild(cloned);
       this.show();
     }
@@ -386,14 +423,18 @@
     maxWidth.addListener(e => e.matches && document.querySelector('the-overlay').hide());
 
     document.body.addEventListener('click', e => {
-      maxWidth.matches === false && bodyClick(e, document.querySelector('the-overlay'));
+      if (maxWidth.matches === false && isCamera(e.target)) {
+        document.querySelector('the-overlay').cameraWasClicked(e.target);
+      };
     });
 
     document.addEventListener('visibilitychange', () => {
       document.querySelectorAll('camera-feed,road-status').forEach(element => element.reload());
     });
 
-    if('serviceWorker' in navigator) {
+    // await suite.runTests();
+
+    if('serviceWorker' in navigator && location.protocol === 'https:') {
       await navigator.serviceWorker.register('/sw.js');
       console.log('Service Worker Registered');
     }
