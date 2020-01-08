@@ -32,7 +32,7 @@
     justify-content: center;
   }
 
-  .lcc-camera {
+  camera-feed {
     max-width: 320px;
     position: relative;
     margin: 0.3em;
@@ -47,26 +47,18 @@
   }
 
   @media only screen and (max-width: 667px) {
-    .lcc-camera {
+    camera-feed {
       width: 100%;
       max-width: initial;
       cursor: auto;
     }
-
-    .zoomed {
-      cursor: auto;
-    }
-
-    .zoomed {
-      cursor: auto;
-    }
   }
 
-  .lcc-camera:hover {
+  camera-feed:hover {
     box-shadow: 0px 0px 2px 0px rgba(0,0,0,0.6);
   }
 
-  .lcc-camera h4 {
+  camera-feed h4 {
     position: absolute;
     top: 0px;
     left: 0px;
@@ -82,12 +74,12 @@
     transition: all .2s ease;
   }
 
-  .lcc-camera:hover h4 {
+  camera-feed:hover h4 {
     font-size: 10px;
     line-height: 1.5em;
   }
 
-  .lcc-camera img {
+  camera-feed img {
     min-height: 180px;
     min-width: 320px;
     display: block;
@@ -95,7 +87,7 @@
     background: black;
   }
 
-  #road-status {
+  road-status {
     height: 100px;
     display: block;
     position: sticky;
@@ -105,31 +97,29 @@
     opacity: 0.9;
     width: 100%;
     transition: opacity 0.2s ease;
+    margin: 2em 0;
+    border-bottom: none;
   }
 
-  #road-status img {
+  road-status img {
     height: 100px;
     margin: 0 auto;
     display: block;
     position: relative;
   }
 
-  #road-status.top {
-    margin: 2em 0;
-    border-bottom: none;
-  }
-
-  #road-status.floater {
+  road-status.floater {
     height: 38px;
     background: white;
   }
-  #road-status.floater img { height: 38px; }
 
-  #road-status.scrolling-back-up, #road-status.scrolling-back-up img {
+  road-status.floater img { height: 38px; }
+
+  road-status.scrolling-back-up, road-status.scrolling-back-up img {
     height: 100px;
   }
 
-  #overlay {
+  the-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -142,63 +132,75 @@
     backdrop-filter: blur(20px);
   }
 
-  #overlay .lcc-camera {
+  the-overlay camera-feed {
     max-width: initial;
     height: auto;
     margin: 0 auto;
     cursor: zoom-out;
-    margin-top: 50px;
     background-color: transparent;
-    max-height: calc(100vh - 100px);
-    max-width: calc(100vw - 100px);
     border: none;
     box-shadow: none;
   }
 
-  #overlay .lcc-camera h4 {
+  the-overlay camera-feed h4 {
     display: none;
   }
 
-  #overlay .lcc-camera img {
+  the-overlay camera-feed img {
     background-color: transparent;
-    max-height: calc(100vh - 100px);
-    max-width: calc(100vw - 100px);
+    margin-top: 25px;
+    max-height: calc(100vh - 50px);
     object-fit: contain;
   }
-
 </style>
 </head>
+
 <body>
-  <header id="road-status" class="top">
-    <img data-reload="5000" src="https://www.udottraffic.utah.gov/AnimatedGifs/100032.gif" alt="210 highway status" onclick="document.body.scrollTop = document.documentElement.scrollTop = 0;">
-  </header>
+  <road-status reload="5000">
+    <img  src="https://www.udottraffic.utah.gov/AnimatedGifs/100032.gif" alt="210 highway status" >
+  </road-status>
 
   <main id="cameras">
-    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux14604.jpeg"                        alt="Mout of LCC"/><h4>Mouth of LC</h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux16265.jpeg"                        alt="Upper Vault"/><h4>Upper Vault</h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux16266.jpeg"                        alt="Lisa Falls"/><h4>Lisa Falls</h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux16267.jpeg"                        alt="Seven Turns"/><h4>Seven Turns</h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux16268.jpeg"                        alt="Tanners Flat"/><h4>Tanners Flat</h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux16269.jpeg"                        alt="White Pine"/><h4>White Pine</h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux16270.jpeg"                        alt="White Pine Parking Lot"/><h4>White Pine Parking Lot</h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://udottraffic.utah.gov/1_devices/aux16606.jpeg"                        alt="Wasatch Blvd at Bengal Blvd"/><h4>Wasatch Blvd at Bengal Blvd </h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://media.alta.com/resources/mtncam/Superior.jpg"                        alt="Mount Superior"/><h4>Mount Superior</h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://media.alta.com/resources/mtncam/Highrustler.jpg"                     alt="High Rustler"/><h4>High Rustler</h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://media.alta.com/resources/mtncam/Greeley.jpg"                         alt="East Greely"/><h4>East Greely</h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://media.alta.com/resources/mtncam/Devilscastle.jpg"                    alt="Devil's Castle"/><h4>Devil's Castle</h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://media.alta.com/resources/mtncam/sugar_peak.jpg"                      alt="Sugarloaf Peak"/><h4>Sugarloaf Peak</h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://media.alta.com/resources/mtncam/collins_dtc.jpg"                     alt="Salt Lake Valley"/><h4>Salt Lake Valley</h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://media.alta.com/resources/mtncam/Albion.jpg"                          alt="Albion Basin"/><h4>Albion Basin</h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://backend.roundshot.com/cams/48fc223c0ed88474ecc2f884bf39de63/medium"  alt="Powder Paradise"/><h4>Powder Paradise</h4></div>
-    <div class="lcc-camera"> <img data-reload="30000" src="https://backend.roundshot.com/cams/44cfff4ff2a218a1178dbb105d95846a/medium"  alt="Hidden Peak"/><h4>Hidden Peak</h4></div>
-    <div class="lcc-camera"> <img data-reload="1000" src="https://b9.hdrelay.com/camera/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4/snapshot"  alt="Snowbird Cam 1"/><h4>Snowbird Cam 1</h4></div>
-    <div class="lcc-camera"> <img data-reload="1000" src="https://b9.hdrelay.com/camera/db2a69c5-66e9-4c48-a713-919eaf191fc1/snapshot"  alt="Snowbird Cam 2"/><h4>Snowbird Cam 2</h4></div>
-    <div class="lcc-camera"> <img data-reload="1000" src="https://b9.hdrelay.com/camera/5780754f-8da1-4223-ab8a-6755d84cbc10/snapshot"  alt="Snowbird Cam 3"><h4>Snowbird Cam 3</h4></div>
+    <camera-feed reload="30000"> <img src="https://udottraffic.utah.gov/1_devices/aux14604.jpeg"                        alt="Mout of LCC"/><h4>Mouth of LC</h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://udottraffic.utah.gov/1_devices/aux16265.jpeg"                        alt="Upper Vault"/><h4>Upper Vault</h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://udottraffic.utah.gov/1_devices/aux16266.jpeg"                        alt="Lisa Falls"/><h4>Lisa Falls</h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://udottraffic.utah.gov/1_devices/aux16267.jpeg"                        alt="Seven Turns"/><h4>Seven Turns</h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://udottraffic.utah.gov/1_devices/aux16268.jpeg"                        alt="Tanners Flat"/><h4>Tanners Flat</h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://udottraffic.utah.gov/1_devices/aux16269.jpeg"                        alt="White Pine"/><h4>White Pine</h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://udottraffic.utah.gov/1_devices/aux16270.jpeg"                        alt="White Pine Parking Lot"/><h4>White Pine Parking Lot</h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://udottraffic.utah.gov/1_devices/aux16606.jpeg"                        alt="Wasatch Blvd at Bengal Blvd"/><h4>Wasatch Blvd at Bengal Blvd </h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://media.alta.com/resources/mtncam/Superior.jpg"                        alt="Mount Superior"/><h4>Mount Superior</h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://media.alta.com/resources/mtncam/Highrustler.jpg"                     alt="High Rustler"/><h4>High Rustler</h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://media.alta.com/resources/mtncam/Greeley.jpg"                         alt="East Greely"/><h4>East Greely</h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://media.alta.com/resources/mtncam/Devilscastle.jpg"                    alt="Devil's Castle"/><h4>Devil's Castle</h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://media.alta.com/resources/mtncam/sugar_peak.jpg"                      alt="Sugarloaf Peak"/><h4>Sugarloaf Peak</h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://media.alta.com/resources/mtncam/collins_dtc.jpg"                     alt="Salt Lake Valley"/><h4>Salt Lake Valley</h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://media.alta.com/resources/mtncam/Albion.jpg"                          alt="Albion Basin"/><h4>Albion Basin</h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://backend.roundshot.com/cams/48fc223c0ed88474ecc2f884bf39de63/medium"  alt="Powder Paradise"/><h4>Powder Paradise</h4></camera-feed>
+    <camera-feed reload="30000"> <img src="https://backend.roundshot.com/cams/44cfff4ff2a218a1178dbb105d95846a/medium"  alt="Hidden Peak"/><h4>Hidden Peak</h4></camera-feed>
+    <camera-feed reload="1000"> <img src="https://b9.hdrelay.com/camera/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4/snapshot"  alt="Snowbird Cam 1"/><h4>Snowbird Cam 1</h4></camera-feed>
+    <camera-feed reload="1000"> <img src="https://b9.hdrelay.com/camera/db2a69c5-66e9-4c48-a713-919eaf191fc1/snapshot"  alt="Snowbird Cam 2"/><h4>Snowbird Cam 2</h4></camera-feed>
+    <camera-feed reload="1000"> <img src="https://b9.hdrelay.com/camera/5780754f-8da1-4223-ab8a-6755d84cbc10/snapshot"  alt="Snowbird Cam 3"><h4>Snowbird Cam 3</h4></camera-feed>
   </main>
-  <div id="overlay"> </div>
+  <the-overlay></the-overlay>
 </body>
 
 <script module>
+  (async function hotReload() {
+    const etag = async () => (await fetch('/', { method: 'HEAD' })).headers.get('etag');
+    const sleep = async time => new Promise(resolve => setTimeout(resolve, time));
+    const original = await etag();
+
+    while (original === await etag()) {
+      await sleep(location.port === '8888' ? 1000 : 60000);
+    }
+
+    location.reload();
+  }());
+</script>
+
+<script module>
+
   function fragment(string) {
     const template = document.createElement('template');
     template.innerHTML = string;
@@ -224,190 +226,170 @@
     console.groupEnd(groupName);
   }
 
-  const cameraStyle = document.createElement('style');
-
-  function allImages() {
-    return document.querySelectorAll('img');
-  }
-
-  document.addEventListener('visibilitychange', () => {
-    console.log('visibilitychange');
-    reloadImages();
-  });
-
-  const overlay = document.querySelector('#overlay');
-  function closeOverlay() {
-    overlay.style.display = 'none';
-    [...overlay.childNodes].forEach(x => x.remove());
-  }
-
-  overlay.addEventListener('click', () => {
-    if (overlay.style.display === 'block') {
-      closeOverlay();
-    } else {
-
-    }
-  });
-
-  let scaled = null;
-  let index = 1;
-
-  const maxWidth = window.matchMedia('(max-width: 667px)');
-
-  maxWidth.addListener(e => {
-    if (e.matches) {
-      closeOverlay();
-    }
-  });
-
-  function handleZoom(e) {
-    if (maxWidth.matches) {
-      return;
-    }
-
+  function bodyClick(e, overlay) {
     if (e.target.closest('body') === null) {
       // current node is detached, exit early
       return;
     }
 
-    const camera = e.target.closest('.lcc-camera');
+    const camera = e.target.closest('camera-feed');
 
     if (camera === null) {
       return;
     }
 
-    if (overlay.style.display === 'block') {
-      closeOverlay();
-    } else {
+    overlay.cameraWasClicked(camera);
+  }
 
-      const cloned = camera.cloneNode(true);
+  const IMAGE_SRCS = new WeakMap();
+  const RELOAD_IMAGE = Symbol('reload image');
 
-      cloned._last = camera._last;
-      cloned._oldsrc = camera._oldsrc;
-      cloned.classList.add('zoomed');
-
-      overlay.appendChild(cloned);
-      overlay.style.display = 'block';
+  HTMLImageElement.prototype[RELOAD_IMAGE] = function() {
+    if (!IMAGE_SRCS.has(this))  {
+      IMAGE_SRCS.set(this, this.src);
     }
+
+    this.src = `${IMAGE_SRCS.get(this)}?_=${Date.now()}`;
   }
 
-//  test('handleZoom', () => {
-//  const doc = fragment`
-//  <div id="cameras">
-//    <div class="lcc-camera">
-//      <img>
-//    </div>
-//    <div class="lcc-camera">
-//      <img>
-//  </div>
-//  `
-//  let stopPropagationWasCalled = false;
-//  const camera = doc.querySelector('.lcc-camera:first-child');
-//  const otherCamera = doc.querySelector('.lcc-camera:last-child');
-//
-//  handleZoom({
-//    target: camera,
-//    stopPropagation() { stopPropagationWasCalled = true; }
-//  });
-//
-//  assert(() => camera.style.transform.includes('scale(3)'));
-//  assert(() => !otherCamera.style.transform.includes('scale(3)'));
-//  assert(() => stopPropagationWasCalled);
-//  assert(() => camera.className.includes('zoomed'));
-//  assert(() => !otherCamera.className.includes('zoomed'));
-//  assert(() => scaled === camera);
-//  assert(() => scaled !== otherCamera);
-//
-//  stopPropagationWasCalled = false;
-//
-//  handleZoom({
-//    target: otherCamera,
-//    stopPropagation() { stopPropagationWasCalled = true; }
-//  });
-//
-//  assert(() => otherCamera.style.transform.includes('scale(3)'));
-//  assert(() => !camera.style.transform.includes('scale(3)'));
-//  assert(() => stopPropagationWasCalled);
-//  assert(() => otherCamera.className.includes('zoomed'));
-//  assert(() => !camera.className.includes('zoomed'));
-//  assert(() => scaled === otherCamera);
-//  assert(() => scaled !== camera);
-//});
+  class Overlay extends HTMLElement {
+    constructor() {
+      super();
+      this.addEventListener('click', () => this.hide());
+    }
 
-  document.body.addEventListener('click', handleZoom);
-  function doReload() {
-    allImages().forEach(img => {
-      if (img._last === undefined)  {
-        img._last = Date.now();
-        img._oldsrc = img.src;
-      }
+    removeChildNodes() {
+      [...this.childNodes].forEach(x => x.remove());
+    }
 
-      const reload = Number(img.dataset.reload) || 30000;
-      const now = Date.now();
+    hide() {
+      this.style.display = 'none';
+      this.removeChildNodes();
+    }
 
-      if (now - img._last > reload) {
-        img._last = now;
-        img.src = `${img._oldsrc}?_=${now}`;
-      }
-    });
-  }
+    show() {
+      this.style.display = 'block';
+    }
 
-  function reloadImages() {
-    doReload();
-    setTimeout(reloadImages, 200);
-  }
-
-  const HOT_RELOADTIMEOUT = location.hostname === 'localhost'  ?  200 : 60000;
-
-  // TODO: test
-  function floater() {
-    let lastScrollTop = 0;
-    document.addEventListener('scroll', function(e) {
-      const { classList } = document.querySelector('#road-status');
-      const { scrollTop } = document.body.parentElement;
-      const scrollingDown = lastScrollTop - scrollTop < 0;
-
-      if (scrollTop <= 5) {
-        classList.add('top');
-        classList.remove('floater');
-        document.body.classList.remove('floater')
+    cameraWasClicked(camera) {
+      if (this.style.display === 'block') {
+         this.hide();
       } else {
-        document.body.classList.remove('floater')
-        classList.remove('top');
-        classList.add('floater');
+        const cloned = camera.cloneNode(true);
+        this.removeChildNodes();
+        this.appendChild(cloned);
+        this.show();
       }
-
-      lastScrollTop = scrollTop;
-    });
+    }
   }
 
-  async function main() {
-    setTimeout(reloadImages, 500);
-    floater();
-    hotReload();
-    document.addEventListener('keyup', e => e.key === 'Escape' && closeOverlay());
-  }
+  class RoadStatus extends HTMLElement {
+    constructor() {
+      super();
 
-  async function hotReload() {
-    const etag = async () => (await fetch('/', { method: 'HEAD' })).headers.get('etag');
-    const sleep = async time => new Promise(resolve => setTimeout(resolve, time));
-    const original = await etag();
+      let lastScrollTop = 0;
 
-    while (original === await etag()) {
-      await sleep(location.port === '8888' ? 1000 : 60000);
+      this._onScroll = e => {
+        const { classList } = this;
+        const { scrollTop } = this.ownerDocument.body.parentElement;
+        const scrollingDown = lastScrollTop - scrollTop < 0;
+
+        if (scrollTop <= 5) {
+          classList.remove('floater');
+        } else {
+          classList.add('floater');
+        }
+
+        lastScrollTop = scrollTop;
+      };
+
+      this.addEventListener('click', () => this.ownerDocument.documentElement.scrollTop = 0);
     }
 
-    location.reload();
+    reload() {
+      this.querySelectorAll('img').forEach(img => img[RELOAD_IMAGE]());
+    }
+
+    connectedCallback() {
+      this.ownerDocument.addEventListener('scroll', this._onScroll, true);
+      const again = () => {
+        this._timer = setTimeout(() => {
+          this.reload();
+          again();
+        }, Number(this.getAttribute('reload')));
+      }
+
+      again();
+    }
+
+    disconnectedCallback() {
+      this.ownerDocument.removeEventListener('scroll', this._onScroll);
+      clearTimeout(this._timer);
+    }
   }
 
-  main();
-</script>
-<script>
-if('serviceWorker' in navigator) {
-  navigator.serviceWorker
-           .register('/sw.js')
-           .then(function() { console.log('Service Worker Registered'); });
-}
-</script>
+  class CameraFeed extends HTMLElement {
+    constructor() {
+      super();
+      this._timer = null;
+    }
 
+    attributeChangedCallback() {
+      this.connectedCallback();
+    }
+
+    disconnectedCallback() {
+      clearTimeout(this._timer);
+    }
+
+    reload() {
+      this.querySelectorAll('img').forEach(img => img[RELOAD_IMAGE]());
+    }
+
+    connectedCallback() {
+      this.disconnectedCallback();
+
+      const again = () => {
+        this._timer = setTimeout(() => {
+          this.reload();
+          again();
+        }, Number(this.getAttribute('reload')));
+      }
+
+      again();
+    }
+  }
+
+  (async function main() {
+    customElements.define('camera-feed', CameraFeed);
+    customElements.define('road-status', RoadStatus);
+    customElements.define('the-overlay', Overlay);
+
+    document.addEventListener('keyup', e => {
+      switch (e.key) {
+        case 'Escape': {
+          document.querySelector('the-overlay').hide();
+          break;
+        }
+      }
+    });
+
+    const maxWidth = window.matchMedia('(max-width: 667px)');
+
+    maxWidth.addListener(e => e.matches && document.querySelector('the-overlay').close());
+
+    document.body.addEventListener('click', e => {
+      maxWidth.matches === false && bodyClick(e, document.querySelector('the-overlay'));
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      document.querySelectorAll('camera-feed,road-status').forEach(element => element.reload());
+    });
+
+    if('serviceWorker' in navigator) {
+      await navigator.serviceWorker.register('/sw.js');
+      console.log('Service Worker Registered');
+    }
+  }());
+</script>
 </html>
