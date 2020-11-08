@@ -1,8 +1,8 @@
 // test helpers
 function fragment(string) {
-  const template = document.createElement('template');
+  const template = document.createElement("template");
   template.innerHTML = string;
-  return template.content
+  return template.content;
 }
 
 function firstChild(string) {
@@ -11,10 +11,10 @@ function firstChild(string) {
 
 async function assert(assertion, _message) {
   const value = await assertion();
-  const string = assertion.toString().replace('() => ', '');
+  const string = assertion.toString().replace("() => ", "");
 
   if (value) {
-    console.log(`pass: ${string}`)
+    console.log(`pass: ${string}`);
     return true;
   } else {
     throw new Error(`expected: 'true' but got: '${value}' for: ${string}`);
@@ -33,7 +33,7 @@ class TestRunner {
     this.tests.push({
       groupName,
       name,
-      execution
+      execution,
     });
   }
 
@@ -55,35 +55,49 @@ class TestRunner {
 const suite = new TestRunner();
 
 function findCamera(target) {
-  return target.closest('camera-feed')
+  return target.closest("camera-feed");
 }
 
-suite.test('findCame', async function() {
+suite.test("findCame", async function () {
   assert(() => findCamera(firstChild`<h1></h1>`) === null);
   assert(() => findCamera(firstChild`<camera-feed></camera-feed>`) === null);
-  assert(() => findCamera(firstChild`<camera-feed><div></div></camera-feed>`.querySelector('div')).tagName === 'CAMERA_FEED');
-  assert(() => findCamera(firstChild`<parent><div></div><camera-feed><p></p></camera-feed></parent>`.querySelector('div')) === null);
+  assert(
+    () =>
+      findCamera(
+        firstChild`<camera-feed><div></div></camera-feed>`.querySelector("div")
+      ).tagName === "CAMERA_FEED"
+  );
+  assert(
+    () =>
+      findCamera(
+        firstChild`<parent><div></div><camera-feed><p></p></camera-feed></parent>`.querySelector(
+          "div"
+        )
+      ) === null
+  );
 });
 
 const IMAGE_SRCS = new WeakMap();
-const RELOAD_IMAGE = Symbol('reload image');
+const RELOAD_IMAGE = Symbol("reload image");
 
-HTMLImageElement.prototype[RELOAD_IMAGE] = function() {
-  if (!IMAGE_SRCS.has(this))  {
+HTMLImageElement.prototype[RELOAD_IMAGE] = function () {
+  if (!IMAGE_SRCS.has(this)) {
     IMAGE_SRCS.set(this, this.src);
   }
 
+  this.referrerPolicy = "no-referrer";
   this.src = `${IMAGE_SRCS.get(this)}?_=${Date.now()}`;
-}
+};
 
-suite.test('image[RELOAD_IMAGE]', async function() {
+suite.test("image[RELOAD_IMAGE]", async function () {
   const image = new Image();
-  image.src = 'foo';
+  image.referrerPolicy = "no-referrer";
+  image.src = "foo";
   image[RELOAD_IMAGE]();
 
   assert(() => /=\d+$/.test(image.src));
   const src = image.src;
-  await new Promise(resolve => setTimeout(resolve, 10));
+  await new Promise((resolve) => setTimeout(resolve, 10));
   image[RELOAD_IMAGE]();
   assert(() => /=\d+$/.test(image.src));
   assert(() => image.src !== src);
@@ -92,26 +106,28 @@ suite.test('image[RELOAD_IMAGE]', async function() {
 class Overlay extends HTMLElement {
   constructor() {
     super();
-    this.addEventListener('click', () => this.hide());
+    this.addEventListener("click", () => this.hide());
   }
 
   empty() {
-    [...this.childNodes].forEach(x => x.remove());
+    [...this.childNodes].forEach((x) => x.remove());
   }
 
   hide() {
-    this.style.display = 'none';
+    this.style.display = "none";
     this.empty();
   }
 
   show() {
-    this.style.display = 'block';
+    this.style.display = "block";
   }
 
   cameraWasClicked(camera) {
-    if (!camera.closest('body')) { return; }
+    if (!camera.closest("body")) {
+      return;
+    }
     const cloned = camera.cloneNode(true);
-    cloned.removeAttribute('tab-index')
+    cloned.removeAttribute("tab-index");
     this.empty();
     this.appendChild(cloned);
     this.show();
@@ -121,40 +137,43 @@ class Overlay extends HTMLElement {
 class RoadStatus extends HTMLElement {
   constructor() {
     super();
-    this._onScroll = _ => {
+    this._onScroll = (_) => {
       const { classList } = this;
       const { scrollTop } = this.ownerDocument.body.parentElement;
 
       if (scrollTop <= 5) {
-        classList.remove('floater');
+        classList.remove("floater");
       } else {
-        classList.add('floater');
+        classList.add("floater");
       }
 
       lastScrollTop = scrollTop;
     };
 
-    this.addEventListener('click', () => this.ownerDocument.documentElement.scrollTop = 0);
+    this.addEventListener(
+      "click",
+      () => (this.ownerDocument.documentElement.scrollTop = 0)
+    );
   }
 
   reload() {
-    this.querySelectorAll('img').forEach(img => img[RELOAD_IMAGE]());
+    this.querySelectorAll("img").forEach((img) => img[RELOAD_IMAGE]());
   }
 
   connectedCallback() {
-    this.ownerDocument.addEventListener('scroll', this._onScroll, true);
+    this.ownerDocument.addEventListener("scroll", this._onScroll, true);
     const again = () => {
       this._timer = setTimeout(() => {
         this.reload();
         again();
-      }, Number(this.getAttribute('reload')));
-    }
+      }, Number(this.getAttribute("reload")));
+    };
 
     again();
   }
 
   disconnectedCallback() {
-    this.ownerDocument.removeEventListener('scroll', this._onScroll);
+    this.ownerDocument.removeEventListener("scroll", this._onScroll);
     clearTimeout(this._timer);
   }
 }
@@ -174,7 +193,7 @@ class CameraFeed extends HTMLElement {
   }
 
   reload() {
-    this.querySelectorAll('img').forEach(img => img[RELOAD_IMAGE]());
+    this.querySelectorAll("img").forEach((img) => img[RELOAD_IMAGE]());
   }
 
   connectedCallback() {
@@ -184,49 +203,55 @@ class CameraFeed extends HTMLElement {
       this._timer = setTimeout(() => {
         this.reload();
         again();
-      }, Number(this.getAttribute('reload')));
-    }
+      }, Number(this.getAttribute("reload")));
+    };
 
     again();
   }
 }
 
 (async function main() {
-  customElements.define('camera-feed', CameraFeed);
-  customElements.define('road-status', RoadStatus);
-  customElements.define('the-overlay', Overlay);
+  customElements.define("camera-feed", CameraFeed);
+  customElements.define("road-status", RoadStatus);
+  customElements.define("the-overlay", Overlay);
 
-  document.addEventListener('keyup', e => {
+  document.addEventListener("keyup", (e) => {
     switch (e.key) {
-      case 'Escape': {
-        document.querySelector('the-overlay').hide();
+      case "Escape": {
+        document.querySelector("the-overlay").hide();
         break;
       }
-      case 'Enter': {
+      case "Enter": {
         const { activeElement } = document;
-        if (activeElement.closest('camera-feed') && !activeElement.closest('the-overlay')) {
-          document.querySelector('the-overlay').cameraWasClicked(activeElement);
+        if (
+          activeElement.closest("camera-feed") &&
+          !activeElement.closest("the-overlay")
+        ) {
+          document.querySelector("the-overlay").cameraWasClicked(activeElement);
         }
         break;
       }
     }
   });
 
-  const maxWidth = window.matchMedia('(max-width: 667px)');
+  const maxWidth = window.matchMedia("(max-width: 667px)");
 
-  maxWidth.addListener(e => e.matches && document.querySelector('the-overlay').hide());
+  maxWidth.addListener(
+    (e) => e.matches && document.querySelector("the-overlay").hide()
+  );
 
-  document.body.addEventListener('click', e => {
+  document.body.addEventListener("click", (e) => {
     let camera;
     if (maxWidth.matches === false && (camera = findCamera(e.target))) {
-      document.querySelector('the-overlay').cameraWasClicked(camera);
-    };
+      document.querySelector("the-overlay").cameraWasClicked(camera);
+    }
   });
 
-  document.addEventListener('visibilitychange', () => {
-    document.querySelectorAll('camera-feed,road-status').forEach(element => element.reload());
+  document.addEventListener("visibilitychange", () => {
+    document
+      .querySelectorAll("camera-feed,road-status")
+      .forEach((element) => element.reload());
   });
 
   // await suite.runTests();
-
-}());
+})();
