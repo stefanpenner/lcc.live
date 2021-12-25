@@ -137,6 +137,7 @@ class Overlay extends HTMLElement {
 class RoadStatus extends HTMLElement {
   constructor() {
     super();
+
     this._onScroll = (_) => {
       const { classList } = this;
       const { scrollTop } = this.ownerDocument.body.parentElement;
@@ -146,8 +147,6 @@ class RoadStatus extends HTMLElement {
       } else {
         classList.add("floater");
       }
-
-      lastScrollTop = scrollTop;
     };
 
     this.addEventListener(
