@@ -97,7 +97,7 @@ suite.test("image[RELOAD_IMAGE]", async function () {
 
   assert(() => /=\d+$/.test(image.src));
   const src = image.src;
-  await new Promise((resolve) => setTimeout(resolve, 10));
+  await new Promise((resolve) => setTimeout(resolve, Math.random() * 20));
   image[RELOAD_IMAGE]();
   assert(() => /=\d+$/.test(image.src));
   assert(() => image.src !== src);
