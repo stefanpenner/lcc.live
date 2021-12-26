@@ -58,7 +58,7 @@ function findCamera(target) {
   return target.closest("camera-feed");
 }
 
-suite.test("findCame", async function () {
+suite.test("findCam", async function () {
   assert(() => findCamera(firstChild`<h1></h1>`) === null);
   assert(() => findCamera(firstChild`<camera-feed></camera-feed>`) === null);
   assert(
