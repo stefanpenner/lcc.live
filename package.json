@@ -1,0 +1,14 @@
+{
+  "name": "lcc.live",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:stefanpenner/lcc.live",
+  "author": "Stefan Penner <stefan.penner@gmail.com>",
+  "private": true,
+  "scripts": {
+    "start": "index.js"
+  },
+  "dependencies": {
+    "express": "^4.17.2"
+  }
+}
