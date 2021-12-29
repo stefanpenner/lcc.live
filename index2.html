@@ -453,6 +453,13 @@
           src="/hdrelay/b9/db2a69c5-66e9-4c48-a713-919eaf191fc1"
           alt="Snowbird Cam 2"
         />
+        <h4>Snowbird Cam 2</h4>
+      </camera-feed>
+      <camera-feed tabindex="25" reload="30000">
+        <img
+          src="/hdrelay/b9/db2a69c5-66e9-4c48-a713-919eaf191fc1"
+          alt="Snowbird Cam 2"
+        />
         <h4>Snowbird Cam 3</h4>
       </camera-feed>
       <camera-feed tabindex="26" relative="30000">
@@ -491,19 +498,28 @@
     <script>
       const SRCS = new WeakMap();
 
-      for (const camera of [...document.querySelectorAll("camera-feed")]) {
-        (async function reload() {
-          const image = camera.querySelector('img');
-          await new Promise((resolve) =>
-            setTimeout(resolve, Number(camera.getAttribute('reload')))
-          );
-          if (SRCS.has(image) === false) {
-            SRCS.set(image, image.src);
-          }
-          image.src = `${SRCS.get(image)}?_x=${Date.now()}`;
-        })();
+      for (const image of [...document.querySelectorAll("img")]) {
+        if (SRCS.has(image) === false) {
+          SRCS.set(image, image.src);
+        }
+        image.onerror = function () {
+          this.src = "/oops.png";
+        };
       }
 
+      (async function reload() {
+        for (const camera of [...document.querySelectorAll("camera-feed")]) {
+          const image = camera.querySelector("img");
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.random() * 10_000)
+          );
+          const original = SRCS.get(image);
+          const sep = origin.includes("?") ? "&" : "?";
+
+          image.src = `${original}${sep}_x=${Date.now()}`;
+        }
+        reload();
+      })();
     </script>
   </body>
 </html>
