@@ -7,7 +7,7 @@
   "private": true,
   "scripts": {
     "start": "./index.mjs",
-    "format": "prettier -w ."
+    "fmt": "prettier -w ."
   },
   "dependencies": {
     "async-disk-cache": "^2.1.0",

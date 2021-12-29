@@ -200,7 +200,7 @@
         box-shadow: rgb(4 17 29 / 25%) 0px 0px 8px 0px;
         transition: all 0.1s ease 0s;
         transform: translateY(-2px);
-        font-weight: 500;
+        font-weight: bold;
         color: black;
       }
 
@@ -488,5 +488,22 @@
         <h4>Tram Bullpen</h4>
       </camera-feed>
     </section>
+    <script>
+      const SRCS = new WeakMap();
+
+      for (const camera of [...document.querySelectorAll("camera-feed")]) {
+        (async function reload() {
+          const image = camera.querySelector('img');
+          await new Promise((resolve) =>
+            setTimeout(resolve, Number(camera.getAttribute('reload')))
+          );
+          if (SRCS.has(image) === false) {
+            SRCS.set(image, image.src);
+          }
+          image.src = `${SRCS.get(image)}?_x=${Date.now()}`;
+        })();
+      }
+
+    </script>
   </body>
 </html>
