@@ -1,9 +1,7 @@
 {
   "short_name": "lcc.live",
   "name": "LCC [Live]",
-  "icons": [
-
-  ],
+  "icons": [],
   "start_url": "/?source=pwa",
   "background_color": "#3367D6",
   "display": "standalone",

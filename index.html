@@ -2,282 +2,402 @@
 <html lang="en">
   <head>
     <title>[LIVE] - LCC</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="white">
-    <meta name="theme-color" content="#ffffff"/>
-    <link rel="icon" sizes="192x192" href="icon.png">
-    <link rel="apple-touch-icon" href="ios-icon.png">
-    <meta name="msapplication-square310x310logo" content="icon_largetile.png">
-    <meta name="Description" content="LCC Live">
-    <link rel="manifest" href="/manifest.json">
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="white" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" sizes="192x192" href="icon.png" />
+    <link rel="apple-touch-icon" href="ios-icon.png" />
+    <meta name="msapplication-square310x310logo" content="icon_largetile.png" />
+    <meta name="Description" content="LCC Live" />
+    <link rel="manifest" href="/manifest.json" />
     <style>
-@media (prefers-color-scheme: dark) {
-  /* TODO */
-}
+      @media (prefers-color-scheme: dark) {
+        /* TODO */
+      }
 
-  html {
-    margin: 0;
-    background-color: #fff;
-    font-family: Arial,sans-serif;
-    font-size: 14px;
-    line-height: 20px;
-    color: #333;
-  }
+      html {
+        margin: 0;
+        background-color: #fff;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        line-height: 20px;
+        color: #333;
+      }
 
-  body {
-    margin: 0 auto;
-  }
+      body {
+        margin: 0 auto;
+      }
 
-  #cameras {
-    margin: 2em 0;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
+      #cameras {
+        margin: 2em 0;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
 
-  camera-feed {
-    max-width: 320px;
-    position: relative;
-    margin: 0.3em;
-    overflow: hidden;
-    border-radius: 10px;
-    background-color: black;
-    box-shadow: 0px 0px 1px 0px rgba(0,0,0,0.3);
-    transition: all .2s ease;
-    cursor: zoom-in;
-    padding-bottom: 1em;
-    background: white;
-  }
+      camera-feed {
+        max-width: 320px;
+        position: relative;
+        margin: 0.3em;
+        overflow: hidden;
+        border-radius: 10px;
+        background-color: black;
+        box-shadow: 0px 0px 1px 0px rgba(0, 0, 0, 0.3);
+        transition: all 0.2s ease;
+        cursor: zoom-in;
+        padding-bottom: 1em;
+        background: white;
+      }
 
-  @media only screen and (max-width: 667px) {
-    camera-feed {
-      width: 100%;
-      max-width: initial;
-      cursor: auto;
-    }
-  }
+      @media only screen and (max-width: 667px) {
+        camera-feed {
+          width: 100%;
+          max-width: initial;
+          cursor: auto;
+        }
+      }
 
-  camera-feed:hover {
-    box-shadow: 0px 0px 2px 0px rgba(0,0,0,0.6);
-  }
+      camera-feed:hover {
+        box-shadow: 0px 0px 2px 0px rgba(0, 0, 0, 0.6);
+      }
 
-  camera-feed h4 {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    color: black;
-    margin: 0;
-    padding: 0;
-    background: rgba(255,255,255,1);
-    font-size: 14px;
-    width: 100%;
-    font-weight: 300;
-    line-height: 2em;
-    text-align: center;
-    transition: all .2s ease;
-  }
+      camera-feed h4 {
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        color: black;
+        margin: 0;
+        padding: 0;
+        background: rgba(255, 255, 255, 1);
+        font-size: 14px;
+        width: 100%;
+        font-weight: 300;
+        line-height: 2em;
+        text-align: center;
+        transition: all 0.2s ease;
+      }
 
-  camera-feed:hover h4 {
-    font-size: 10px;
-    line-height: 1.5em;
-  }
+      camera-feed:hover h4 {
+        font-size: 10px;
+        line-height: 1.5em;
+      }
 
-  camera-feed img {
-    min-height: 180px;
-    min-width: 320px;
-    display: block;
-    width: 100%;
-    background: black;
-    object-fit: cover;
-  }
+      camera-feed img {
+        min-height: 180px;
+        min-width: 320px;
+        display: block;
+        width: 100%;
+        background: black;
+        object-fit: cover;
+      }
 
-  road-status {
-    height: 100px;
-    display: block;
-    position: sticky;
-    top: 0;
-    left: 0px;
-    z-index: 2;
-    opacity: 0.9;
-    width: 100%;
-    transition: opacity 0.2s ease;
-    margin: 2em 0;
-    border-bottom: none;
-  }
+      road-status {
+        height: 100px;
+        display: block;
+        position: sticky;
+        top: 0;
+        left: 0px;
+        z-index: 2;
+        opacity: 0.9;
+        width: 100%;
+        transition: opacity 0.2s ease;
+        margin: 2em 0;
+        border-bottom: none;
+      }
 
-  road-status img {
-    height: 100px;
-    margin: 0 auto;
-    display: block;
-    position: relative;
-  }
+      road-status img {
+        height: 100px;
+        margin: 0 auto;
+        display: block;
+        position: relative;
+      }
 
-  road-status.floater {
-    height: 38px;
-    background: white;
-  }
+      road-status.floater {
+        height: 38px;
+        background: white;
+      }
 
-  road-status.floater img { height: 38px; }
+      road-status.floater img {
+        height: 38px;
+      }
 
-  road-status.scrolling-back-up, road-status.scrolling-back-up img {
-    height: 100px;
-  }
+      road-status.scrolling-back-up,
+      road-status.scrolling-back-up img {
+        height: 100px;
+      }
 
-  the-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
-    z-index: 3;
-    display: none;
-    cursor: zoom-out;
-    backdrop-filter: blur(20px);
-  }
+      the-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        z-index: 3;
+        display: none;
+        cursor: zoom-out;
+        backdrop-filter: blur(20px);
+      }
 
-  the-overlay h4 {
-    display: none;
-  }
+      the-overlay h4 {
+        display: none;
+      }
 
-  the-overlay camera-feed {
-    margin: 0;
-  }
+      the-overlay camera-feed {
+        margin: 0;
+      }
 
-  the-overlay img {
-    cursor: zoom-out;
-    background-color: transparent;
-    margin: 0 auto;
-    width: 100%;
-    height: 100%;
-    max-width: 100wh;
-    max-height: 100vh;
-    object-fit: contain;
-  }
+      the-overlay img {
+        cursor: zoom-out;
+        background-color: transparent;
+        margin: 0 auto;
+        width: 100%;
+        height: 100%;
+        max-width: 100wh;
+        max-height: 100vh;
+        object-fit: contain;
+      }
     </style>
   </head>
 
   <body>
-
     <road-status reload="5000">
-      <img src="https://www.udottraffic.utah.gov/AnimatedGifs/100032.gif" alt="210 highway status">
+      <img
+        src="https://www.udottraffic.utah.gov/AnimatedGifs/100032.gif"
+        alt="210 highway status"
+      />
     </road-status>
 
     <main id="cameras">
       <camera-feed tabindex="1" reload="30000">
-        <img src="https://b9.hdrelay.com/camera/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4/snapshot" alt="Snowbird Snow Stake" loading="lazy"/>
+        <img
+          src="https://b9.hdrelay.com/camera/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4/snapshot"
+          alt="Snowbird Snow Stake"
+          loading="lazy"
+        />
         <h4>Snowbird Snow Stake</h4>
       </camera-feed>
       <camera-feed tabindex="2" reload="30000">
-        <img src="https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Collins_Snow_Stake.jpg" alt="Alta Collins Snow Stake (12h)" loading="lazy" />
+        <img
+          src="https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Collins_Snow_Stake.jpg"
+          alt="Alta Collins Snow Stake (12h)"
+          loading="lazy"
+        />
         <h4>Alta Collins Snow Stake (12h)</h4>
       </camera-feed>
       <camera-feed tabindex="3" reload="30000">
-        <img src="https://udottraffic.utah.gov/1_devices/aux14604.jpeg" alt="Mouth of LCC" loading="lazy"/>
+        <img
+          src="https://udottraffic.utah.gov/1_devices/aux14604.jpeg"
+          alt="Mouth of LCC"
+          loading="lazy"
+        />
         <h4>Mouth of LC</h4>
       </camera-feed>
       <camera-feed tabindex="4" reload="30000">
-        <img src="https://udottraffic.utah.gov/1_devices/aux16647.jpeg" alt="Powerhouse" loading="lazy"/>
+        <img
+          src="https://udottraffic.utah.gov/1_devices/aux16647.jpeg"
+          alt="Powerhouse"
+          loading="lazy"
+        />
         <h4>Powerhouse</h4>
       </camera-feed>
       <camera-feed tabindex="5" reload="30000">
-        <img src="https://udottraffic.utah.gov/1_devices/aux16265.jpeg" alt="Upper Vault" loading="lazy"/>
+        <img
+          src="https://udottraffic.utah.gov/1_devices/aux16265.jpeg"
+          alt="Upper Vault"
+          loading="lazy"
+        />
         <h4>Upper Vault</h4>
       </camera-feed>
       <camera-feed tabindex="6" reload="30000">
-        <img src="https://udottraffic.utah.gov/1_devices/aux16266.jpeg" alt="Lisa Falls" loading="lazy"/>
+        <img
+          src="https://udottraffic.utah.gov/1_devices/aux16266.jpeg"
+          alt="Lisa Falls"
+          loading="lazy"
+        />
         <h4>Lisa Falls</h4>
       </camera-feed>
       <camera-feed tabindex="7" reload="30000">
-        <img src="https://udottraffic.utah.gov/1_devices/aux16267.jpeg" alt="Seven Turns" loading="lazy"/>
+        <img
+          src="https://udottraffic.utah.gov/1_devices/aux16267.jpeg"
+          alt="Seven Turns"
+          loading="lazy"
+        />
         <h4>Seven Turns</h4>
       </camera-feed>
       <camera-feed tabindex="8" reload="30000">
-        <img src="https://udottraffic.utah.gov/1_devices/aux16268.jpeg" alt="Tanners Flat" loading="lazy"/>
+        <img
+          src="https://udottraffic.utah.gov/1_devices/aux16268.jpeg"
+          alt="Tanners Flat"
+          loading="lazy"
+        />
         <h4>Tanners Flat</h4>
       </camera-feed>
       <camera-feed tabindex="9" reload="30000">
-        <img src="https://udottraffic.utah.gov/1_devices/aux16269.jpeg" alt="White Pine" loading="lazy"/>
+        <img
+          src="https://udottraffic.utah.gov/1_devices/aux16269.jpeg"
+          alt="White Pine"
+          loading="lazy"
+        />
         <h4>White Pine</h4>
       </camera-feed>
       <camera-feed tabindex="10" reload="30000">
-        <img src="https://udottraffic.utah.gov/1_devices/aux16270.jpeg" alt="Upper White Pine" loading="lazy"/>
+        <img
+          src="https://udottraffic.utah.gov/1_devices/aux16270.jpeg"
+          alt="Upper White Pine"
+          loading="lazy"
+        />
         <h4>Upper White Pine</h4>
       </camera-feed>
       <camera-feed tabindex="11" reload="30000">
-        <img src="http://udottraffic.utah.gov/1_devices/aux17227.jpeg" alt="Upper White Pine" loading="lazy"/>
+        <img
+          src="http://udottraffic.utah.gov/1_devices/aux17227.jpeg"
+          alt="Upper White Pine"
+          loading="lazy"
+        />
         <h4>Upper White Pine</h4>
       </camera-feed>
       <camera-feed tabindex="12" reload="30000">
-        <img src="http://udottraffic.utah.gov/1_devices/aux17228.jpeg" alt="Alta Bypass" loading="lazy"/>
+        <img
+          src="http://udottraffic.utah.gov/1_devices/aux17228.jpeg"
+          alt="Alta Bypass"
+          loading="lazy"
+        />
         <h4>Alta Bypass</h4>
       </camera-feed>
       <camera-feed tabindex="13" reload="30000">
-        <img src="https://udottraffic.utah.gov/1_devices/aux17226.jpeg" alt="Alta" loading="lazy"/>
+        <img
+          src="https://udottraffic.utah.gov/1_devices/aux17226.jpeg"
+          alt="Alta"
+          loading="lazy"
+        />
         <h4>Alta</h4>
       </camera-feed>
       <camera-feed tabindex="14" reload="30000">
-        <img src="https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Superior.jpg" alt="Mount Superior" loading="lazy"/>
+        <img
+          src="https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Superior.jpg"
+          alt="Mount Superior"
+          loading="lazy"
+        />
         <h4>Mount Superior</h4>
       </camera-feed>
       <camera-feed tabindex="15" reload="30000">
-        <img src="https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Highrustler.jpg" alt="High Rustler" loading="lazy"/>
+        <img
+          src="https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Highrustler.jpg"
+          alt="High Rustler"
+          loading="lazy"
+        />
         <h4>High Rustler</h4>
       </camera-feed>
       <camera-feed tabindex="16" reload="30000">
-        <img src="https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Greeley.jpg" alt="East Greely" loading="lazy"/>
+        <img
+          src="https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Greeley.jpg"
+          alt="East Greely"
+          loading="lazy"
+        />
         <h4>East Greely</h4>
       </camera-feed>
       <camera-feed tabindex="17" reload="30000">
-        <img src="https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Devilscastle.jpg" alt="Devil's Castle" loading="lazy"/>
+        <img
+          src="https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Devilscastle.jpg"
+          alt="Devil's Castle"
+          loading="lazy"
+        />
         <h4>Devil's Castle</h4>
       </camera-feed>
       <camera-feed tabindex="18" reload="30000">
-        <img src="https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/sugar_peak.jpg" alt="Sugarloaf Peak" loading="lazy"/>
+        <img
+          src="https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/sugar_peak.jpg"
+          alt="Sugarloaf Peak"
+          loading="lazy"
+        />
         <h4>Sugarloaf Peak</h4>
       </camera-feed>
       <camera-feed tabindex="19" reload="30000">
-        <img src="https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/collins_dtc.jpg" alt="Salt Lake Valley" loading="lazy"/>
+        <img
+          src="https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/collins_dtc.jpg"
+          alt="Salt Lake Valley"
+          loading="lazy"
+        />
         <h4>Salt Lake Valley</h4>
       </camera-feed>
       <camera-feed tabindex="20" reload="30000">
-        <img src="https://app.prismcam.com/public/helpers/realtime_preview.php?c=65&s=720" alt="Albion Basin" loading="lazy"/>
+        <img
+          src="https://app.prismcam.com/public/helpers/realtime_preview.php?c=65&s=720"
+          alt="Albion Basin"
+          loading="lazy"
+        />
         <h4>Albion Basin</h4>
       </camera-feed>
       <camera-feed tabindex="21" reload="30000">
-        <img src="https://app.prismcam.com/public/helpers/realtime_preview.php?c=88&s=720" alt="Mount Baldy" loading="lazy"/>
+        <img
+          src="https://app.prismcam.com/public/helpers/realtime_preview.php?c=88&s=720"
+          alt="Mount Baldy"
+          loading="lazy"
+        />
         <h4>Mount Baldy</h4>
       </camera-feed>
       <camera-feed tabindex="22" reload="30000">
-        <img src="https://backend.roundshot.com/cams/48fc223c0ed88474ecc2f884bf39de63/medium" alt="Powder Paradise" loading="lazy"/>
+        <img
+          src="https://backend.roundshot.com/cams/48fc223c0ed88474ecc2f884bf39de63/medium"
+          alt="Powder Paradise"
+          loading="lazy"
+        />
         <h4>Powder Paradise</h4>
       </camera-feed>
       <camera-feed tabindex="23" reload="30000">
-        <img src="https://backend.roundshot.com/cams/44cfff4ff2a218a1178dbb105d95846a/medium" alt="Hidden Peak" loading="lazy"/>
+        <img
+          src="https://backend.roundshot.com/cams/44cfff4ff2a218a1178dbb105d95846a/medium"
+          alt="Hidden Peak"
+          loading="lazy"
+        />
         <h4>Hidden Peak</h4>
       </camera-feed>
       <camera-feed tabindex="24" reload="30000">
-        <img src="https://b9.hdrelay.com/camera/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4/snapshot" alt="Snowbird Cam 1" loading="lazy">
+        <img
+          src="https://b9.hdrelay.com/camera/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4/snapshot"
+          alt="Snowbird Cam 1"
+          loading="lazy"
+        />
         <h4>Snowbird Cam 1</h4>
       </camera-feed>
       <!-- <camera-feed tabindex="25" reload="30000"> -->
       <!--   <img src="https://b9.hdrelay.com/camera/db2a69c5-66e9-4c48-a713-919eaf191fc1/snapshot" alt="Snowbird Cam 2"> <h4>Snowbird Cam 3</h4> -->
       <!-- </camera-feed> -->
       <camera-feed tabindex="26" relative="30000">
-        <img src="https://b9.hdrelay.com/camera/db2a69c5-66e9-4c48-a713-919eaf191fc1/snapshot" alt="Little Cloud" loading="lazy">
+        <img
+          src="https://b9.hdrelay.com/camera/db2a69c5-66e9-4c48-a713-919eaf191fc1/snapshot"
+          alt="Little Cloud"
+          loading="lazy"
+        />
         <h4>Little Cloud</h4>
       </camera-feed>
       <camera-feed tabindex="27" relative="30000">
-        <img src="https://b9.hdrelay.com/camera/5780754f-8da1-4223-ab8a-6755d84cbc10/snapshot" alt="Mineral Basin" loading="lazy">
+        <img
+          src="https://b9.hdrelay.com/camera/5780754f-8da1-4223-ab8a-6755d84cbc10/snapshot"
+          alt="Mineral Basin"
+          loading="lazy"
+        />
         <h4>Mineral Basin</h4>
       </camera-feed>
       <camera-feed tabindex="28" relative="30000">
-        <img src="https://b9.hdrelay.com/camera/544432bd-3910-4888-aa9f-14b6f51a7eb5/snapshot" alt="Peruvian Gulch" loading="lazy">
+        <img
+          src="https://b9.hdrelay.com/camera/544432bd-3910-4888-aa9f-14b6f51a7eb5/snapshot"
+          alt="Peruvian Gulch"
+          loading="lazy"
+        />
         <h4>Peruvian Gulch</h4>
       </camera-feed>
       <camera-feed tabindex="29" reload="30000">
-        <img src="https://b7.hdrelay.com/camera/61b2490be101c00b9c48374f/snapshot" alt="Tram Bullpen" loading="lazy">
+        <img
+          src="https://b7.hdrelay.com/camera/61b2490be101c00b9c48374f/snapshot"
+          alt="Tram Bullpen"
+          loading="lazy"
+        />
         <h4>Tram Bullpen</h4>
       </camera-feed>
     </main>
@@ -286,35 +406,42 @@
 
   <script type="module">
     (async function hotReload() {
-    const etag = async () => (await fetch('/', { method: 'HEAD' })).headers.get('etag');
-    const sleep = async time => new Promise(resolve => setTimeout(resolve, time));
-    const original = await etag();
+      const etag = async () =>
+        (await fetch("/", { method: "HEAD" })).headers.get("etag");
+      const sleep = async (time) =>
+        new Promise((resolve) => setTimeout(resolve, time));
+      const original = await etag();
 
-    while (original === await etag()) {
-      await sleep(location.port === '8888' ? 1000 : 60000);
-    }
+      while (original === (await etag())) {
+        await sleep(location.port === "8888" ? 1000 : 60000);
+      }
 
-    location.reload();
-  }());
+      location.reload();
+    })();
   </script>
 
   <script src="script.js"></script>
   <script type="module">
     (async () => {
-    if ('serviceWorker' in navigator && location.protocol === 'https:') {
-      await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker Registered');
-    }
+      if ("serviceWorker" in navigator && location.protocol === "https:") {
+        await navigator.serviceWorker.register("/sw.js");
+        console.log("Service Worker Registered");
+      }
     })();
   </script>
 
   <!-- Global site tag (gtag.js) - Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-31100913-2"></script>
+  <script
+    async
+    src="https://www.googletagmanager.com/gtag/js?id=UA-31100913-2"
+  ></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+    gtag("js", new Date());
 
-    gtag('config', 'UA-31100913-2');
+    gtag("config", "UA-31100913-2");
   </script>
 </html>

@@ -6,7 +6,8 @@
   "author": "Stefan Penner <stefan.penner@gmail.com>",
   "private": true,
   "scripts": {
-    "start": "./index.mjs"
+    "start": "./index.mjs",
+    "format": "prettier -w ."
   },
   "dependencies": {
     "async-disk-cache": "^2.1.0",
@@ -14,6 +15,7 @@
     "express": "^4.17.2",
     "node-fetch": "^3.1.0",
     "node-fetch-cache": "^3.0.3",
+    "prettier": "^2.5.1",
     "throng": "^5.0.0"
   }
 }
