@@ -527,6 +527,13 @@
         reloadRoadStatus();
       })();
 
+      document.addEventListener("visibilitychange", (event) => {
+        if (event.target.visibilityState !== "visible") {
+          return;
+        }
+        document.querySelectorAll("img").forEach((image) => forceReload(image));
+      });
+
       (async function reload() {
         for (const camera of [...document.querySelectorAll("camera-feed")]) {
           const image = camera.querySelector("img");
