@@ -568,6 +568,7 @@
           }
           const cloned = camera.cloneNode(true);
           cloned.removeAttribute("tab-index");
+          
           this.empty();
           this.appendChild(cloned);
           this.show();
@@ -612,11 +613,9 @@
         }
       });
 
-      const SRCS = new WeakMap();
-
       for (const image of [...document.querySelectorAll("img")]) {
-        if (SRCS.has(image) === false) {
-          SRCS.set(image, image.src);
+        if (!('src' in image.dataset)) {
+          image.dataset.src = image.src;
         }
         image.onerror = function () {
           this.src = "/oops.png";
@@ -624,7 +623,7 @@
       }
 
       function forceReload(image) {
-        const original = SRCS.get(image);
+        const original = image.dataset.src || image.src;
         const sep = origin.includes("?") ? "&" : "?";
 
         image.src = `${original}${sep}_x=${Date.now()}`;
