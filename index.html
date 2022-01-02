@@ -551,20 +551,20 @@
         }
 
         empty() {
+          clearTimeout(this.timer);
           [...this.childNodes].forEach((x) => x.remove());
         }
 
         hide() {
           this.style.display = "none";
           this.empty();
-          clearTimeout(this.timer);
         }
 
         reload() {
           this.timer = setTimeout(() => {
             forceReload(this.querySelector("img"));
-            this.reload();
-          }, 30_000);
+            this.timer = setTimeout(() => this.reload(), 30_000);
+          }, 1_000);
         }
 
         show() {
