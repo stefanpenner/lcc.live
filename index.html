@@ -547,6 +547,7 @@
         constructor() {
           super();
           this.addEventListener("click", () => this.hide());
+          this.timer = null;
         }
 
         empty() {
@@ -556,10 +557,19 @@
         hide() {
           this.style.display = "none";
           this.empty();
+          clearTimeout(this.timer);
+        }
+
+        reload() {
+          this.timer = setTimeout(() => {
+            forceReload(this.querySelector('img'));
+            this.reload();
+          }, 30_000);
         }
 
         show() {
           this.style.display = "block";
+          this.reload();
         }
 
         cameraWasClicked(camera) {
