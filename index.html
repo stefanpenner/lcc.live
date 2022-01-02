@@ -562,7 +562,7 @@
 
         reload() {
           this.timer = setTimeout(() => {
-            forceReload(this.querySelector('img'));
+            forceReload(this.querySelector("img"));
             this.reload();
           }, 30_000);
         }
@@ -578,7 +578,7 @@
           }
           const cloned = camera.cloneNode(true);
           cloned.removeAttribute("tab-index");
-          
+
           this.empty();
           this.appendChild(cloned);
           this.show();
@@ -624,10 +624,13 @@
       });
 
       for (const image of [...document.querySelectorAll("img")]) {
-        if (!('src' in image.dataset)) {
+        if (!("src" in image.dataset)) {
           image.dataset.src = image.src;
         }
         image.onerror = function () {
+          if (this.src.includes("/oops.png")) {
+            return;
+          }
           this.src = "/oops.png";
         };
       }
