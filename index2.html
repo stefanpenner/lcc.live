@@ -193,9 +193,9 @@
         margin-top: 1vw;
         overflow: hidden;
         border: 1px solid rgb(229, 232, 235);
-        background-color: rgb(255, 255, 255);
         cursor: pointer;
         border-radius: 5px;
+        cursor: zoom-in;
       }
 
       camera-feed:hover {
@@ -239,12 +239,54 @@
       }
 
       @media (max-width: 724px) {
+        camera-feed {
+          cursor: auto;
+        }
         camera-feed img {
           width: 98vw;
           min-width: 360px;
           height: 40vh;
           min-height: 200px;
         }
+      }
+      the-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        z-index: 3;
+        display: none;
+        cursor: zoom-out;
+        backdrop-filter: blur(20px);
+      }
+
+      the-overlay h4 {
+        display: none;
+      }
+
+      the-overlay camera-feed {
+        margin: 0;
+        border: none;
+        box-shadow: none;
+      }
+
+      the-overlay camera-feed:hover {
+        box-shadow: none;
+        transition: none;
+        transform: none;
+      }
+
+      the-overlay img {
+        background: none;
+        cursor: zoom-out;
+        margin: 0 auto;
+        width: 100%;
+        height: 100%;
+        max-width: 100wh;
+        max-height: 100vh;
+        object-fit: contain;
       }
     </style>
   </head>
@@ -497,7 +539,78 @@
         <h4>Tram Bullpen</h4>
       </camera-feed>
     </section>
+
+    <the-overlay></the-overlay>
     <script>
+      class Overlay extends HTMLElement {
+        constructor() {
+          super();
+          this.addEventListener("click", () => this.hide());
+        }
+
+        empty() {
+          [...this.childNodes].forEach((x) => x.remove());
+        }
+
+        hide() {
+          this.style.display = "none";
+          this.empty();
+        }
+
+        show() {
+          this.style.display = "block";
+        }
+
+        cameraWasClicked(camera) {
+          if (!camera.closest("body")) {
+            return;
+          }
+          const cloned = camera.cloneNode(true);
+          cloned.removeAttribute("tab-index");
+          this.empty();
+          this.appendChild(cloned);
+          this.show();
+        }
+      }
+
+      customElements.define("the-overlay", Overlay);
+      document.addEventListener("keyup", (e) => {
+        switch (e.key) {
+          case "Escape": {
+            document.querySelector("the-overlay").hide();
+            break;
+          }
+          case "Enter": {
+            const { activeElement } = document;
+            if (
+              activeElement.closest("camera-feed") &&
+              !activeElement.closest("the-overlay")
+            ) {
+              document
+                .querySelector("the-overlay")
+                .cameraWasClicked(activeElement);
+            }
+            break;
+          }
+        }
+      });
+
+      const maxWidth = window.matchMedia("(max-width: 667px)");
+
+      maxWidth.addListener(
+        (e) => e.matches && document.querySelector("the-overlay").hide()
+      );
+
+      function findCamera(target) {
+        return target.closest("camera-feed");
+      }
+      document.body.addEventListener("click", (e) => {
+        let camera;
+        if (maxWidth.matches === false && (camera = findCamera(e.target))) {
+          document.querySelector("the-overlay").cameraWasClicked(camera);
+        }
+      });
+
       const SRCS = new WeakMap();
 
       for (const image of [...document.querySelectorAll("img")]) {
