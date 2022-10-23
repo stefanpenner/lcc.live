@@ -22,14 +22,15 @@ export default function server() {
   return express()
     .use(compression())
     .use((request, response, next) => {
-      if (process.env.NODE_ENV === 'production' && !request.secure) {
-        return response.redirect("https://" + request.headers.host + request.url);
+      if (process.env.NODE_ENV === 'production' && req.protocol !== 'https') {
+        return response.redirect(`https://${request.headers.host}${request.url}`);
       }
 
       next();
     })
     .get('/', (_, res) => res.sendFile(`${__dirname}/index.html`))
     .get('/b', (_, res) => res.redirect(301, '/bcc'))
+    .get('/l', (_, res) => res.redirect(301, '/'))
     .get('/bcc/', (_, res) => res.sendFile(`${__dirname}/bcc.html`))
     .get("/hdrelay/:relay/:id", async (req, res) => {
       const { relay, id } = req.params;
