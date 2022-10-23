@@ -1,115 +1,12 @@
-// test helpers
-function fragment(string) {
-  const template = document.createElement("template");
-  template.innerHTML = string;
-  return template.content;
-}
-
-function firstChild(string) {
-  return fragment(string).firstChild;
-}
-
-async function assert(assertion, _message) {
-  const value = await assertion();
-  const string = assertion.toString().replace("() => ", "");
-
-  if (value) {
-    console.log(`pass: ${string}`);
-    return true;
-  } else {
-    throw new Error(`expected: 'true' but got: '${value}' for: ${string}`);
-  }
-}
-
-class TestRunner {
-  constructor() {
-    this.tests = [];
-    this.running = false;
-  }
-
-  test(name, execution) {
-    const groupName = `test: ${name}`;
-
-    this.tests.push({
-      groupName,
-      name,
-      execution,
-    });
-  }
-
-  async runTests() {
-    try {
-      this.running = true;
-      while (this.tests.length !== 0) {
-        const { groupName, execution } = this.tests.pop();
-        console.group(groupName);
-        await execution();
-        console.groupEnd(groupName);
-      }
-    } finally {
-      this.running = false;
-    }
-  }
-}
-
-const suite = new TestRunner();
-
-function findCamera(target) {
-  return target.closest("camera-feed");
-}
-
-suite.test("findCam", async function () {
-  assert(() => findCamera(firstChild`<h1></h1>`) === null);
-  assert(() => findCamera(firstChild`<camera-feed></camera-feed>`) === null);
-  assert(
-    () =>
-      findCamera(
-        firstChild`<camera-feed><div></div></camera-feed>`.querySelector("div")
-      ).tagName === "CAMERA_FEED"
-  );
-  assert(
-    () =>
-      findCamera(
-        firstChild`<parent><div></div><camera-feed><p></p></camera-feed></parent>`.querySelector(
-          "div"
-        )
-      ) === null
-  );
-});
-
-const IMAGE_SRCS = new WeakMap();
-const RELOAD_IMAGE = Symbol("reload image");
-
-HTMLImageElement.prototype[RELOAD_IMAGE] = function () {
-  if (!IMAGE_SRCS.has(this)) {
-    IMAGE_SRCS.set(this, this.src);
-  }
-
-  this.referrerPolicy = "no-referrer";
-  this.src = `${IMAGE_SRCS.get(this)}?_=${Date.now()}`;
-};
-
-suite.test("image[RELOAD_IMAGE]", async function () {
-  const image = new Image();
-  image.referrerPolicy = "no-referrer";
-  image.src = "foo";
-  image[RELOAD_IMAGE]();
-
-  assert(() => /=\d+$/.test(image.src));
-  const src = image.src;
-  await new Promise((resolve) => setTimeout(resolve, Math.random() * 20));
-  image[RELOAD_IMAGE]();
-  assert(() => /=\d+$/.test(image.src));
-  assert(() => image.src !== src);
-});
-
 class Overlay extends HTMLElement {
   constructor() {
     super();
     this.addEventListener("click", () => this.hide());
+    this.timer = null;
   }
 
   empty() {
+    clearTimeout(this.timer);
     [...this.childNodes].forEach((x) => x.remove());
   }
 
@@ -118,8 +15,16 @@ class Overlay extends HTMLElement {
     this.empty();
   }
 
+  reload() {
+    this.timer = setTimeout(() => {
+      forceReload(this.querySelector("img"));
+      this.timer = setTimeout(() => this.reload(), 30_000);
+    }, 1_000);
+  }
+
   show() {
     this.style.display = "block";
+    this.reload();
   }
 
   cameraWasClicked(camera) {
@@ -128,129 +33,94 @@ class Overlay extends HTMLElement {
     }
     const cloned = camera.cloneNode(true);
     cloned.removeAttribute("tab-index");
+
     this.empty();
     this.appendChild(cloned);
     this.show();
   }
 }
 
-class RoadStatus extends HTMLElement {
-  constructor() {
-    super();
-
-    this._onScroll = (_) => {
-      const { classList } = this;
-      const { scrollTop } = this.ownerDocument.body.parentElement;
-
-      if (scrollTop <= 5) {
-        classList.remove("floater");
-      } else {
-        classList.add("floater");
+customElements.define("the-overlay", Overlay);
+document.addEventListener("keyup", (e) => {
+  switch (e.key) {
+    case "Escape": {
+      document.querySelector("the-overlay").hide();
+      break;
+    }
+    case "Enter": {
+      const { activeElement } = document;
+      if (
+        activeElement.closest("camera-feed") &&
+        !activeElement.closest("the-overlay")
+      ) {
+        document
+          .querySelector("the-overlay")
+          .cameraWasClicked(activeElement);
       }
-    };
-
-    this.addEventListener(
-      "click",
-      () => (this.ownerDocument.documentElement.scrollTop = 0)
-    );
+      break;
+    }
   }
+});
 
-  reload() {
-    this.querySelectorAll("img").forEach((img) => img[RELOAD_IMAGE]());
+const maxWidth = window.matchMedia("(max-width: 724px)");
+
+maxWidth.addListener(
+  (e) => e.matches && document.querySelector("the-overlay").hide()
+);
+
+function findCamera(target) {
+  return target.closest("camera-feed");
+}
+document.body.addEventListener("click", (e) => {
+  let camera;
+  if (maxWidth.matches === false && (camera = findCamera(e.target))) {
+    document.querySelector("the-overlay").cameraWasClicked(camera);
   }
+});
 
-  connectedCallback() {
-    this.ownerDocument.addEventListener("scroll", this._onScroll, true);
-    const again = () => {
-      this._timer = setTimeout(() => {
-        this.reload();
-        again();
-      }, Number(this.getAttribute("reload")));
-    };
-
-    again();
+for (const image of [...document.querySelectorAll("img")]) {
+  if (!("src" in image.dataset)) {
+    image.dataset.src = image.src;
   }
-
-  disconnectedCallback() {
-    this.ownerDocument.removeEventListener("scroll", this._onScroll);
-    clearTimeout(this._timer);
-  }
+  image.onerror = function () {
+    if (this.src.includes("/oops.png")) {
+      return;
+    }
+    this.src = "/oops.png";
+  };
 }
 
-class CameraFeed extends HTMLElement {
-  constructor() {
-    super();
-    this._timer = null;
-  }
+function forceReload(image) {
+  const original = image.dataset.src || image.src;
+  const sep = origin.includes("?") ? "&" : "?";
 
-  attributeChangedCallback() {
-    this.connectedCallback();
-  }
-
-  disconnectedCallback() {
-    clearTimeout(this._timer);
-  }
-
-  reload() {
-    this.querySelectorAll("img").forEach((img) => img[RELOAD_IMAGE]());
-  }
-
-  connectedCallback() {
-    this.disconnectedCallback();
-
-    const again = () => {
-      this._timer = setTimeout(() => {
-        this.reload();
-        again();
-      }, Number(this.getAttribute("reload")));
-    };
-
-    again();
-  }
+  image.src = `${original}${sep}_x=${Date.now()}`;
 }
 
-(async function main() {
-  customElements.define("camera-feed", CameraFeed);
-  customElements.define("road-status", RoadStatus);
-  customElements.define("the-overlay", Overlay);
+const wait = async (time) =>
+  new Promise((resolve) => setTimeout(resolve, time));
 
-  document.addEventListener("keyup", (e) => {
-    switch (e.key) {
-      case "Escape": {
-        document.querySelector("the-overlay").hide();
-        break;
-      }
-      case "Enter": {
-        const { activeElement } = document;
-        if (
-          activeElement.closest("camera-feed") &&
-          !activeElement.closest("the-overlay")
-        ) {
-          document.querySelector("the-overlay").cameraWasClicked(activeElement);
-        }
-        break;
-      }
-    }
-  });
+(async function reloadRoadStatus() {
+  await wait(5_000);
 
-  const maxWidth = window.matchMedia("(max-width: 667px)");
+  forceReload(document.querySelector("road-status"));
 
-  maxWidth.addListener(
-    (e) => e.matches && document.querySelector("the-overlay").hide()
-  );
-
-  document.body.addEventListener("click", (e) => {
-    let camera;
-    if (maxWidth.matches === false && (camera = findCamera(e.target))) {
-      document.querySelector("the-overlay").cameraWasClicked(camera);
-    }
-  });
-
-  document.addEventListener("visibilitychange", () => {
-    document
-      .querySelectorAll("camera-feed,road-status")
-      .forEach((element) => element.reload());
-  });
-
-  // await suite.runTests();
+  reloadRoadStatus();
 })();
+
+document.addEventListener("visibilitychange", (event) => {
+  if (event.target.visibilityState !== "visible") {
+    return;
+  }
+  document.querySelectorAll("img").forEach((image) => forceReload(image));
+});
+
+(async function reload() {
+  for (const camera of [...document.querySelectorAll("camera-feed")]) {
+    const image = camera.querySelector("img");
+    await wait(Math.random() * 10_000);
+    forceReload(image);
+  }
+  reload();
+})();
+
