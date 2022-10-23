@@ -22,6 +22,8 @@ export default function server() {
   return express()
     .use(compression())
     .get('/', (_, res) => res.sendFile(`${__dirname}/index.html`))
+    .get('/b', (_, res) => res.redirect(301, '/bcc'))
+    .get('/bcc/', (_, res) => res.sendFile(`${__dirname}/bcc.html`))
     .get("/hdrelay/:relay/:id", async (req, res) => {
       const { relay, id } = req.params;
 

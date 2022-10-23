@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=UA-31100913-2"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "UA-31100913-2");
+    </script>
+    <title>[LIVE] - LCC</title>
+    
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="white" />
+    <meta name="theme-color" content="#f2f3f4" />
+    <link rel="icon" sizes="192x192" href="icon.png" />
+    <link rel="apple-touch-icon" href="ios-icon.png" />
+    <meta name="msapplication-square310x310logo" content="icon_largetile.png" />
+    <meta name="Description" content="LCC Live" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="stylesheet" type="text/css" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <road-status>
+        <img
+          src="http://www.udottraffic.utah.gov/AnimatedGifs/100033.gif"
+          alt="SR-190 highway status"
+        />
+      </road-status>
+    </header>
+    <section id="container">
+      <camera-feed tabindex="1" reload="30000">
+        <img
+          src="https://udottraffic.utah.gov/1_devices/aux14605.jpeg"
+          alt="Wasatch Blvd @ BCC"
+          loading="lazy"
+        />
+        <h4>Wasatch Blvd @ BCC</h4>
+      </camera-feed>
+      <camera-feed tabindex="2">
+        <img
+          src="https://udottraffic.utah.gov/1_devices/aux16212.jpeg"
+          alt="Dogwood"
+          loading="lazy"
+        />
+        <h4>Dogwood</h4>
+      </camera-feed>
+      <camera-feed tabindex="3">
+        <img
+          src="https://udottraffic.utah.gov/1_devices/aux16213.jpeg"
+          alt="S Curves"
+          loading="lazy"
+        />
+        <h4>S Curves</h4>
+      </camera-feed>
+      <camera-feed tabindex="4">
+        <img
+          src="https://udottraffic.utah.gov/1_devices/aux16215.jpeg"
+          alt="Cardiff Fork"
+          loading="lazy"
+        />
+        <h4>Cardiff Fork</h4>
+      </camera-feed>
+      <camera-feed tabindex="5">
+        <img
+          src="https://udottraffic.utah.gov/1_devices/aux16216.jpeg"
+          alt="Silver Fork"
+          loading="lazy"
+        />
+        <h4>Silver Fork</h4>
+      </camera-feed>
+      <camera-feed tabindex="6">
+        <img
+          src="https://webcams.solitudemountain.com/LCMC.jpg"
+          alt="Last Chance"
+          loading="lazy"
+        />
+        <h4>Last Chance</h4>
+      </camera-feed>
+      <camera-feed tabindex="7">
+        <img
+          src="https://webcams.solitudemountain.com/rh1.jpg"
+          alt="Roundhouse (1)"
+          loading="lazy"
+        />
+        <h4>Round House</h4>
+      </camera-feed>
+      <camera-feed tabindex="8">
+        <img
+          src="https://webcams.solitudemountain.com/mbl.jpg"
+          alt="Moonbeam Village"
+          loading="lazy"
+        />
+        <h4>Moonbeam Village</h4>
+      </camera-feed>
+      <camera-feed tabindex="9">
+        <img
+          src="https://udottraffic.utah.gov/1_devices/aux16269.jpeg"
+          alt="White Pine"
+          loading="lazy"
+        />
+        <h4>White Pine</h4>
+      </camera-feed>
+      <camera-feed tabindex="10">
+        <img
+          src="https://webcams.solitudemountain.com/rh2.jpg"
+          alt="Roundhouse (2)"
+          loading="lazy"
+        />
+        <h4>Roundhouse (2)</h4>
+      </camera-feed>
+      <camera-feed tabindex="11">
+        <img
+          src="https://webcams.solitudemountain.com/ph.jpg"
+          alt="Powderhorn"
+          loading="lazy"
+        />
+        <h4>Powderhorn</h4>
+      </camera-feed>
+      <camera-feed tabindex="12">
+        <img
+          src="https://i3.ytimg.com/vi/YDyBL3bXOwA/maxresdefault.jpg"
+          alt="Great Western"
+          loading="lazy"
+        />
+        <h4>Great Western</h4>
+      </camera-feed>
+    </section>
+
+    <the-overlay></the-overlay>
+    <script src="./script.js"></script>
+  </body>
+</html>
