@@ -21,9 +21,9 @@ let i = 0;
 export default function server() {
   return express()
     .use(compression())
-    .use((request, response, next) => {
+    .use((req, res, next) => {
       if (process.env.NODE_ENV === 'production' && req.protocol !== 'https') {
-        return response.redirect(`https://${request.headers.host}${request.url}`);
+        return res.redirect(`https://${req.headers.host}${req.url}`);
       }
 
       next();
