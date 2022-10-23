@@ -4,6 +4,7 @@ import express from "express";
 import { URL } from "url";
 import compression from "compression";
 import { fetchBuilder, FileSystemCache } from "node-fetch-cache";
+import ssl from 'heroku-ssl-redirect';
 
 const fetch = fetchBuilder.withCache(
   new FileSystemCache({
@@ -21,13 +22,7 @@ let i = 0;
 export default function server() {
   return express()
     .use(compression())
-    .use((req, res, next) => {
-      // if (process.env.NODE_ENV === 'production' && req.protocol !== 'https') {
-      //   return res.redirect(`https://${req.headers.host}${req.url}`);
-      // }
-
-      next();
-    })
+    .use(ssl.default(['production'], 301))
     .get('/', (_, res) => res.sendFile(`${__dirname}/index.html`))
     .get('/b', (_, res) => res.redirect(301, '/bcc'))
     .get('/l', (_, res) => res.redirect(301, '/'))
