@@ -22,9 +22,9 @@ export default function server() {
   return express()
     .use(compression())
     .use((req, res, next) => {
-      if (process.env.NODE_ENV === 'production' && req.protocol !== 'https') {
-        return res.redirect(`https://${req.headers.host}${req.url}`);
-      }
+      // if (process.env.NODE_ENV === 'production' && req.protocol !== 'https') {
+      //   return res.redirect(`https://${req.headers.host}${req.url}`);
+      // }
 
       next();
     })
