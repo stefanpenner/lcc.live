@@ -142,6 +142,7 @@ header {
 
 road-status {
   height: 100px;
+  width: 300px;
   display: block;
   top: 0;
   left: 0px;
@@ -149,12 +150,11 @@ road-status {
   opacity: 0.9;
   transition: opacity 0.2s ease;
   border-bottom: none;
-  margin: 1em;
+  margin: 1em auto;
 }
 
 road-status img {
   height: 100px;
-  margin: 0 auto;
   display: block;
   position: relative;
 }
@@ -274,11 +274,37 @@ the-overlay img {
 }
 
 .canyon-toggle {
-  float: right;
+  top: 2em;
+  left: 1.5em;
   position: absolute;
-  top: 0;
-  right: 0;
-  line-height: 1.5em;
-  padding: 0 0.5em;
+}
+
+.canyon-toggle a:first-child {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+.canyon-toggle a:last-child {
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.canyon-toggle a {
+  display: block;
   color: gray;
+  padding: 0.5em 1em;
+  background-color: white;
+  text-decoration: none;
+  box-shadow: inset 0 0 7px 0 white;
+  font-weight: bold;
+}
+
+.canyon-toggle a:hover {
+  color: black;
+  box-shadow: inset 0 0 7px 0 rgb(0 0 0 / 8%)
+}
+
+.canyon-toggle a.current {
+  background-color: #f2f3f4;
+  color: black;
+  box-shadow: inset 0 0 7px 0 rgb(0 0 0 / 8%)
 }
