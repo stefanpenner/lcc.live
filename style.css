@@ -276,15 +276,18 @@ the-overlay img {
 .canyon-toggle {
   top: 2em;
   left: 1.5em;
+  left: 0;
   position: absolute;
 }
 
 .canyon-toggle a:first-child {
   border-top-left-radius: 10px;
+  border-top-left-radius: 0px;
   border-top-right-radius: 10px;
 }
 .canyon-toggle a:last-child {
   border-bottom-left-radius: 10px;
+  border-bottom-left-radius: 0px;
   border-bottom-right-radius: 10px;
 }
 
