@@ -129,24 +129,16 @@ body {
   background: #f2f3f4;
   background: linear-gradient(
     to bottom,
-    #f2f3f4 70px,
-    #f7f7f7 70px,
+    #f2f3f4 40px,
+    #f7f7f7 40px,
     #f7f7f7 100%
   );
   color: rgb(112, 122, 131);
   font-family: Poppins, sans-serif;
 }
-header {
-  height: 120px;
-}
 
 road-status {
-  height: 100px;
-  width: 300px;
   display: block;
-  top: 0;
-  left: 0px;
-  z-index: 2;
   opacity: 0.9;
   transition: opacity 0.2s ease;
   border-bottom: none;
@@ -155,8 +147,10 @@ road-status {
 
 road-status img {
   height: 100px;
+  width: 300px;
   display: block;
   position: relative;
+  margin: 0 auto;
 }
 
 #container {
@@ -274,26 +268,23 @@ the-overlay img {
 }
 
 .canyon-toggle {
-  top: 2em;
-  left: 1.5em;
-  left: 0;
-  position: absolute;
+  display: flex;
+  justify-content: center;
+  margin: 0 auto;
 }
 
 .canyon-toggle a:first-child {
-  border-top-left-radius: 10px;
-  border-top-left-radius: 0px;
-  border-top-right-radius: 10px;
+  border-bottom-left-radius: 10px;
 }
 .canyon-toggle a:last-child {
-  border-bottom-left-radius: 10px;
-  border-bottom-left-radius: 0px;
   border-bottom-right-radius: 10px;
 }
 
 .canyon-toggle a {
-  display: block;
+  text-align: center;
+  width: 3em;
   color: gray;
+  float: left;
   padding: 0.5em 1em;
   background-color: white;
   text-decoration: none;
