@@ -7,13 +7,15 @@ import {
   NavLink,
   useLocation,
 } from "@remix-run/react";
+import {
+  useEffect
+} from "react";
 
 import style from "./styles/main.css";
 
 export default function App() {
-  let location = useLocation();
-
   let roadStatus;
+  let location = useLocation();
 
   switch (location.pathname.toLowerCase()) {
     case '/': {
@@ -28,6 +30,20 @@ export default function App() {
       </road-status>
     }
   }
+
+  if (typeof window === 'object' && !Array.isArray(window.dataLayer)) {
+    const d = window.dataLayer = window.dataLayer || [];
+    d.push(["js", new Date()]);
+    d.push(["config", "UA-31100913-2"]);
+  }
+
+  useEffect(() => {
+    const d = window.dataLayer;
+    if (Array.isArray(d)){
+      // Google Analytics
+      d.push(['send', 'pageView']);
+    }
+  }, [location]);
 
   return (
     <html lang="en" className="h-full">
