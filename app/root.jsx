@@ -46,13 +46,14 @@ export default function App() {
   }, [location]);
 
   return (
-    <html lang="en" className="h-full">
+    <html lang="en">
       <head>
         <script
           async
           src="https://www.googletagmanager.com/gtag/js?id=UA-31100913-2"
         ></script>
         <title>[LIVE] - LCC</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
         <meta name="charset" content="utf-8" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="white" />
