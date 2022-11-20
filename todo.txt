@@ -1,5 +1,5 @@
 - [ ] make fetch stream caching work
----- exploratory ---
-- [ ] load from sqlite3
+- [x] load from sqlite3
+- [ ] fix GA
 - [ ] fly.io's sqlite litestream ?
 - [ ] manage images from dashboard

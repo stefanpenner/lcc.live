@@ -1,5 +1,11 @@
+# Fetch the LiteFS binary using a multi-stage build.
+FROM flyio/litefs:0.2 AS litefs
+
 # base node image
 FROM node:18-bullseye-slim as base
+ADD etc/litefs.yml /etc/litefs.yml
+
+COPY --from=litefs /usr/local/bin/litefs /usr/local/bin/litefs
 
 # Install openssl for Prisma
 RUN apt-get update && apt-get install -y openssl fuse
@@ -57,7 +63,14 @@ COPY --from=build /app/build /app/build
 COPY --from=build /app/public /app/public
 ADD . .
 
+<<<<<<< HEAD
 COPY --from=litefs /usr/local/bin/litefs /usr/local/bin/litefs
 ADD other/litefs.yml /etc/litefs.yml
 RUN mkdir -p /data ${FLY_LITEFS_DIR}
 CMD ["litefs", "mount", "--", "npm", "run", "start"]
+=======
+RUN mkdir -p /data /mnt/data
+
+ENTRYPOINT ["litefs"]
+CMD ["litefs", "mount", "--", "npm", "run", "setup", "start"]
+>>>>>>> d1174d0 (litefs-sqlite)

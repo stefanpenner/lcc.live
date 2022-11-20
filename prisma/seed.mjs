@@ -53,7 +53,7 @@ const cameras = [
     canyon: "bcc",
   },
   {
-    src: "https://b9.hdrelay.com/camera/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4/snapshot",
+    src: "https://b9.hdrelay.com/camera/db2a69c5-66e9-4c48-a713-919eaf191fc1/snapshot",
     alt: "Snowbird Snow Stake",
     canyon: "lcc",
   },
@@ -172,7 +172,13 @@ const cameras = [
 async function seed(prisma) {
   for (const { src, canyon, alt } of cameras) {
     const id = `canyon:${canyon}|src:${src}`;
-    const host = new URL(src).host;
+    let host;
+    try {
+    host = new URL(src).host;
+    } catch (e) {
+      e.message =`d[${id}] | ${e.message}`
+      throw e;
+    }
     await prisma.cameras.upsert({
       where: { id },
       update: {},
