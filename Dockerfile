@@ -1,8 +1,8 @@
 # base node image
-FROM node:16-bullseye-slim as base
+FROM node:18-bullseye-slim as base
 
 # Install openssl for Prisma
-RUN apt-get update && apt-get install -y openssl
+RUN apt-get update && apt-get install -y openssl fuse
 
 # Install all node_modules, including dev dependencies
 FROM base as deps
@@ -57,4 +57,7 @@ COPY --from=build /app/build /app/build
 COPY --from=build /app/public /app/public
 ADD . .
 
-CMD ["npm", "run", "start"]
+COPY --from=litefs /usr/local/bin/litefs /usr/local/bin/litefs
+ADD other/litefs.yml /etc/litefs.yml
+RUN mkdir -p /data ${FLY_LITEFS_DIR}
+CMD ["litefs", "mount", "--", "npm", "run", "start"]
