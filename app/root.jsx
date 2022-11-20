@@ -7,9 +7,7 @@ import {
   NavLink,
   useLocation,
 } from "@remix-run/react";
-import {
-  useEffect
-} from "react";
+import { useEffect } from "react";
 
 import style from "./styles/main.css";
 
@@ -18,30 +16,40 @@ export default function App() {
   let location = useLocation();
 
   switch (location.pathname.toLowerCase()) {
-    case '/': {
-      roadStatus = <road-status>
-        <img src="https://www.udottraffic.utah.gov/AnimatedGifs/100032.gif" alt="210 highway status" />
-      </road-status>
+    case "/": {
+      roadStatus = (
+        <road-status>
+          <img
+            src="https://www.udottraffic.utah.gov/AnimatedGifs/100032.gif"
+            alt="210 highway status"
+          />
+        </road-status>
+      );
       break;
-    } 
-    case '/bcc': {
-      roadStatus = <road-status>
-        <img src="http://www.udottraffic.utah.gov/AnimatedGifs/100033.gif" alt="SR-190 highway status" />
-      </road-status>
+    }
+    case "/bcc": {
+      roadStatus = (
+        <road-status>
+          <img
+            src="http://www.udottraffic.utah.gov/AnimatedGifs/100033.gif"
+            alt="SR-190 highway status"
+          />
+        </road-status>
+      );
     }
   }
 
-  if (typeof window === 'object' && !Array.isArray(window.dataLayer)) {
-    const d = window.dataLayer = window.dataLayer || [];
+  if (typeof window === "object" && !Array.isArray(window.dataLayer)) {
+    const d = (window.dataLayer = window.dataLayer || []);
     d.push(["js", new Date()]);
     d.push(["config", "UA-31100913-2"]);
   }
 
   useEffect(() => {
     const d = window.dataLayer;
-    if (Array.isArray(d)){
+    if (Array.isArray(d)) {
       // Google Analytics
-      d.push(['send', 'pageView']);
+      d.push(["send", "pageView"]);
     }
   }, [location]);
 
@@ -53,7 +61,10 @@ export default function App() {
           src="https://www.googletagmanager.com/gtag/js?id=UA-31100913-2"
         ></script>
         <title>[LIVE] - LCC</title>
-        <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+        <meta
+          name="viewport"
+          content="width=device-width,initial-scale=1,viewport-fit=cover"
+        />
         <meta name="charset" content="utf-8" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="white" />

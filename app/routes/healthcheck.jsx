@@ -1,5 +1,5 @@
 export async function loader({ request }) {
-  console.log("[healthcheck]", request.headers.get('user-agent'));
+  console.log("[healthcheck]", request.headers.get("user-agent"));
   const host =
     request.headers.get("X-Forwarded-Host") ?? request.headers.get("host");
 

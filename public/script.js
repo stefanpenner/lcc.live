@@ -53,9 +53,7 @@ document.addEventListener("keyup", (e) => {
         activeElement.closest("camera-feed") &&
         !activeElement.closest("the-overlay")
       ) {
-        document
-          .querySelector("the-overlay")
-          .cameraWasClicked(activeElement);
+        document.querySelector("the-overlay").cameraWasClicked(activeElement);
       }
       break;
     }
@@ -123,4 +121,3 @@ document.addEventListener("visibilitychange", (event) => {
   }
   reload();
 })();
-
