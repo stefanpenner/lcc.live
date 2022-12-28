@@ -69,6 +69,7 @@ maxWidth.addListener(
 function findCamera(target) {
   return target.closest("camera-feed");
 }
+
 document.body.addEventListener("click", (e) => {
   let camera;
   if (maxWidth.matches === false && (camera = findCamera(e.target))) {

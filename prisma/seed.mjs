@@ -28,11 +28,6 @@ const cameras = [
     canyon: "bcc",
   },
   {
-    src: "https://webcams.solitudemountain.com/LCMC.jpg",
-    alt: "Last Chance",
-    canyon: "bcc",
-  },
-  {
     src: "https://webcams.solitudemountain.com/rh1.jpg",
     alt: "Roundhouse (1)",
     canyon: "bcc",
@@ -40,6 +35,11 @@ const cameras = [
   {
     src: "https://webcams.solitudemountain.com/mbl.jpg",
     alt: "Moonbeam Village",
+    canyon: "bcc",
+  },
+  {
+    src: "https://webcams.solitudemountain.com/rh2.jpg",
+    alt: "Sunshine Bowl",
     canyon: "bcc",
   },
   {
@@ -155,11 +155,6 @@ const cameras = [
   {
     src: "https://b9.hdrelay.com/camera/5780754f-8da1-4223-ab8a-6755d84cbc10/snapshot",
     alt: "Mineral Basin",
-    canyon: "lcc",
-  },
-  {
-    src: "https://img.hdrelay.com/frames/544432bd-3910-4888-aa9f-14b6f51a7eb5/panorama/1668968880190",
-    alt: "Peruvian Gulch",
     canyon: "lcc",
   },
   {
