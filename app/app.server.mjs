@@ -1,7 +1,8 @@
 import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 
 export default class App {
-  static #app = new App(new PrismaClient());
+  static #app = new App(prisma);
   static get app() {
     return this.#app;
   }

@@ -1,4 +1,3 @@
-import { PrismaClient } from "@prisma/client";
 import App from "./app.server.mjs";
 
 export async function camerasByCanyon(canyon = "lcc") {

@@ -6,6 +6,7 @@ import isbot from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 
 const ABORT_DELAY = 5000;
+
 export default function handleRequest(
   request,
   responseStatusCode,
@@ -15,8 +16,6 @@ export default function handleRequest(
   const callbackName = isbot(request.headers.get("user-agent"))
     ? "onAllReady"
     : "onShellReady";
-
-  const url = new URL(request.url);
 
   return new Promise((resolve, reject) => {
     let didError = false;

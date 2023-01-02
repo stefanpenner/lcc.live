@@ -94,10 +94,9 @@ export default function App() {
         <Outlet />
         <ScrollRestoration />
         <Scripts />
-        <LiveReload />
-
         <the-overlay></the-overlay>
         <script src="/script.js"></script>
+        <LiveReload />
       </body>
     </html>
   );
