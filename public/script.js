@@ -77,10 +77,16 @@ document.body.addEventListener("click", (e) => {
   }
 });
 
-for (const image of [...document.querySelectorAll("img")]) {
-  if (!("src" in image.dataset)) {
-    image.dataset.src = image.src;
+const ORIGINAL_SRC = new WeakMap();
+function ensureOriginalCachedSrc(image) {
+  if (!ORIGINAL_SRC.has(image) && !image.src.includes('/oops.png')) {
+    ORIGINAL_SRC.set(image, image.src);
   }
+}
+
+for (const image of [...document.querySelectorAll("img")]) {
+  ensureOriginalCachedSrc(image);
+
   image.onerror = function () {
     if (this.src.includes("/oops.png")) {
       return;
@@ -89,8 +95,11 @@ for (const image of [...document.querySelectorAll("img")]) {
   };
 }
 
+
 function forceReload(image) {
-  const original = image.dataset.src || image.src;
+  ensureOriginalCachedSrc(image);
+
+  const original = ORIGINAL_SRC.get(image);
   const sep = origin.includes("?") ? "&" : "?";
 
   image.src = `${original}${sep}_x=${Date.now()}`;
@@ -102,7 +111,7 @@ const wait = async (time) =>
 (async function reloadRoadStatus() {
   await wait(5_000);
 
-  forceReload(document.querySelector("road-status"));
+  forceReload(document.querySelector("road-status > img"));
 
   reloadRoadStatus();
 })();

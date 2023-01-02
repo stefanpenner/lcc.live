@@ -5,7 +5,7 @@
   "scripts": {
     "build": "run-s build:*",
     "build:css": "npm run generate:css -- --minify",
-    "build:remix": "remix build",
+    "build:remix": "NODE_ENV=development remix build",
     "dev": "run-p dev:*",
     "dev:css": "npm run generate:css -- --watch",
     "dev:remix": "cross-env NODE_ENV=development binode  -- @remix-run/dev:remix dev",
@@ -26,10 +26,10 @@
   ],
   "dependencies": {
     "@prisma/client": "^4.5.0",
-    "@remix-run/node": "^1.7.5",
-    "@remix-run/react": "^1.7.5",
-    "@remix-run/serve": "^1.7.5",
-    "@remix-run/server-runtime": "^1.7.5",
+    "@remix-run/node": "^1.9.0",
+    "@remix-run/react": "^1.9.0",
+    "@remix-run/serve": "^1.9.0",
+    "@remix-run/server-runtime": "^1.9.0",
     "bcryptjs": "^2.4.3",
     "isbot": "^3.6.3",
     "react": "^18.2.0",
