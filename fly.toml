@@ -6,7 +6,7 @@ kill_timeout = 5
 processes = []
 
 [env]
-  DATABASE_URL = "file:./data.db?connection_limit=1"
+  DATABASE_URL = "file:./data.db"
   NODE_TLS_REJECT_UNAUTHORIZED = "0"
 
 [experimental]
@@ -19,8 +19,8 @@ processes = []
   protocol = "tcp"
   script_checks = []
   [services.concurrency]
-    hard_limit = 25
-    soft_limit = 20
+    hard_limit = 100
+    soft_limit = 100
     type = "connections"
 
   [[services.ports]]
