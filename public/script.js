@@ -79,6 +79,13 @@ document.body.addEventListener("click", (e) => {
 
 const ORIGINAL_SRC = new WeakMap();
 function ensureOriginalCachedSrc(image) {
+  // ensure the original src is set
+  const src = new URL(image.src);
+  if (src.searchParams.has('_x')) {
+    src.searchParams.delete('_x')
+    image.src = src.toString();
+  }
+
   if (!ORIGINAL_SRC.has(image) && !image.src.includes('/oops.png')) {
     ORIGINAL_SRC.set(image, image.src);
   }
