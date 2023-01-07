@@ -164,8 +164,7 @@ const cameras = [
   },
 ];
 
-async function seed(prisma) {
-  for (const { src, canyon, alt } of cameras) {
+async function upsert(prisma, { src, canyon, alt }) {
     const id = `canyon:${canyon}|src:${src}`;
     const host = new URL(src).host;
     await prisma.cameras.upsert({
@@ -179,7 +178,24 @@ async function seed(prisma) {
         host,
       },
     });
+}
+
+async function seed(prisma) {
+  for (const camera of cameras) {
+    await upsert(prisma, camera);
   }
+
+  await upsert(prisma, {
+    src: "https://www.udottraffic.utah.gov/AnimatedGifs/100032.gif",
+    alt: "210 highway status",
+    canyon: "meta"
+  });
+
+  await upsert(prisma, {
+    src: "https://www.udottraffic.utah.gov/AnimatedGifs/100033.gif",
+    alt: "SR-190 highway status",
+    canyon: "meta"
+  });
 }
 
 (async function main() {
