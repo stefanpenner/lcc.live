@@ -186,13 +186,13 @@ async function seed(prisma) {
   }
 
   await upsert(prisma, {
-    src: "https://www.udottraffic.utah.gov/AnimatedGifs/100032.gif",
+    src: "https://udottraffic.utah.gov/AnimatedGifs/100032.gif",
     alt: "210 highway status",
     canyon: "meta"
   });
 
   await upsert(prisma, {
-    src: "https://www.udottraffic.utah.gov/AnimatedGifs/100033.gif",
+    src: "https://udottraffic.utah.gov/AnimatedGifs/100033.gif",
     alt: "SR-190 highway status",
     canyon: "meta"
   });

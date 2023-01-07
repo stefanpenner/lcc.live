@@ -20,7 +20,7 @@ export default function App() {
       roadStatus = (
         <road-status>
           <img
-            src={`/image/${encodeURIComponent("https://www.udottraffic.utah.gov/AnimatedGifs/100032.gif")}`}
+            src={`/image/${encodeURIComponent("https://udottraffic.utah.gov/AnimatedGifs/100032.gif")}`}
             alt="210 highway status"
           />
         </road-status>
@@ -31,7 +31,7 @@ export default function App() {
       roadStatus = (
         <road-status>
           <img
-            src={`/image/${encodeURIComponent("https://www.udottraffic.utah.gov/AnimatedGifs/100033.gif")}`}
+            src={`/image/${encodeURIComponent("https://udottraffic.utah.gov/AnimatedGifs/100033.gif")}`}
             alt="SR-190 highway status"
           />
         </road-status>
