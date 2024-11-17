@@ -86,6 +86,7 @@ video {
   font: inherit;
   vertical-align: baseline;
 }
+
 /* HTML5 display-role reset for older browsers */
 article,
 aside,
@@ -100,17 +101,21 @@ nav,
 section {
   display: block;
 }
+
 body {
   line-height: 1;
 }
+
 ol,
 ul {
   list-style: none;
 }
+
 blockquote,
 q {
   quotes: none;
 }
+
 blockquote:before,
 blockquote:after,
 q:before,
@@ -118,21 +123,22 @@ q:after {
   content: "";
   content: none;
 }
+
 table {
   border-collapse: collapse;
   border-spacing: 0;
 }
+
 html {
   background: #f2f3f4;
 }
+
 body {
   background: #f2f3f4;
-  background: linear-gradient(
-    to bottom,
-    #f2f3f4 40px,
-    #f7f7f7 40px,
-    #f7f7f7 100%
-  );
+  background: linear-gradient(to bottom,
+      #f2f3f4 40px,
+      #f7f7f7 40px,
+      #f7f7f7 100%);
   color: rgb(112, 122, 131);
   font-family: Poppins, sans-serif;
 }
@@ -189,7 +195,8 @@ camera-feed h4 {
   line-height: 2.5em;
 }
 
-camera-feed img {
+camera-feed img,
+camera-feed iframe {
   min-width: 340px;
   object-fit: cover;
   height: 30vh;
@@ -200,16 +207,20 @@ camera-feed img {
   background-size: 200% 200%;
   border: none;
 }
+
 camera-feed img[alt] {
   text-indent: -10000px;
 }
+
 @keyframes BackgroundAnimation {
   0% {
     background-position: 10% 0%;
   }
+
   50% {
     background-position: 91% 100%;
   }
+
   100% {
     background-position: 10% 0%;
   }
@@ -219,7 +230,9 @@ camera-feed img[alt] {
   camera-feed {
     cursor: auto;
   }
-  camera-feed img {
+
+  camera-feed img,
+  camera-feed iframe {
     width: 98vw;
     min-width: 360px;
     height: 40vh;
@@ -256,7 +269,8 @@ the-overlay camera-feed:hover {
   transform: none;
 }
 
-the-overlay img {
+the-overlay img,
+the-overlay iframe {
   background: none;
   cursor: zoom-out;
   margin: 0 auto;
@@ -277,6 +291,7 @@ the-overlay img {
   border-top-left-radius: 10px;
   border-bottom-left-radius: 10px;
 }
+
 .canyon-toggle a:last-child {
   border-top-right-radius: 10px;
   border-bottom-right-radius: 10px;

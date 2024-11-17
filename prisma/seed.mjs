@@ -28,30 +28,88 @@ const cameras = [
     canyon: "bcc",
   },
   {
-    src: "https://webcams.solitudemountain.com/rh1.jpg",
-    alt: "Roundhouse (1)",
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/d8hFWghj84k?autoplay=1&mute=1&controls=0",
+    alt: "Honeycomb Canyon",
     canyon: "bcc",
   },
+
   {
-    src: "https://webcams.solitudemountain.com/mbl.jpg",
-    alt: "Moonbeam Village",
-    canyon: "bcc",
-  },
-  {
-    src: "https://webcams.solitudemountain.com/rh2.jpg",
-    alt: "Sunshine Bowl",
-    canyon: "bcc",
-  },
-  {
-    src: "https://webcams.solitudemountain.com/rh2.jpg",
-    alt: "Roundhouse (2)",
-    canyon: "bcc",
-  },
-  {
-    src: "https://webcams.solitudemountain.com/ph.jpg",
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/WGo1Fy5mYaA?autoplay=1&mute=1&controls=0",
     alt: "Powderhorn",
     canyon: "bcc",
   },
+
+  {
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/Lnznapxh2xM?autoplay=1&mute=1&controls=0",
+    alt: "Sunshine Bowl",
+    canyon: "bcc",
+  },
+
+  {
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/Hhv0J8fQAxw?autoplay=1&mute=1&controls=0",
+    alt: "Solitude Snow Stake",
+    canyon: "bcc",
+  },
+  {
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/ta-4QZbfMXc?autoplay=1&mute=1&controls=0",
+    alt: "Moonbeam Parking Lot",
+    canyon: "bcc",
+  },
+
+  {
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/l2X9DlRzX54?autoplay=1&mute=1&controls=0",
+    alt: "Apex Express and Sunrise Lift Lines",
+    canyon: "bcc",
+  },
+  {
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/Rh4wr-LckZw?autoplay=1&mute=1&controls=0",
+    alt: "Eagle Express Lift Line",
+    canyon: "bcc",
+  },
+
+  {
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/ta-4QZbfMXc?autoplay=1&mute=1&controls=0",
+    alt: "Moonbeam Parking Lot",
+    canyon: "bcc",
+  },
+
+  {
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/aJiGvGcfLwI?autoplay=1&mute=1&controls=0",
+    alt: "Summit express Lift Line",
+    canyon: "bcc",
+  },
+
+
+  {
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/yeoBog_kSzc?autoplay=1&mute=1&controls=0",
+    alt: "POWDERHORN II LIFT LINE",
+    canyon: "bcc",
+  },
+
+  {
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/utxeACX43GE?autoplay=1&mute=1&controls=0",
+    alt: "Honeycomb Return Lift Line",
+    canyon: "bcc",
+  },
+
+  {
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/FBDyQVnJaRQ?autoplay=1&mute=1&controls=0",
+    alt: "Link Lift Line",
+    canyon: "bcc",
+  },
+
   {
     src: "https://b9.hdrelay.com/camera/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4/snapshot",
     alt: "Snowbird Snow Stake",
@@ -148,11 +206,6 @@ const cameras = [
     canyon: "lcc",
   },
   {
-    src: "https://b9.hdrelay.com/camera/db2a69c5-66e9-4c48-a713-919eaf191fc1/snapshot",
-    alt: "Snowbird Cam",
-    canyon: "lcc",
-  },
-  {
     src: "https://b9.hdrelay.com/camera/5780754f-8da1-4223-ab8a-6755d84cbc10/snapshot",
     alt: "Mineral Basin",
     canyon: "lcc",
@@ -162,10 +215,14 @@ const cameras = [
     alt: "Tram Bullpen",
     canyon: "lcc",
   },
-];
+].map(camera => {
+  camera.kind = camera.kind || "img"
+  return camera
+
+});
 
 async function seed(prisma) {
-  for (const { src, canyon, alt } of cameras) {
+  for (const { kind, src, canyon, alt } of cameras) {
     const id = `canyon:${canyon}|src:${src}`;
     const host = new URL(src).host.toLowerCase();
     await prisma.cameras.upsert({
@@ -173,6 +230,7 @@ async function seed(prisma) {
       update: {},
       create: {
         id,
+        kind,
         src,
         alt,
         canyon,

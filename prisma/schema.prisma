@@ -12,6 +12,7 @@ datasource db {
 
 model Cameras {
   id String @unique
+  kind String
   alt String
   src String
   canyon String

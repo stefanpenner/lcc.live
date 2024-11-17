@@ -1,6 +1,7 @@
 -- CreateTable
 CREATE TABLE "Cameras" (
     "id" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
     "alt" TEXT NOT NULL,
     "src" TEXT NOT NULL,
     "canyon" TEXT NOT NULL,

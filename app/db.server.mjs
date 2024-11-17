@@ -1,7 +1,7 @@
 import App from "./app.server.mjs";
 
 export async function camerasByCanyon(canyon) {
-  return App.app.db.cameras.findMany({
+  return await App.app.db.cameras.findMany({
     where: { canyon },
   });
 }
