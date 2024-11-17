@@ -1,9 +1,9 @@
 export default function camera(camera, index) {
-
   if (camera.kind == "iframe") {
     return (
       <camera-feed key={camera.src} tabindex={index} >
         <iframe
+          loading="lazy"
           src={camera.src}
           title="YouTube video player"
           frameborder="0"

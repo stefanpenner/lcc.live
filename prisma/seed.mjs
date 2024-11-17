@@ -110,6 +110,35 @@ const cameras = [
     canyon: "bcc",
   },
 
+
+  {
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/YDyBL3bXOwA?autoplay=1&mute=1&controls=0",
+    alt: "Great Western",
+    canyon: "bcc",
+  },
+  {
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/s1i1Si4heiU?autoplay=1&mute=1&controls=0",
+    alt: "Milly Express",
+    canyon: "bcc",
+  },
+  {
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/XLzKPufaAts?autoplay=1&mute=1&controls=0",
+    alt: "Majestic",
+    canyon: "bcc",
+  },
+  {
+    kind: "iframe",
+    src: "https://www.youtube.com/embed/iq-CT8UQzgo?autoplay=1&mute=1&controls=0",
+    alt: "Parking Lot",
+    canyon: "bcc",
+  },
+
+
+
+
   {
     src: "https://b9.hdrelay.com/camera/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4/snapshot",
     alt: "Snowbird Snow Stake",
