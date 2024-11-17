@@ -274,10 +274,10 @@ the-overlay iframe {
   background: none;
   cursor: zoom-out;
   margin: 0 auto;
-  width: 100%;
-  height: 100%;
-  max-width: 100vw;
-  max-height: 100vh;
+  width: 90%;
+  height: 90%;
+  max-width: 90vw;
+  max-height: 90vh;
   object-fit: contain;
 }
 

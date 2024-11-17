@@ -17,8 +17,11 @@ class Overlay extends HTMLElement {
 
   reload() {
     this.timer = setTimeout(() => {
-      forceReload(this.querySelector("img"));
-      this.timer = setTimeout(() => this.reload(), 30_000);
+      img = this.querySelector("img");
+      if (img) {
+        forceReload(this.querySelector("img"));
+        this.timer = setTimeout(() => this.reload(), 30_000);
+      }
     }, 1_000);
   }
 
@@ -79,6 +82,7 @@ document.body.addEventListener("click", (e) => {
 
 const ORIGINAL_SRC = new WeakMap();
 function ensureOriginalCachedSrc(image) {
+  if (image === null) { return }
   // ensure the original src is set
   const src = new URL(image.src);
   if (src.searchParams.has('_x')) {
@@ -94,7 +98,7 @@ function ensureOriginalCachedSrc(image) {
 for (const image of [...document.querySelectorAll("img")]) {
   ensureOriginalCachedSrc(image);
 
-  image.onerror = function () {
+  image.onerror = function() {
     if (this.src.includes("/oops.png")) {
       return;
     }
