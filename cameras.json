@@ -1,0 +1,240 @@
+{
+"cameras": [
+    {
+        "Src": "https://udottraffic.utah.gov/AnimatedGifs/100032.gif",
+        "Alt": "",
+        "Canyon": "LCC"
+    },
+    {
+        "Src": "https://udottraffic.utah.gov/AnimatedGifs/100033.gif",
+        "Alt": "",
+        "Canyon": "BCC"
+    },
+    {
+        "Src": "https://udottraffic.utah.gov/1_devices/aux14605.jpeg",
+        "Alt": "Wasatch Blvd @ BCC",
+        "Canyon": "bcc"
+    },
+    {
+        "Src": "https://udottraffic.utah.gov/1_devices/aux16212.jpeg",
+        "Alt": "Dogwood",
+        "Canyon": "bcc"
+    },
+    {
+        "Src": "https://udottraffic.utah.gov/1_devices/aux16213.jpeg",
+        "Alt": "S Curves",
+        "Canyon": "bcc"
+    },
+    {
+        "Src": "https://udottraffic.utah.gov/1_devices/aux16215.jpeg",
+        "Alt": "Cardiff Fork",
+        "Canyon": "bcc"
+    },
+    {
+        "Src": "https://udottraffic.utah.gov/1_devices/aux16216.jpeg",
+        "Alt": "Silver Fork",
+        "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/d8hFWghj84k?autoplay=1&mute=1&controls=0",
+      "Alt": "Honeycomb Canyon",
+      "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/WGo1Fy5mYaA?autoplay=1&mute=1&controls=0",
+      "Alt": "Powderhorn",
+      "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/Lnznapxh2xM?autoplay=1&mute=1&controls=0",
+      "Alt": "Sunshine Bowl",
+      "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/Hhv0J8fQAxw?autoplay=1&mute=1&controls=0",
+      "Alt": "Solitude Snow Stake",
+      "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/ta-4QZbfMXc?autoplay=1&mute=1&controls=0",
+      "Alt": "Moonbeam Parking Lot",
+      "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/l2X9DlRzX54?autoplay=1&mute=1&controls=0",
+      "Alt": "Apex Express and Sunrise Lift Lines",
+      "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/Rh4wr-LckZw?autoplay=1&mute=1&controls=0",
+      "Alt": "Eagle Express Lift Line",
+      "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/ta-4QZbfMXc?autoplay=1&mute=1&controls=0",
+      "Alt": "Moonbeam Parking Lot",
+      "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/aJiGvGcfLwI?autoplay=1&mute=1&controls=0",
+      "Alt": "Summit express Lift Line",
+      "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/yeoBog_kSzc?autoplay=1&mute=1&controls=0",
+      "Alt": "POWDERHORN II LIFT LINE",
+      "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/utxeACX43GE?autoplay=1&mute=1&controls=0",
+      "Alt": "Honeycomb Return Lift Line",
+      "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/FBDyQVnJaRQ?autoplay=1&mute=1&controls=0",
+      "Alt": "Link Lift Line",
+      "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/YDyBL3bXOwA?autoplay=1&mute=1&controls=0",
+      "Alt": "Great Western",
+      "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/s1i1Si4heiU?autoplay=1&mute=1&controls=0",
+      "Alt": "Milly Express",
+      "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/XLzKPufaAts?autoplay=1&mute=1&controls=0",
+      "Alt": "Majestic",
+      "Canyon": "bcc"
+    },
+    {
+      "Kind": "iframe",
+      "Src": "https://www.youtube.com/embed/iq-CT8UQzgo?autoplay=1&mute=1&controls=0",
+      "Alt": "Parking Lot",
+      "Canyon": "bcc"
+    },
+    {
+      "Src": "https://b9.hdrelay.com/camera/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4/snapshot",
+      "Alt": "Snowbird Snow Stake",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Collins_Snow_Stake.jpg",
+      "Alt": "Alta Collins Snow Stake (12h)",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://udottraffic.utah.gov/1_devices/aux14604.jpeg",
+      "Alt": "Mouth of LCC",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://udottraffic.utah.gov/1_devices/aux16647.jpeg",
+      "Alt": "Powerhouse",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://udottraffic.utah.gov/1_devices/aux16265.jpeg",
+      "Alt": "Upper Vault",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://udottraffic.utah.gov/1_devices/aux16266.jpeg",
+      "Alt": "Lisa Falls",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://udottraffic.utah.gov/1_devices/aux16268.jpeg",
+      "Alt": "Tanners Flat",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://udottraffic.utah.gov/1_devices/aux16269.jpeg",
+      "Alt": "White Pine",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://udottraffic.utah.gov/1_devices/aux16270.jpeg",
+      "Alt": "White Pine Parking",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://udottraffic.utah.gov/1_devices/aux17227.jpeg",
+      "Alt": "Upper White Pine",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://udottraffic.utah.gov/1_devices/aux17228.jpeg",
+      "Alt": "Alta Bypass",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://udottraffic.utah.gov/1_devices/aux17226.jpeg",
+      "Alt": "Alta",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Superior.jpg",
+      "Alt": "Mount Superior",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Highrustler.jpg",
+      "Alt": "High Rustler",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/sugar_peak.jpg",
+      "Alt": "Sugarloaf Peak",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/collins_dtc.jpg",
+      "Alt": "Salt Lake Valley",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://app.prismcam.com/public/helpers/realtime_preview.php?c=88&s=720",
+      "Alt": "Mount Baldy",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://backend.roundshot.com/cams/48fc223c0ed88474ecc2f884bf39de63/medium",
+      "Alt": "Powder Paradise",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://backend.roundshot.com/cams/44cfff4ff2a218a1178dbb105d95846a/medium",
+      "Alt": "Hidden Peak",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://b9.hdrelay.com/camera/5780754f-8da1-4223-ab8a-6755d84cbc10/snapshot",
+      "Alt": "Mineral Basin",
+      "Canyon": "lcc"
+    },
+    {
+      "Src": "https://b7.hdrelay.com/camera/61b2490be101c00b9c48374f/snapshot",
+      "Alt": "Tram Bullpen",
+      "Canyon": "lcc"
+    }
+  ]
+}
