@@ -1,6 +1,7 @@
 package cameras
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -122,7 +123,7 @@ func NewStore(cameras ...Camera) *Store {
 	}
 }
 
-func (s *Store) FetchImages() {
+func (s *Store) FetchImages(ctx context.Context) {
 	var wg sync.WaitGroup
 
 	for i := range s.entries {
@@ -136,6 +137,7 @@ func (s *Store) FetchImages() {
 		go func(entry *Entry) {
 			defer wg.Done()
 
+			// TODO: connect ctx to http client
 			client := &http.Client{
 				Timeout: 5 * time.Second,
 			}
@@ -205,6 +207,7 @@ func (s *Store) FetchImages() {
 		}(entry)
 	}
 	log.Printf("done")
+	// TODO: connect ctx to wait?
 	wg.Wait()
 }
 

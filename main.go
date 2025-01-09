@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -9,12 +10,19 @@ import (
 	"github.com/stefanpenner/lcc-live/server"
 )
 
-func keepCamerasInSync(store *cameras.Store) {
-	// TODO: add cancellation
+func keepCamerasInSync(ctx context.Context, store *cameras.Store) error {
 	for {
-		fmt.Println("fetching")
-		store.FetchImages()
-		time.Sleep(time.Second * 10)
+		select {
+		case <-ctx.Done():
+			log.Println("cancelling sync")
+			return ctx.Err()
+		default:
+			{
+				log.Println("syncing cameras")
+				store.FetchImages(ctx)
+				time.Sleep(time.Second * 10)
+			}
+		}
 	}
 }
 
@@ -24,7 +32,7 @@ func main() {
 		log.Fatalf("failed to create new store from file %s - %v", "cameras.json", err)
 	}
 
-	go keepCamerasInSync(store)
+	go keepCamerasInSync(context.Background(), store)
 
 	app, err := server.Start(store)
 	if err != nil {
