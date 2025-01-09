@@ -10,11 +10,11 @@ import (
 )
 
 func keepCamerasInSync(store *cameras.Store) {
-	fmt.Println("fetching")
-	store.FetchImages()
-	for range time.Tick(time.Second * 1) {
+	// TODO: add cancellation
+	for {
 		fmt.Println("fetching")
 		store.FetchImages()
+		time.Sleep(time.Second * 10)
 	}
 }
 

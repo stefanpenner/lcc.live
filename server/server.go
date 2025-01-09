@@ -32,16 +32,16 @@ func Start(store *cameras.Store) (*fiber.App, error) {
 		status := fiber.StatusNotFound
 
 		if exists {
-			if camera.Image.Status == http.StatusOK {
-				image := camera.Image
+			if camera.HTTPHeaders.Status == http.StatusOK {
+				headers := &camera.HTTPHeaders
 
-				c.Set("Content-Type", image.ContentType)
-				c.Set("Content-Length", fmt.Sprintf("%d", image.ContentLength))
+				c.Set("Content-Type", headers.ContentType)
+				c.Set("Content-Length", fmt.Sprintf("%d", headers.ContentLength))
 
-				log.Printf("Http(200): src: %s content-type: %s content-length: %d ", camera.Src, image.ContentType, image.ContentLength)
-				return c.Send(image.Bytes)
+				log.Printf("Http(200): src: %s content-type: %s content-length: %d ", camera.Src, headers.ContentType, headers.ContentLength)
+				return c.Send(camera.Image.Bytes)
 			} else {
-				status = camera.Image.Status
+				status = camera.HTTPHeaders.Status
 			}
 		}
 
