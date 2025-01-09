@@ -153,7 +153,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 				headers = entry.entry.HTTPHeaders
 			})
 
-			headReq, err := http.NewRequest("HEAD", src, nil)
+			headReq, err := http.NewRequestWithContext(ctx, "HEAD", src, nil)
 			if err != nil {
 				log.Printf("Error creating HEAD request for %s: %v\n", src, err)
 				return
@@ -173,8 +173,14 @@ func (s *Store) FetchImages(ctx context.Context) {
 				return
 			}
 
+			getReq, err := http.NewRequestWithContext(ctx, "GET", src, nil)
+			if err != nil {
+				log.Printf("Error creating GET request for %s: %v\n", src, err)
+				return
+			}
+
 			// log.Printf("[CHANGED] Image %s (ETag: %s != %s)\n", camera.Src, newETag, camera.HTTPHeaders.ETag)
-			resp, err := client.Get(src)
+			resp, err := client.Do(getReq)
 			if err != nil {
 				log.Printf("Error fetching image %s: %v\n", src, err)
 				return
