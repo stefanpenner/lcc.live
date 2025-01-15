@@ -1,0 +1,49 @@
+<html lang="en">
+  <head>
+    <title>[LIVE] - LCC</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="charset" content="utf-8"><meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="white">
+    <meta name="theme-color" content="#f2f3f4">
+    <meta name="msapplication-square310x310logo" content="icon_largetile.png">
+    <meta name="Description" content="LCC Live">
+    <link rel="stylesheet" href="/style.css">
+    <!-- <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"> -->
+    <!-- <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"> -->
+    <!-- <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"> -->
+    <!-- <link rel="icon" type="image/png" href="/favicon.ico"> -->
+  </head>
+  <body>
+    <header>
+      <nav class="canyon-toggle">
+        <a aria-current="page" class="active" href="/">LCC</a>
+        <a class="" href="/bcc">BCC</a>
+      </nav>
+      <road-status>
+        <img src="{{.Status.Src}}" alt="{{.Status.Alt}}">
+      </road-status>
+    </header>
+    <section id="container">
+      {{range .Cameras}}
+        {{if ne .Kind "roadstatus"}}
+      <camera-feed tabindex="{{.Index}}" reload="{{.Reload}}">
+        {{if eq .Kind "iframe"}}
+        <iframe 
+          loading="lazy" 
+          src="{{.Src}}" 
+          title="{{.Alt}}" 
+          frameborder="0" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+          referrerpolicy="strict-origin-when-cross-origin">
+        </iframe>
+        {{else}}
+        <img src="{{.Src}}" alt="{{.Alt}}" loading="lazy">
+        {{end}}
+        <h4>{{.Alt}}</h4>
+      </camera-feed>
+      {{end}}
+      {{end}}
+    </section>
+    <the-overlay></the-overlay>
+  </body>
+</html>

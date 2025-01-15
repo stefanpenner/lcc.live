@@ -1,0 +1,2 @@
+print template context:
+{{ printf "%#v" . }}

@@ -6,11 +6,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/stefanpenner/lcc-live/cameras"
 	"github.com/stefanpenner/lcc-live/server"
+	"github.com/stefanpenner/lcc-live/store"
 )
 
-func keepCamerasInSync(ctx context.Context, store *cameras.Store) error {
+func keepCamerasInSync(ctx context.Context, store *store.Store) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -27,7 +27,7 @@ func keepCamerasInSync(ctx context.Context, store *cameras.Store) error {
 }
 
 func main() {
-	store, err := cameras.NewStoreFromFile("cameras.json")
+	store, err := store.NewStoreFromFile("store.json")
 	if err != nil {
 		log.Fatalf("failed to create new store from file %s - %v", "cameras.json", err)
 	}

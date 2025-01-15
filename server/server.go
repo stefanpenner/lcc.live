@@ -6,28 +6,32 @@ import (
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/stefanpenner/lcc-live/cameras"
+	"github.com/stefanpenner/lcc-live/store"
+
+	"github.com/gofiber/template/html/v2"
 )
 
-func Start(store *cameras.Store) (*fiber.App, error) {
-	app := fiber.New()
+func Start(store *store.Store) (*fiber.App, error) {
+	app := fiber.New(fiber.Config{
+		Views: html.New("./views", ".html.tmpl"),
+	})
 	app.Use(logger.New())
+	app.Use(compress.New())
 
 	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendFile("public/index.html")
+		return c.Render("canyon", store.Canyon("LCC"))
 	})
 
 	app.Get("/bcc", func(c *fiber.Ctx) error {
-		return c.SendFile("public/index.html")
+		return c.Render("canyon", store.Canyon("BCC"))
 	})
 
-	app.Get("/lcc", func(c *fiber.Ctx) error {
-		return c.SendFile("public/index.html")
-	})
 	app.Get("/image/:id", func(c *fiber.Ctx) error {
+		// TODO: add http caching
 		id := c.Params("id")
-		camera, exists := store.Get(id)
+		camera, exists := store.GetCamera(id)
 
 		status := fiber.StatusNotFound
 
