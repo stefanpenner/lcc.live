@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -13,10 +12,54 @@ import (
 
 type Store struct {
 	client  *http.Client
+	canyons *Canyons
 	path    string
 	index   map[string]*Entry
 	entries []*Entry
 	mu      sync.RWMutex
+}
+
+type Entry struct {
+	Camera      *Camera
+	Image       *Image
+	HTTPHeaders *HTTPHeaders
+	ID          string
+	mu          sync.RWMutex
+}
+
+type EntrySnapshot struct {
+	Camera      *Camera
+	Image       *Image
+	HTTPHeaders *HTTPHeaders
+	ID          string
+}
+
+func (e *Entry) Snapshot() *EntrySnapshot {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	// TODO: does this actually copy?
+	// Copy fields to a new snapshot
+	return &EntrySnapshot{
+		Camera:      e.Camera,
+		Image:       e.Image,
+		HTTPHeaders: e.HTTPHeaders,
+		ID:          e.ID,
+	}
+}
+
+func (e *Entry) Read(fn func(*Entry)) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	fn(e)
+}
+
+func (e *Entry) Write(fn func(*Entry)) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	fn(e)
 }
 
 func (s *Store) Read(fn func(*Store)) {
@@ -34,67 +77,57 @@ func (s *Store) Write(fn func(*Store)) {
 }
 
 func NewStoreFromFile(path string) (*Store, error) {
-	cameras, err := CamerasFromFile(path)
+	canyons := &Canyons{}
+	err := canyons.Load(path)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewStore(cameras...), err
+	return NewStore(canyons), err
 }
 
-func NewStore(cameras ...Camera) *Store {
-	// doesn't need to be threadsafe, as we don't add/remove from the store once
-	// it's initialized, only it's entries must be
+func NewStore(canyons *Canyons) *Store {
+	// doesn't need to be threadsafe, as the store is only accessed from a single thread during intializations
 	index := make(map[string]*Entry)
 	entries := []*Entry{}
+	cameras := append(canyons.LCC.Cameras, canyons.BCC.Cameras...)
+	cameras = append(cameras, canyons.LCC.Status)
+	cameras = append(cameras, canyons.BCC.Status)
 
 	// build an index from ID to Camera
 	for i := range cameras {
 		camera := &cameras[i] // Get pointer to camera
 		id := url.QueryEscape(camera.Src)
-		camera.ID = id
 		entry := &Entry{
-			mu:    sync.RWMutex{},
-			entry: camera,
+			ID:          id,
+			Camera:      camera,
+			Image:       &Image{},
+			HTTPHeaders: &HTTPHeaders{},
+			mu:          sync.RWMutex{},
 		}
 
 		index[id] = entry
-
 		entries = append(entries, entry)
 	}
+
 	return &Store{
 		entries: entries,
 		index:   index,
+		canyons: canyons,
 		client: &http.Client{
 			Timeout: 5 * time.Second,
 		},
 	}
 }
 
-type Canyon struct {
-	Cameras []Camera
-	Status  Camera
-}
-
 func (s *Store) Canyon(canyon string) Canyon {
-	cameras := []Camera{}
-	var status Camera
-
-	for _, entry := range s.entries {
-		fmt.Printf("canyon: %s\n", canyon)
-		fmt.Printf("entry: %s\n", entry.entry.ID)
-		if entry.entry.Canyon == canyon {
-			if entry.entry.Kind == "status" {
-				status = *entry.entry
-			} else {
-				cameras = append(cameras, *entry.entry)
-			}
-		}
-	}
-
-	return Canyon{
-		Status:  status,
-		Cameras: cameras,
+	switch canyon {
+	case "LCC":
+		return s.canyons.LCC
+	case "BCC":
+		return s.canyons.BCC
+	default:
+		panic("invalid canyon: must be either 'LCC' or 'BCC'")
 	}
 }
 
@@ -104,7 +137,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 	for i := range s.entries {
 		entry := s.entries[i]
 
-		if entry.entry.Kind == "iframe" {
+		if entry.Camera.Kind == "iframe" {
 			continue
 		}
 		wg.Add(1)
@@ -118,9 +151,9 @@ func (s *Store) FetchImages(ctx context.Context) {
 			var src string
 			var headers HTTPHeaders
 
-			entry.Read(func(camera *Camera) {
-				src = entry.entry.Src
-				headers = entry.entry.HTTPHeaders
+			entry.Read(func(entry *Entry) {
+				src = entry.Camera.Src
+				headers = *entry.HTTPHeaders
 			})
 
 			headReq, err := http.NewRequestWithContext(ctx, "HEAD", src, nil)
@@ -171,14 +204,14 @@ func (s *Store) FetchImages(ctx context.Context) {
 				log.Fatalf("Error reading image body: %v\n", err)
 			}
 
-			entry.Write(func(camera *Camera) {
-				camera.HTTPHeaders = HTTPHeaders{
+			entry.Write(func(entry *Entry) {
+				entry.HTTPHeaders = &HTTPHeaders{
 					Status:        http.StatusOK,
 					ContentType:   contentType,
 					ContentLength: contentLength,
 					ETag:          newETag,
 				}
-				camera.Image.Bytes = imageBytes
+				entry.Image.Bytes = imageBytes
 			})
 		}(entry, s.client)
 	}
@@ -186,9 +219,9 @@ func (s *Store) FetchImages(ctx context.Context) {
 	log.Printf("done")
 }
 
-func (s *Store) GetCamera(cameraID string) (Camera, bool) {
+func (s *Store) Get(cameraID string) (*EntrySnapshot, bool) {
 	entry, exists := s.index[cameraID]
 	entry.mu.Lock()
 	defer entry.mu.Unlock()
-	return *entry.entry, exists
+	return entry.Snapshot(), exists
 }

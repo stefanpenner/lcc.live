@@ -26,7 +26,7 @@
     <section id="container">
       {{range .Cameras}}
         {{if ne .Kind "roadstatus"}}
-      <camera-feed tabindex="{{.Index}}" reload="{{.Reload}}">
+      <camera-feed> <!-- TODO: tab index, and reload !-->
         {{if eq .Kind "iframe"}}
         <iframe 
           loading="lazy" 

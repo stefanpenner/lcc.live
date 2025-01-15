@@ -31,21 +31,21 @@ func Start(store *store.Store) (*fiber.App, error) {
 	app.Get("/image/:id", func(c *fiber.Ctx) error {
 		// TODO: add http caching
 		id := c.Params("id")
-		camera, exists := store.GetCamera(id)
+		entry, exists := store.Get(id)
 
 		status := fiber.StatusNotFound
 
 		if exists {
-			if camera.HTTPHeaders.Status == http.StatusOK {
-				headers := &camera.HTTPHeaders
+			if entry.HTTPHeaders.Status == http.StatusOK {
+				headers := entry.HTTPHeaders
 
 				c.Set("Content-Type", headers.ContentType)
 				c.Set("Content-Length", fmt.Sprintf("%d", headers.ContentLength))
 
-				log.Printf("Http(200): src: %s content-type: %s content-length: %d ", camera.Src, headers.ContentType, headers.ContentLength)
-				return c.Send(camera.Image.Bytes)
+				log.Printf("Http(200): src: %s content-type: %s content-length: %d ", entry.Image.Src, headers.ContentType, headers.ContentLength)
+				return c.Send(entry.Image.Bytes)
 			} else {
-				status = camera.HTTPHeaders.Status
+				status = entry.HTTPHeaders.Status
 			}
 		}
 

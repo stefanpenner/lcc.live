@@ -27,7 +27,7 @@ func keepCamerasInSync(ctx context.Context, store *store.Store) error {
 }
 
 func main() {
-	store, err := store.NewStoreFromFile("store.json")
+	store, err := store.NewStoreFromFile("data.json")
 	if err != nil {
 		log.Fatalf("failed to create new store from file %s - %v", "cameras.json", err)
 	}
