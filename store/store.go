@@ -34,12 +34,27 @@ type EntrySnapshot struct {
 	ID          string
 }
 
-func (e *Entry) Snapshot() *EntrySnapshot {
+// Let's talk about the concurrency model:
+//   - The Store is immutable post initialization, except for it's entries
+//     values.
+//   - Locking occurs at the entry level, through RWMutex
+//
+// To allow concurrent access to Entry Structs we abide by the following pattern:
+//  1. the entry struct is mutable, and has a RWMutex, but is kept internal ot
+//     the store
+//  2. the entry struct points to only immutable values, when these values
+//     change the old is left unchanged, a new one is created, and then assigned
+//     to the stable entry struct
+//  4. external access to entries are provided via snapshots of the entry object
+//  5. a handshake agreement exists, where consumers of EntrySnapshot treat it
+//     as "deep frozen"
+//
+// TODO: EntrySnapshot (and it's descendent structs) should consider having
+// private members, and public getters.
+func (e *Entry) ShallowSnapshot() *EntrySnapshot {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	// TODO: does this actually copy?
-	// Copy fields to a new snapshot
 	return &EntrySnapshot{
 		Camera:      e.Camera,
 		Image:       e.Image,
@@ -91,6 +106,8 @@ func NewStore(canyons *Canyons) *Store {
 	index := make(map[string]*Entry)
 	entries := []*Entry{}
 	cameras := append(canyons.LCC.Cameras, canyons.BCC.Cameras...)
+	// TODO: ensure that cameras in canyons struct are what the Entry Pointers
+	// point to. Also write tests to cover this
 	cameras = append(cameras, canyons.LCC.Status)
 	cameras = append(cameras, canyons.BCC.Status)
 
@@ -120,18 +137,19 @@ func NewStore(canyons *Canyons) *Store {
 	}
 }
 
-func (s *Store) Canyon(canyon string) Canyon {
+func (s *Store) Canyon(canyon string) *Canyon {
 	switch canyon {
 	case "LCC":
-		return s.canyons.LCC
+		return &s.canyons.LCC
 	case "BCC":
-		return s.canyons.BCC
+		return &s.canyons.BCC
 	default:
 		panic("invalid canyon: must be either 'LCC' or 'BCC'")
 	}
 }
 
 func (s *Store) FetchImages(ctx context.Context) {
+	// TODO: let's actually error if this function is re-entrant
 	var wg sync.WaitGroup
 
 	for i := range s.entries {
@@ -152,8 +170,9 @@ func (s *Store) FetchImages(ctx context.Context) {
 			var headers HTTPHeaders
 
 			entry.Read(func(entry *Entry) {
-				src = entry.Camera.Src
-				headers = *entry.HTTPHeaders
+				src = entry.Camera.Src // Copy
+				// TODO: explore option of an explicit copy via Copy() or Snapshot(), vs the current implicit approach
+				headers = *entry.HTTPHeaders // Copy
 			})
 
 			headReq, err := http.NewRequestWithContext(ctx, "HEAD", src, nil)
@@ -223,5 +242,5 @@ func (s *Store) Get(cameraID string) (*EntrySnapshot, bool) {
 	entry, exists := s.index[cameraID]
 	entry.mu.Lock()
 	defer entry.mu.Unlock()
-	return entry.Snapshot(), exists
+	return entry.ShallowSnapshot(), exists
 }

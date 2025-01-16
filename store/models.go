@@ -4,20 +4,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 )
 
 type Image struct {
-	// _          sync.Mutex
 	Src   string
 	Bytes []byte
+	_     sync.Mutex
 }
 
 type HTTPHeaders struct {
-	// _          sync.Mutex
 	ContentType   string
 	ETag          string
 	ContentLength int64
 	Status        int
+	_             sync.Mutex
 }
 
 type Camera struct {
@@ -25,24 +26,20 @@ type Camera struct {
 	Src    string `json:"src"`
 	Alt    string `json:"alt"`
 	Canyon string `json:"canyon"`
+	_      sync.Mutex
 }
 
 type Canyon struct {
+	Name    string   `json:"name"`
 	Status  Camera   `json:"status"`
 	Cameras []Camera `json:"cameras"`
+	_       sync.Mutex
 }
 
 type Canyons struct {
 	LCC Canyon `json:"lcc"`
 	BCC Canyon `json:"bcc"`
-}
-
-func (c *Canyons) Save(filename string) error {
-	data, err := json.MarshalIndent(c, "", "  ")
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(filename, data, 0644)
+	_   sync.Mutex
 }
 
 func (c *Canyons) Load(filename string) error {
