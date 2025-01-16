@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <title>[LIVE] - LCC</title>
@@ -16,33 +17,39 @@
   <body>
     <header>
       <nav class="canyon-toggle">
+      {{if eq .Name "LCC"}}
         <a aria-current="page" class="active" href="/">LCC</a>
         <a class="" href="/bcc">BCC</a>
+      {{else}}
+        <a class="" href="/">LCC</a>
+        <a aria-current="page" class="active" href="/bcc">BCC</a>
+      {{end}}
       </nav>
       <road-status>
         <img src="{{.Status.Src}}" alt="{{.Status.Alt}}">
       </road-status>
     </header>
     <section id="container">
-      {{range .Cameras}}
-        {{if ne .Kind "roadstatus"}}
+    {{range .Cameras}}
+    {{if ne .Kind "roadstatus"}}
       <camera-feed> <!-- TODO: tab index, and reload !-->
-        {{if eq .Kind "iframe"}}
+      {{if eq .Kind "iframe"}}
         <iframe 
           loading="lazy" 
           src="{{.Src}}" 
           title="{{.Alt}}" 
           frameborder="0" 
+          fetchpriority=high
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
           referrerpolicy="strict-origin-when-cross-origin">
         </iframe>
-        {{else}}
+      {{else}}
         <img src="{{.Src}}" alt="{{.Alt}}" loading="lazy">
-        {{end}}
+      {{end}}
         <h4>{{.Alt}}</h4>
       </camera-feed>
-      {{end}}
-      {{end}}
+    {{end}}
+    {{end}}
     </section>
     <the-overlay></the-overlay>
   </body>
