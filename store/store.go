@@ -148,6 +148,9 @@ func (s *Store) Canyon(canyon string) *Canyon {
 	}
 }
 
+// TODO: this should return a summary of what changed, so that we can:
+// 1. provide a /status that is updated via SSE
+// 2. provide image updates via SSE
 func (s *Store) FetchImages(ctx context.Context) {
 	// TODO: let's actually error if this function is re-entrant
 	var wg sync.WaitGroup
