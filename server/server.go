@@ -41,6 +41,7 @@ func Start(store *store.Store) (*fiber.App, error) {
 
 				c.Set("Content-Type", headers.ContentType)
 				c.Set("Content-Length", fmt.Sprintf("%d", headers.ContentLength))
+				// TODO: provide exact cache control headers
 
 				log.Printf("Http(200): src: %s content-type: %s content-length: %d ", entry.Image.Src, headers.ContentType, headers.ContentLength)
 				return c.Send(entry.Image.Bytes)
