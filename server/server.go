@@ -3,83 +3,99 @@ package server
 import (
 	"bufio"
 	"fmt"
+	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/stefanpenner/lcc-live/store"
 )
 
-func Start(store *store.Store) (*gin.Engine, error) {
-	router := gin.New()
+// Template renderer for Echo
+type TemplateRenderer struct {
+	templates *template.Template
+}
 
-	router.Use(gin.Logger())
-	router.Use(gin.Recovery()) // TODO: what?
+func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	return t.templates.ExecuteTemplate(w, name, data)
+}
 
-	router.LoadHTMLGlob("./views/*")
+func Start(store *store.Store) (*echo.Echo, error) {
+	e := echo.New()
 
-	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "canyon.html.tmpl", store.Canyon("LCC"))
+	// Middleware
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+
+	// Template renderer
+	renderer := &TemplateRenderer{
+		templates: template.Must(template.ParseGlob("./views/*")),
+	}
+	e.Renderer = renderer
+
+	// Error handler
+	e.HTTPErrorHandler = func(err error, c echo.Context) {
+		c.Render(http.StatusInternalServerError, "error.tmpl", map[string]interface{}{
+			"title": "Error",
+			"err":   err,
+		})
+	}
+
+	// Routes
+	e.GET("/", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "canyon.html.tmpl", store.Canyon("LCC"))
 	})
 
-	// Define route for "/bcc"
-	router.GET("/bcc", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "canyon.html.tmpl", store.Canyon("BCC"))
+	e.GET("/bcc", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "canyon.html.tmpl", store.Canyon("BCC"))
 	})
 
-	// Define route for "/image/:id"
-	router.GET("/image/:id", func(c *gin.Context) {
+	e.GET("/image/:id", func(c echo.Context) error {
 		id := c.Param("id")
-		fmt.Printf("get(%s)", id)
 		entry, exists := store.Get(id)
-		fmt.Printf("did get")
 
 		status := http.StatusNotFound
 
 		if exists {
-			fmt.Printf("exists")
 			if entry.HTTPHeaders.Status == http.StatusOK {
 				headers := entry.HTTPHeaders
 
-				c.Header("Content-Type", headers.ContentType)
-				c.Header("Content-Length", fmt.Sprintf("%d", headers.ContentLength))
-				// TODO: provide exact cache control headers
+				c.Response().Header().Set("Content-Type", headers.ContentType)
+				c.Response().Header().Set("Content-Length", fmt.Sprintf("%d", headers.ContentLength))
 
-				log.Printf("Http(200): src: %s content-type: %s content-length: %d ", entry.Image.Src, headers.ContentType, headers.ContentLength)
-				c.Data(http.StatusOK, headers.ContentType, entry.Image.Bytes)
-				return
-			} else {
-				status = entry.HTTPHeaders.Status
+				log.Printf("Http(200): src: %s content-type: %s content-length: %d ",
+					entry.Image.Src, headers.ContentType, headers.ContentLength)
+				return c.Blob(http.StatusOK, headers.ContentType, entry.Image.Bytes)
 			}
-		} else {
-			fmt.Printf("nope:")
+			status = entry.HTTPHeaders.Status
 		}
 
 		log.Printf("http(%d): %s", status, id)
-		c.String(status, "image not found")
+		return c.String(status, "image not found")
 	})
 
-	router.GET("/events", func(c *gin.Context) {
-		c.Header("Content-Type", "text/event-stream")
-		c.Header("Cache-Control", "no-cache")
-		c.Header("Connection", "keep-alive")
-		c.Header("Transfer-Encoding", "chunked")
+	e.GET("/events", func(c echo.Context) error {
+		c.Response().Header().Set("Content-Type", "text/event-stream")
+		c.Response().Header().Set("Cache-Control", "no-cache")
+		c.Response().Header().Set("Connection", "keep-alive")
+		c.Response().Header().Set("Transfer-Encoding", "chunked")
 
-		writer := bufio.NewWriter(c.Writer)
-		flusher, ok := c.Writer.(http.Flusher)
+		writer := bufio.NewWriter(c.Response().Writer)
+		flusher, ok := c.Response().Writer.(http.Flusher)
 		if !ok {
-			http.Error(c.Writer, "Streaming unsupported!", http.StatusInternalServerError)
-			return
+			return echo.NewHTTPError(http.StatusInternalServerError, "Streaming unsupported!")
 		}
 
-		c.Status(http.StatusOK)
+		c.Response().WriteHeader(http.StatusOK)
 
 		var i int
 		for {
 			select {
-			case <-c.Writer.CloseNotify():
-				return
+			case <-c.Request().Context().Done():
+				return nil
 			default:
 			}
 
@@ -96,9 +112,12 @@ func Start(store *store.Store) (*gin.Engine, error) {
 			flusher.Flush()
 			time.Sleep(10 * time.Second)
 		}
+
+		return nil
 	})
 
-	router.Static("/s/", "./public")
+	// Static files
+	e.Static("/s", "public")
 
-	return router, nil
+	return e, nil
 }
