@@ -2,10 +2,10 @@ package store
 
 import (
 	"context"
+	"encoding/base64"
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"sync"
 	"time"
 )
@@ -107,7 +107,7 @@ func NewStore(canyons *Canyons) *Store {
 	entries := []*Entry{}
 
 	createEntry := func(camera *Camera) *Entry {
-		camera.ID = url.QueryEscape(camera.Src)
+		camera.ID = base64.StdEncoding.EncodeToString([]byte(camera.Src))
 		entry := &Entry{
 			Camera:      camera,
 			Image:       &Image{},

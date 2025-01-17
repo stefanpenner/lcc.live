@@ -7,51 +7,48 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/compress"
-	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gin-gonic/gin"
 	"github.com/stefanpenner/lcc-live/store"
-	"github.com/valyala/fasthttp"
-
-	"github.com/gofiber/template/html/v2"
 )
 
-func Start(store *store.Store) (*fiber.App, error) {
-	app := fiber.New(fiber.Config{
-		Views: html.New("./views", ".html.tmpl"),
-	})
-	app.Use(logger.New())
-	app.Use(compress.New())
+func Start(store *store.Store) (*gin.Engine, error) {
+	router := gin.New()
 
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.Render("canyon", store.Canyon("LCC"))
-	})
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery()) // TODO: what?
 
-	app.Get("/bcc", func(c *fiber.Ctx) error {
-		return c.Render("canyon", store.Canyon("BCC"))
+	router.LoadHTMLGlob("./views/*")
+
+	router.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "canyon.html.tmpl", store.Canyon("LCC"))
 	})
 
-	app.Get("/image/:id", func(c *fiber.Ctx) error {
-		// TODO: add http caching
-		id := c.Params("id")
+	// Define route for "/bcc"
+	router.GET("/bcc", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "canyon.html.tmpl", store.Canyon("BCC"))
+	})
+
+	// Define route for "/image/:id"
+	router.GET("/image/:id", func(c *gin.Context) {
+		id := c.Param("id")
 		fmt.Printf("get(%s)", id)
 		entry, exists := store.Get(id)
 		fmt.Printf("did get")
 
-		status := fiber.StatusNotFound
+		status := http.StatusNotFound
 
 		if exists {
-
 			fmt.Printf("exists")
 			if entry.HTTPHeaders.Status == http.StatusOK {
 				headers := entry.HTTPHeaders
 
-				c.Set("Content-Type", headers.ContentType)
-				c.Set("Content-Length", fmt.Sprintf("%d", headers.ContentLength))
+				c.Header("Content-Type", headers.ContentType)
+				c.Header("Content-Length", fmt.Sprintf("%d", headers.ContentLength))
 				// TODO: provide exact cache control headers
 
 				log.Printf("Http(200): src: %s content-type: %s content-length: %d ", entry.Image.Src, headers.ContentType, headers.ContentLength)
-				return c.Send(entry.Image.Bytes)
+				c.Data(http.StatusOK, headers.ContentType, entry.Image.Bytes)
+				return
 			} else {
 				status = entry.HTTPHeaders.Status
 			}
@@ -60,43 +57,48 @@ func Start(store *store.Store) (*fiber.App, error) {
 		}
 
 		log.Printf("http(%d): %s", status, id)
-		return c.Status(status).SendString("image not found")
+		c.String(status, "image not found")
 	})
 
-	// SSE endpoint
-	app.Get("/events", func(c *fiber.Ctx) error {
-		c.Set("Content-Type", "text/event-stream")
-		c.Set("Cache-Control", "no-cache")
-		c.Set("Connection", "keep-alive")
-		c.Set("Transfer-Encoding", "chunked")
+	router.GET("/events", func(c *gin.Context) {
+		c.Header("Content-Type", "text/event-stream")
+		c.Header("Cache-Control", "no-cache")
+		c.Header("Connection", "keep-alive")
+		c.Header("Transfer-Encoding", "chunked")
 
-		c.Status(fiber.StatusOK).Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
-			// TODO: limit max number of connections
-			// TODO: cleanup when connections close
-			var i int
-			for {
-				if c.Context().Done() {
-					return
-				}
-				i++
-				msg := fmt.Sprintf("%d - the time is %v", i, time.Now())
-				fmt.Fprintf(w, "data: Message: %s\n\n", msg)
-				fmt.Println(msg)
+		writer := bufio.NewWriter(c.Writer)
+		flusher, ok := c.Writer.(http.Flusher)
+		if !ok {
+			http.Error(c.Writer, "Streaming unsupported!", http.StatusInternalServerError)
+			return
+		}
 
-				err := w.Flush()
-				if err != nil {
-					// Refreshing page in web browser will establish a new
-					// SSE connection, but only (the last) one is alive, so
-					// dead connections must be closed here.
-					fmt.Printf("Error while flushing: %v. Closing http connection.\n", err)
+		c.Status(http.StatusOK)
 
-					break
-				}
-				time.Sleep(10 * time.Second)
+		var i int
+		for {
+			select {
+			case <-c.Writer.CloseNotify():
+				return
+			default:
 			}
-		}))
-		return nil
+
+			i++
+			msg := fmt.Sprintf("%d - the time is %v", i, time.Now())
+
+			fmt.Fprintf(writer, "data: Message: %s\n\n", msg)
+			fmt.Println(msg)
+
+			if err := writer.Flush(); err != nil {
+				fmt.Printf("Error while flushing: %v. Closing http connection.\n", err)
+				break
+			}
+			flusher.Flush()
+			time.Sleep(10 * time.Second)
+		}
 	})
-	app.Static("/", "./public")
-	return app, nil
+
+	router.Static("/s/", "./public")
+
+	return router, nil
 }

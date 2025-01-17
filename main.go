@@ -43,5 +43,8 @@ func main() {
 	}
 
 	fmt.Println("Serving")
-	log.Fatal(app.Listen(":3000"))
+	// Listen and serve on port 3000
+	if err := app.Run(":3000"); err != nil {
+		log.Fatal(err)
+	}
 }
