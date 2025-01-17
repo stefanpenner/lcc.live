@@ -1,13 +1,11 @@
 package server
 
 import (
-	"bufio"
 	"fmt"
 	"html/template"
 	"io"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -29,7 +27,9 @@ func Start(store *store.Store) (*echo.Echo, error) {
 	e := echo.New()
 
 	// Middleware
-	e.Use(middleware.Logger())
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: "method=${method}, uri=${uri}, status=${status}\n",
+	}))
 	e.Use(middleware.Recover())
 
 	tmpl := template.New("").Funcs(templateFuncs)
@@ -69,8 +69,6 @@ func Start(store *store.Store) (*echo.Echo, error) {
 				c.Response().Header().Set("Content-Type", headers.ContentType)
 				c.Response().Header().Set("Content-Length", fmt.Sprintf("%d", headers.ContentLength))
 
-				log.Printf("Http(200): src: %s content-type: %s content-length: %d ",
-					entry.Image.Src, headers.ContentType, headers.ContentLength)
 				return c.Blob(http.StatusOK, headers.ContentType, entry.Image.Bytes)
 			}
 			status = entry.HTTPHeaders.Status
@@ -81,40 +79,40 @@ func Start(store *store.Store) (*echo.Echo, error) {
 	})
 
 	e.GET("/events", func(c echo.Context) error {
-		c.Response().Header().Set("Content-Type", "text/event-stream")
-		c.Response().Header().Set("Cache-Control", "no-cache")
-		c.Response().Header().Set("Connection", "keep-alive")
-		c.Response().Header().Set("Transfer-Encoding", "chunked")
-
-		writer := bufio.NewWriter(c.Response().Writer)
-		flusher, ok := c.Response().Writer.(http.Flusher)
-		if !ok {
-			return echo.NewHTTPError(http.StatusInternalServerError, "Streaming unsupported!")
-		}
-
-		c.Response().WriteHeader(http.StatusOK)
-
-		var i int
-		for {
-			select {
-			case <-c.Request().Context().Done():
-				return nil
-			default:
-			}
-
-			i++
-			msg := fmt.Sprintf("%d - the time is %v", i, time.Now())
-
-			fmt.Fprintf(writer, "data: Message: %s\n\n", msg)
-			fmt.Println(msg)
-
-			if err := writer.Flush(); err != nil {
-				fmt.Printf("Error while flushing: %v. Closing http connection.\n", err)
-				break
-			}
-			flusher.Flush()
-			time.Sleep(10 * time.Second)
-		}
+		// c.Response().Header().Set("Content-Type", "text/event-stream")
+		// c.Response().Header().Set("Cache-Control", "no-cache")
+		// c.Response().Header().Set("Connection", "keep-alive")
+		// c.Response().Header().Set("Transfer-Encoding", "chunked")
+		//
+		// writer := bufio.NewWriter(c.Response().Writer)
+		// flusher, ok := c.Response().Writer.(http.Flusher)
+		// if !ok {
+		// 	return echo.NewHTTPError(http.StatusInternalServerError, "Streaming unsupported!")
+		// }
+		//
+		// c.Response().WriteHeader(http.StatusOK)
+		//
+		// var i int
+		// for {
+		// 	select {
+		// 	case <-c.Request().Context().Done():
+		// 		return nil
+		// 	default:
+		// 	}
+		//
+		// 	i++
+		// 	msg := fmt.Sprintf("%d - the time is %v", i, time.Now())
+		//
+		// 	fmt.Fprintf(writer, "data: Message: %s\n\n", msg)
+		// 	fmt.Println(msg)
+		//
+		// 	if err := writer.Flush(); err != nil {
+		// 		fmt.Printf("Error while flushing: %v. Closing http connection.\n", err)
+		// 		break
+		// 	}
+		// 	flusher.Flush()
+		// 	time.Sleep(10 * time.Second)
+		// }
 
 		return nil
 	})
