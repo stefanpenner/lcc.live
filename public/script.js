@@ -90,7 +90,7 @@ function ensureOriginalCachedSrc(image) {
     image.src = src.toString();
   }
 
-  if (!ORIGINAL_SRC.has(image) && !image.src.includes('/oops.png')) {
+  if (!ORIGINAL_SRC.has(image) && !image.src.includes('/s/oops.png')) {
     ORIGINAL_SRC.set(image, image.src);
   }
 }
@@ -99,10 +99,10 @@ for (const image of [...document.querySelectorAll("img")]) {
   ensureOriginalCachedSrc(image);
 
   image.onerror = function() {
-    if (this.src.includes("/oops.png")) {
+    if (this.src.includes("/s/oops.png")) {
       return;
     }
-    this.src = "/oops.png";
+    this.src = "/s/oops.png";
   };
 }
 
