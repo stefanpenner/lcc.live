@@ -19,6 +19,13 @@ type TemplateRenderer struct {
 	templates *template.Template
 }
 
+// Custom template functions
+var templateFuncs = template.FuncMap{
+	"addThree": func(i int) int {
+		return i + 3
+	},
+}
+
 func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
 	return t.templates.ExecuteTemplate(w, name, data)
 }
@@ -30,9 +37,10 @@ func Start(store *store.Store) (*echo.Echo, error) {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
+	tmpl := template.New("").Funcs(templateFuncs)
 	// Template renderer
 	renderer := &TemplateRenderer{
-		templates: template.Must(template.ParseGlob("./views/*")),
+		templates: template.Must(tmpl.ParseGlob("./views/*")),
 	}
 	e.Renderer = renderer
 
