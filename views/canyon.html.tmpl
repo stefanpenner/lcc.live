@@ -31,7 +31,7 @@
       {{end}}
       </nav>
       <road-status>
-        <img src="{{.Status.Src}}" alt="{{.Status.Alt}}">
+        <img id="img-{{.Status.ID}}" src="image/{{.Status.ID}}" alt="{{.Status.Alt}}">
       </road-status>
     </header>
     <section id="container">
@@ -49,7 +49,7 @@
           referrerpolicy="strict-origin-when-cross-origin">
         </iframe>
       {{else}}
-        <img src="{{.Src}}" alt="{{.Alt}}" loading="lazy">
+        <img id="img-{{.ID}}" src="/image/{{.ID}}" alt="{{.Alt}}" loading="lazy">
       {{end}}
         <h4>{{.Alt}}</h4>
       </camera-feed>
@@ -57,5 +57,29 @@
     {{end}}
     </section>
     <the-overlay></the-overlay>
+    <script>
+    // Create a new EventSource connected to our SSE endpoint
+    const eventSource = new EventSource('/events');
+
+    function reloadImage(img) {
+      // Extract the original src without query parameters
+      const originalSrc = img.src.split('?')[0];
+      // Append a unique timestamp to the URL
+      img.src = `${originalSrc}?t=${new Date().getTime()}`;
+    }
+
+    // Listen for messages from the server
+    eventSource.onmessage = function(event) {
+      console.log("tick", event.data)
+      for (const img of [...document.querySelectorAll("img")]) {
+          reloadImage(img)
+      }
+    };
+
+    eventSource.onerror = function(err) {
+      console.error("EventSource failed:", err);
+      eventSource.close();
+    };
+    </script>
   </body>
 </html>

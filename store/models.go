@@ -22,6 +22,7 @@ type HTTPHeaders struct {
 }
 
 type Camera struct {
+	ID     string `json:"id"`
 	Kind   string `json:"kind"`
 	Src    string `json:"src"`
 	Alt    string `json:"alt"`

@@ -105,26 +105,30 @@ func NewStore(canyons *Canyons) *Store {
 	// doesn't need to be threadsafe, as the store is only accessed from a single thread during intializations
 	index := make(map[string]*Entry)
 	entries := []*Entry{}
-	cameras := append(canyons.LCC.Cameras, canyons.BCC.Cameras...)
-	// TODO: ensure that cameras in canyons struct are what the Entry Pointers
-	// point to. Also write tests to cover this
-	cameras = append(cameras, canyons.LCC.Status)
-	cameras = append(cameras, canyons.BCC.Status)
 
-	// build an index from ID to Camera
-	for i := range cameras {
-		camera := &cameras[i] // Get pointer to camera
-		id := url.QueryEscape(camera.Src)
+	createEntry := func(camera *Camera) *Entry {
+		camera.ID = url.QueryEscape(camera.Src)
 		entry := &Entry{
-			ID:          id,
 			Camera:      camera,
 			Image:       &Image{},
 			HTTPHeaders: &HTTPHeaders{},
 			mu:          sync.RWMutex{},
 		}
-
-		index[id] = entry
+		index[camera.ID] = entry
 		entries = append(entries, entry)
+		return entry
+	}
+
+	// Process status cameras
+	createEntry(&canyons.LCC.Status)
+	createEntry(&canyons.BCC.Status)
+
+	// Process regular cameras
+	for i := range canyons.LCC.Cameras {
+		createEntry(&canyons.LCC.Cameras[i])
+	}
+	for i := range canyons.BCC.Cameras {
+		createEntry(&canyons.BCC.Cameras[i])
 	}
 
 	return &Store{
@@ -243,7 +247,5 @@ func (s *Store) FetchImages(ctx context.Context) {
 
 func (s *Store) Get(cameraID string) (*EntrySnapshot, bool) {
 	entry, exists := s.index[cameraID]
-	entry.mu.Lock()
-	defer entry.mu.Unlock()
 	return entry.ShallowSnapshot(), exists
 }

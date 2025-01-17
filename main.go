@@ -32,6 +32,9 @@ func main() {
 		log.Fatalf("failed to create new store from file %s - %v", "cameras.json", err)
 	}
 
+	// block server starting until images are ready
+	// TODO: just hold requests until these is done
+	store.FetchImages(context.Background())
 	go keepCamerasInSync(context.Background(), store)
 
 	app, err := server.Start(store)
