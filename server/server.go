@@ -19,12 +19,7 @@ type TemplateRenderer struct {
 	templates *template.Template
 }
 
-// Custom template functions
-var templateFuncs = template.FuncMap{
-	"addThree": func(i int) int {
-		return i + 3
-	},
-}
+var templateFuncs = template.FuncMap{}
 
 func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
 	return t.templates.ExecuteTemplate(w, name, data)

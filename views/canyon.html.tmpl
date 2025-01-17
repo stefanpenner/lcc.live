@@ -23,11 +23,11 @@
     <header>
       <nav class="canyon-toggle">
       {{if eq .Name "LCC"}}
-        <a aria-current="page" class="active" href="/" tabindex=1>LCC</a>
-        <a class="" href="/bcc" tabindex=2>BCC</a>
+        <a aria-current="page" class="active" href="/" tabindex=0>LCC</a>
+        <a class="" href="/bcc" tabindex=0>BCC</a>
       {{else}}
-        <a class="" href="/" tabindex=1>LCC</a>
-        <a aria-current="page" class="active" href="/bcc" tabindex=2>BCC</a>
+        <a class="" href="/" tabindex=0>LCC</a>
+        <a aria-current="page" class="active" href="/bcc" tabindex=0>BCC</a>
       {{end}}
       </nav>
       <road-status>
@@ -37,8 +37,9 @@
     <section id="container">
     {{range $index, $c := .Cameras}}
     {{if ne $c.Kind "roadstatus"}}
-      <camera-feed tabindex={{addThree $index}}> <!-- TODO: tab index, and reload !-->
+      <camera-feed tabindex=0> <!-- TODO: and reload !-->
       {{if eq $c.Kind "iframe"}}
+        <!-- TODO: only lazy load stuff that is bellow the fold !-->
         <iframe 
           loading="lazy" 
           src="{{$c.Src}}" 
