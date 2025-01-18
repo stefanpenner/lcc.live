@@ -137,7 +137,7 @@ document.addEventListener("visibilitychange", (event) => {
 (async function reload() {
   for (const camera of [...document.querySelectorAll("camera-feed")]) {
     const image = camera.querySelector("img");
-    await wait(Math.random() * 10_000);
+    await wait(Math.random() * 5_000);
     forceReload(image);
   }
   reload();
