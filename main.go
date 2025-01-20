@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"os"
 	"time"
 
 	fs_helper "github.com/stefanpenner/lcc-live/fs"
@@ -77,8 +78,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	if err := app.Start("0.0.0.0:3000"); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
+	}
+	if err := app.Start(":" + port); err != nil {
 		log.Fatal(err)
 	}
 }
