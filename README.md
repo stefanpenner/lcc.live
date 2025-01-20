@@ -21,9 +21,16 @@ While this project might seem largely experimental, it's a fun place to explore 
 
 **Current Status:**
 
-- The current iteration is an experiment built using Go.
+- The current iteration is an experiment built using Go, and it works.
 - Despite being somewhat rough around the edges, it performs exceptionally well and consumes few resources.
 - The codebase may be messy, but it's surprisingly approachable, especially for someone new to Go.
+
+** TODO **
+
+- [ ] nothing really, it's fine
+- [ ] write some tests, so I feel confident makes quick changes
+- [ ] improve the UX, especially the dialog
+- [ ] add some additional data (snow, temp, forcasts, etc)
 
 ---
 
