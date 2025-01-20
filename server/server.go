@@ -5,7 +5,6 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
-	"log"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -40,25 +39,6 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error)
 			"${status}",
 			style.Duration.Render("${latency_human}")),
 	}))
-
-	// lets make the output pretty
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			err := next(c)
-
-			// Color the status in the log based on the response code
-			status := c.Response().Status
-			if status >= 400 {
-				fmt.Print("\033[1A\033[K") // Move up one line and clear it
-				log.Printf(style.StatusError.Render(fmt.Sprintf("%d", status)))
-			} else {
-				fmt.Print("\033[1A\033[K") // Move up one line and clear it
-				log.Printf(style.StatusSuccess.Render(fmt.Sprintf("%d", status)))
-			}
-
-			return err
-		}
-	})
 
 	e.Use(middleware.Recover())
 	// Custom Rendering Stuff [
