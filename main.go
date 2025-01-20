@@ -9,8 +9,32 @@ import (
 	"log"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/stefanpenner/lcc-live/server"
 	"github.com/stefanpenner/lcc-live/store"
+)
+
+var (
+	// Style definitions
+	titleStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#FF69B4")).
+			MarginBottom(1)
+
+	sectionStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#5F9EA0")).
+			Bold(true)
+
+	fileStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#98FB98"))
+
+	dirStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#DDA0DD")).
+			Bold(true)
+
+	infoStyle = lipgloss.NewStyle().
+			Italic(true).
+			Foreground(lipgloss.Color("#FFD700"))
 )
 
 func keepCamerasInSync(ctx context.Context, store *store.Store) error {
@@ -39,13 +63,16 @@ var staticFS embed.FS
 var tmplFS embed.FS
 
 func main() {
+	fmt.Println(titleStyle.Render("🌄 Starting LCC Live Camera Service"))
+	fmt.Println(infoStyle.Render("https://lcc.live/"))
+
 	staticFS, _ := fs.Sub(staticFS, "static")
 	tmplFS, _ := fs.Sub(tmplFS, "templates")
 
-	fmt.Printf("Embedded File Systems:\n")
-	printFS("- data", dataFS)
-	printFS("- public", staticFS)
-	printFS("- templates", tmplFS)
+	fmt.Println(sectionStyle.Render("Embedded File Systems:"))
+	printFS("📄 Data", dataFS)
+	printFS("🌐 Public", staticFS)
+	printFS("📑 Templates", tmplFS)
 
 	store, err := store.NewStoreFromFile(dataFS, "data.json")
 	if err != nil {

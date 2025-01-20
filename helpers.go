@@ -6,7 +6,6 @@ import (
 	"log"
 )
 
-// print dir structures
 func printFS(name string, f fs.FS) {
 	entries, err := f.(fs.ReadDirFS).ReadDir(".")
 	if err != nil {
@@ -14,30 +13,42 @@ func printFS(name string, f fs.FS) {
 		return
 	}
 
-	fmt.Printf("%s: \n", name)
+	fmt.Println(sectionStyle.Render(name + ":"))
 	for _, entry := range entries {
+		prefix := "  └─"
 		if entry.IsDir() {
-			printDir(f, entry.Name(), "  ")
+			fmt.Printf("%s %s\n", prefix, dirStyle.Render("📁 "+entry.Name()+"/"))
+			printDir(f, entry.Name(), "     ")
 		} else {
-			fmt.Printf("  %s\n", entry.Name())
+			fmt.Printf("%s %s\n", prefix, fileStyle.Render("📄 "+entry.Name()))
 		}
 	}
-	fmt.Println()
 }
 
 func printDir(f fs.FS, dir string, indent string) {
 	entries, err := f.(fs.ReadDirFS).ReadDir(dir)
 	if err != nil {
-		log.Printf("Error reading dir %s: %v\n", dir, err)
 		return
 	}
 
-	fmt.Printf("%s%s/\n", indent, dir)
-	for _, entry := range entries {
+	for i, entry := range entries {
+		isLast := i == len(entries)-1
+		prefix := indent + "└─"
+		if !isLast {
+			prefix = indent + "├─"
+		}
+
 		if entry.IsDir() {
-			printDir(f, dir+"/"+entry.Name(), indent+"  ")
+			fmt.Printf("%s %s\n", prefix, dirStyle.Render("📁 "+entry.Name()+"/"))
+			newIndent := indent
+			if isLast {
+				newIndent += "   "
+			} else {
+				newIndent += "│  "
+			}
+			printDir(f, dir+"/"+entry.Name(), newIndent)
 		} else {
-			fmt.Printf("%s%s\n", indent+"  ", entry.Name())
+			fmt.Printf("%s %s\n", prefix, fileStyle.Render("📄 "+entry.Name()))
 		}
 	}
 }
