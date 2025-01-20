@@ -15,6 +15,9 @@ kill_timeout = '5s'
   [build.args]
     GO_VERSION = '1.23.3'
 
+[env]
+  PORT = '3000'
+
 [http_service]
   internal_port = 3000
   force_https = true
@@ -48,7 +51,7 @@ kill_timeout = '5s'
     grace_period = '1s'
 
   [[services.http_checks]]
-    interval = '5s'
+    interval = '10s'
     timeout = '2s'
     grace_period = '5s'
     method = 'get'
