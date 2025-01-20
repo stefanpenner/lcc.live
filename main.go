@@ -14,6 +14,7 @@ import (
 	"github.com/stefanpenner/lcc-live/style"
 )
 
+// keeps the local store in-sync with image origins.
 func keepCamerasInSync(ctx context.Context, store *store.Store) error {
 	for {
 		select {
@@ -31,12 +32,21 @@ func keepCamerasInSync(ctx context.Context, store *store.Store) error {
 	}
 }
 
+// All assets are provided as part of the same binary using go:embed
+// to keep stuff organized, we provide 3 seperate embedded file systems
+
+// seed data
+//
 //go:embed data.json
 var dataFS embed.FS
 
+// assets for web serving (css, images etc)
+//
 //go:embed static/**
 var staticFS embed.FS
 
+// templates
+//
 //go:embed templates/**
 var tmplFS embed.FS
 
@@ -58,8 +68,9 @@ func main() {
 	}
 
 	// block server starting until images are ready
-	// TODO: just hold requests until these is done
 	store.FetchImages(context.Background())
+
+	// kick-off camera syncing background thread, this one just runs forever
 	go keepCamerasInSync(context.Background(), store)
 
 	app, err := server.Start(store, staticFS, tmplFS)

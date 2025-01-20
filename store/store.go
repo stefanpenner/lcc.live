@@ -45,7 +45,7 @@ type Entry struct {
 	Image       *Image
 	HTTPHeaders *HTTPHeaders
 	ID          string
-	// mu          sync.RWMutex
+	mu          sync.RWMutex
 }
 
 type EntrySnapshot struct {
@@ -123,7 +123,11 @@ func NewStoreFromFile(f fs.FS, filepath string) (*Store, error) {
 }
 
 func NewStore(canyons *Canyons) *Store {
-	// doesn't need to be threadsafe, as the store is only accessed from a single thread during intializations
+	// store initialization doesn't need to be threadsafe, as the store is only
+	// accessed from a single thread during intializations.
+	//
+	// Only subsequent access must be
+	//
 	index := make(map[string]*Entry)
 	entries := []*Entry{}
 
@@ -173,9 +177,10 @@ func (s *Store) Canyon(canyon string) *Canyon {
 	}
 }
 
-// TODO: this should return a summary of what changed, so that we can:
-// 1. provide a /status that is updated via SSE
-// 2. provide image updates via SSE
+// TODO: this should return a more defailt summary of what changed, so that we can:
+// 1. provide a /status endpoint
+// 2. provide "camera down" or "camera live" UI
+// 2. provide image updates via push of some sort
 func (s *Store) FetchImages(ctx context.Context) {
 	fmt.Println(infoStyle.Render("📸 Starting image fetch for all cameras..."))
 	var wg sync.WaitGroup

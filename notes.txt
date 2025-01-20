@@ -6,3 +6,4 @@ Things to explore:
 * learn middleware API
 * pprof https://github.com/labstack/echo-contrib/tree/master/pprof
 
+* single binary. https://github.com/jteeuwen/go-bindata
