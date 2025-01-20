@@ -55,23 +55,20 @@ type EntrySnapshot struct {
 	ID          string
 }
 
-// Let's talk about the concurrency model:
-//   - The Store is immutable post initialization, except for it's entries
-//     values.
-//   - Locking occurs at the entry level, through RWMutex
+// Concurrency Model Overview:
 //
-// To allow concurrent access to Entry Structs we abide by the following pattern:
-//  1. the entry struct is mutable, and has a RWMutex, but is kept internal ot
-//     the store
-//  2. the entry struct points to only immutable values, when these values
-//     change the old is left unchanged, a new one is created, and then assigned
-//     to the stable entry struct
-//  4. external access to entries are provided via snapshots of the entry object
-//  5. a handshake agreement exists, where consumers of EntrySnapshot treat it
-//     as "deep frozen"
+// - The Store is immutable after initialization except for its entry values.
+// - Locking is managed at the entry level using RWMutex.
 //
-// TODO: EntrySnapshot (and it's descendent structs) should consider having
-// private members, and public getters.
+// To enable concurrent access to Entry structs, we follow this pattern:
+//  1. Each Entry struct is mutable and contains its own RWMutex, but remains internal to the Store.
+//  2. Each Entry holds references only to immutable values. When a value changes,
+//     the original remains unchanged. A new value is created and then assigned to the stable Entry.
+//  3. External access to entries is provided via snapshots of the Entry object.
+//  4. Consumers treat the provided EntrySnapshot (and its descendant structs) as "deep frozen",
+//     following a handshake agreement.
+//
+// TODO: Consider making private members and public getters for EntrySnapshot and its descendant structs.
 func (e *Entry) ShallowSnapshot() *EntrySnapshot {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
