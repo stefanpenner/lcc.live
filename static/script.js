@@ -119,14 +119,6 @@ function forceReload(image) {
 const wait = async (time) =>
   new Promise((resolve) => setTimeout(resolve, time));
 
-(async function reloadRoadStatus() {
-  await wait(5_000);
-
-  forceReload(document.querySelector("road-status > img"));
-
-  reloadRoadStatus();
-})();
-
 document.addEventListener("visibilitychange", (event) => {
   if (event.target.visibilityState !== "visible") {
     return;
@@ -134,12 +126,16 @@ document.addEventListener("visibilitychange", (event) => {
   document.querySelectorAll("img").forEach((image) => forceReload(image));
 });
 
-(async function reload() {
-  for (const camera of [...document.querySelectorAll("camera-feed")]) {
-    const image = camera.querySelector("img");
+(async function reloadImages() {
+  for (const image of [...document.querySelectorAll("img")]) {
     forceReload(image);
   }
   await wait(2000 + (Math.random() * 8000)); // Random wait between 2-10 seconds
-  reload();
-  self.console && console.log("reload")
+  reloadImages();
+  self.console && console.log("images reloaded")
+})();
+
+(async function reloadPage() {
+  await wait(600_000 + (Math.random() * 1_200_000)); // Random wait between 5 - ~25 minutes
+  self.location.reload()
 })();
