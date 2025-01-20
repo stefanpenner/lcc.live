@@ -45,7 +45,7 @@ type Entry struct {
 	Image       *Image
 	HTTPHeaders *HTTPHeaders
 	ID          string
-	mu          sync.RWMutex
+	// mu          sync.RWMutex
 }
 
 type EntrySnapshot struct {
@@ -180,7 +180,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 	fmt.Println(infoStyle.Render("📸 Starting image fetch for all cameras..."))
 	var wg sync.WaitGroup
 	startTime := time.Now()
-	successCount := 0
+	changedCount := 0
 	errorCount := 0
 	unchangedCount := 0
 	var mu sync.Mutex // for thread-safe counter updates
@@ -289,7 +289,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 				entry.Image.Bytes = imageBytes
 			})
 			mu.Lock()
-			successCount++
+			changedCount++
 			mu.Unlock()
 		}(entry, s.client)
 	}
@@ -297,10 +297,10 @@ func (s *Store) FetchImages(ctx context.Context) {
 	duration := time.Since(startTime).Round(time.Millisecond)
 
 	summary := fmt.Sprintf("  ✨ Fetch complete in %v\n"+
-		"  ✅ Success: %d\n"+
+		"  ✅ Changed: %d\n"+
 		"  💤 Unchanged: %d\n"+
 		"  ❌ Errors: %d",
-		duration, successCount, unchangedCount, errorCount)
+		duration, changedCount, unchangedCount, errorCount)
 
 	if errorCount > 0 {
 		fmt.Println(errorStyle.Render(summary))
