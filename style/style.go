@@ -50,4 +50,16 @@ var (
 	Duration = lipgloss.NewStyle().
 			Italic(true).
 			Foreground(lipgloss.Color("#FFA500"))
+
+	Error = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#FF0000"))
+
+	Success = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#00FF00"))
+
+	URL = lipgloss.NewStyle().
+		Italic(true).
+		Foreground(lipgloss.Color("#FFA500"))
 )

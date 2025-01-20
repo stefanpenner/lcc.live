@@ -12,24 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
-)
-
-var (
-	errorStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#FF0000"))
-
-	successStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#00FF00"))
-
-	infoStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#00ADD8"))
-
-	urlStyle = lipgloss.NewStyle().
-			Italic(true).
-			Foreground(lipgloss.Color("#FFA500"))
+	"github.com/stefanpenner/lcc-live/style"
 )
 
 type Store struct {
@@ -180,7 +163,7 @@ func (s *Store) Canyon(canyon string) *Canyon {
 // 2. provide "camera down" or "camera live" UI
 // 2. provide image updates via push of some sort
 func (s *Store) FetchImages(ctx context.Context) {
-	fmt.Println(infoStyle.Render("📸 Starting image fetch for all cameras..."))
+	fmt.Println(style.Info.Render("📸 Starting image fetch for all cameras..."))
 	var wg sync.WaitGroup
 	startTime := time.Now()
 	var (
@@ -214,16 +197,16 @@ func (s *Store) FetchImages(ctx context.Context) {
 
 			headReq, err := http.NewRequestWithContext(ctx, "HEAD", src, nil)
 			if err != nil {
-				fmt.Println(errorStyle.Render(fmt.Sprintf("❌ Error creating HEAD request for %s: %v",
-					urlStyle.Render(src), err)))
+				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error creating HEAD request for %s: %v",
+					style.URL.Render(src), err)))
 				atomic.AddInt32(&errorCount, 1)
 				return
 			}
 
 			headResp, err := s.client.Do(headReq)
 			if err != nil {
-				fmt.Println(errorStyle.Render(fmt.Sprintf("❌ Error making HEAD request for %s: %v",
-					urlStyle.Render(src), err)))
+				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error making HEAD request for %s: %v",
+					style.URL.Render(src), err)))
 				atomic.AddInt32(&errorCount, 1)
 				return
 			}
@@ -244,16 +227,16 @@ func (s *Store) FetchImages(ctx context.Context) {
 
 			resp, err := s.client.Do(getReq)
 			if err != nil {
-				fmt.Println(errorStyle.Render(fmt.Sprintf("❌ Error fetching image %s: %v",
-					urlStyle.Render(src), err)))
+				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error fetching image %s: %v",
+					style.URL.Render(src), err)))
 				atomic.AddInt32(&errorCount, 1)
 				return
 			}
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusOK {
-				fmt.Println(errorStyle.Render(fmt.Sprintf("❌ Bad status code from %s: %d",
-					urlStyle.Render(src), resp.StatusCode)))
+				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Bad status code from %s: %d",
+					style.URL.Render(src), resp.StatusCode)))
 				atomic.AddInt32(&errorCount, 1)
 				return
 			}
@@ -264,8 +247,8 @@ func (s *Store) FetchImages(ctx context.Context) {
 			imageBytes, err := io.ReadAll(resp.Body)
 			defer resp.Body.Close()
 			if err != nil {
-				fmt.Println(errorStyle.Render(fmt.Sprintf("❌ Error reading image body from %s: %v",
-					urlStyle.Render(src), err)))
+				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error reading image body from %s: %v",
+					style.URL.Render(src), err)))
 				atomic.AddInt32(&errorCount, 1)
 				return
 			}
@@ -292,9 +275,9 @@ func (s *Store) FetchImages(ctx context.Context) {
 		duration, changedCount, unchangedCount, errorCount)
 
 	if errorCount > 0 {
-		fmt.Println(errorStyle.Render(summary))
+		fmt.Println(style.Error.Render(summary))
 	} else {
-		fmt.Println(successStyle.Render(summary))
+		fmt.Println(style.Success.Render(summary))
 	}
 }
 
