@@ -3,12 +3,32 @@ package store
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"io/fs"
 	"log"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/charmbracelet/lipgloss"
+)
+
+var (
+	errorStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#FF0000"))
+
+	successStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#00FF00"))
+
+	infoStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#00ADD8"))
+
+	urlStyle = lipgloss.NewStyle().
+			Italic(true).
+			Foreground(lipgloss.Color("#FFA500"))
 )
 
 type Store struct {
@@ -157,8 +177,13 @@ func (s *Store) Canyon(canyon string) *Canyon {
 // 1. provide a /status that is updated via SSE
 // 2. provide image updates via SSE
 func (s *Store) FetchImages(ctx context.Context) {
-	// TODO: let's actually error if this function is re-entrant
+	fmt.Println(infoStyle.Render("📸 Starting image fetch for all cameras..."))
 	var wg sync.WaitGroup
+	startTime := time.Now()
+	successCount := 0
+	errorCount := 0
+	unchangedCount := 0
+	var mu sync.Mutex // for thread-safe counter updates
 
 	for i := range s.entries {
 		entry := s.entries[i]
@@ -185,13 +210,21 @@ func (s *Store) FetchImages(ctx context.Context) {
 
 			headReq, err := http.NewRequestWithContext(ctx, "HEAD", src, nil)
 			if err != nil {
-				log.Printf("Error creating HEAD request for %s: %v\n", src, err)
+				fmt.Println(errorStyle.Render(fmt.Sprintf("❌ Error creating HEAD request for %s: %v",
+					urlStyle.Render(src), err)))
+				mu.Lock()
+				errorCount++
+				mu.Unlock()
 				return
 			}
 
 			headResp, err := s.client.Do(headReq)
 			if err != nil {
-				log.Printf("Error making HEAD request for %s: %v\n", src, err)
+				fmt.Println(errorStyle.Render(fmt.Sprintf("❌ Error making HEAD request for %s: %v",
+					urlStyle.Render(src), err)))
+				mu.Lock()
+				errorCount++
+				mu.Unlock()
 				return
 			}
 			headResp.Body.Close()
@@ -199,7 +232,9 @@ func (s *Store) FetchImages(ctx context.Context) {
 			newETag := headResp.Header.Get("ETag")
 
 			if newETag != "" && newETag == headers.ETag {
-				// log.Printf("[UNCHANGED]: Image %s (ETag: %s)\n", camera.Src, newETag)
+				mu.Lock()
+				unchangedCount++
+				mu.Unlock()
 				return
 			}
 
@@ -212,13 +247,21 @@ func (s *Store) FetchImages(ctx context.Context) {
 			// log.Printf("[CHANGED] Image %s (ETag: %s != %s)\n", camera.Src, newETag, camera.HTTPHeaders.ETag)
 			resp, err := s.client.Do(getReq)
 			if err != nil {
-				log.Printf("Error fetching image %s: %v\n", src, err)
+				fmt.Println(errorStyle.Render(fmt.Sprintf("❌ Error fetching image %s: %v",
+					urlStyle.Render(src), err)))
+				mu.Lock()
+				errorCount++
+				mu.Unlock()
 				return
 			}
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusOK {
-				log.Printf("Bad status code from image source %s: %d\n", src, resp.StatusCode)
+				fmt.Println(errorStyle.Render(fmt.Sprintf("❌ Bad status code from %s: %d",
+					urlStyle.Render(src), resp.StatusCode)))
+				mu.Lock()
+				errorCount++
+				mu.Unlock()
 				return
 			}
 
@@ -228,7 +271,12 @@ func (s *Store) FetchImages(ctx context.Context) {
 			imageBytes, err := io.ReadAll(resp.Body)
 			defer resp.Body.Close()
 			if err != nil {
-				log.Fatalf("Error reading image body: %v\n", err)
+				fmt.Println(errorStyle.Render(fmt.Sprintf("❌ Error reading image body from %s: %v",
+					urlStyle.Render(src), err)))
+				mu.Lock()
+				errorCount++
+				mu.Unlock()
+				return
 			}
 
 			entry.Write(func(entry *Entry) {
@@ -240,10 +288,25 @@ func (s *Store) FetchImages(ctx context.Context) {
 				}
 				entry.Image.Bytes = imageBytes
 			})
+			mu.Lock()
+			successCount++
+			mu.Unlock()
 		}(entry, s.client)
 	}
 	wg.Wait()
-	log.Printf("done")
+	duration := time.Since(startTime).Round(time.Millisecond)
+
+	summary := fmt.Sprintf("  ✨ Fetch complete in %v\n"+
+		"  ✅ Success: %d\n"+
+		"  💤 Unchanged: %d\n"+
+		"  ❌ Errors: %d",
+		duration, successCount, unchangedCount, errorCount)
+
+	if errorCount > 0 {
+		fmt.Println(errorStyle.Render(summary))
+	} else {
+		fmt.Println(successStyle.Render(summary))
+	}
 }
 
 func (s *Store) Get(cameraID string) (*EntrySnapshot, bool) {

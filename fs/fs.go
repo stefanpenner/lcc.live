@@ -1,31 +1,33 @@
-package main
+package fs
 
 import (
 	"fmt"
 	"io/fs"
 	"log"
+
+	style "github.com/stefanpenner/lcc-live/style"
 )
 
-func printFS(name string, f fs.FS) {
+func Print(name string, f fs.FS) {
 	entries, err := f.(fs.ReadDirFS).ReadDir(".")
 	if err != nil {
 		log.Printf("Error reading embedded FS: %v\n", err)
 		return
 	}
 
-	fmt.Println(sectionStyle.Render(name + ":"))
+	fmt.Println(style.Section.Render(name + ":"))
 	for _, entry := range entries {
 		prefix := "  └─"
 		if entry.IsDir() {
-			fmt.Printf("%s %s\n", prefix, dirStyle.Render("📁 "+entry.Name()+"/"))
-			printDir(f, entry.Name(), "     ")
+			fmt.Printf("%s %s\n", prefix, style.Dir.Render("📁 "+entry.Name()+"/"))
+			PrintDir(f, entry.Name(), "     ")
 		} else {
-			fmt.Printf("%s %s\n", prefix, fileStyle.Render("📄 "+entry.Name()))
+			fmt.Printf("%s %s\n", prefix, style.File.Render("📄 "+entry.Name()))
 		}
 	}
 }
 
-func printDir(f fs.FS, dir string, indent string) {
+func PrintDir(f fs.FS, dir string, indent string) {
 	entries, err := f.(fs.ReadDirFS).ReadDir(dir)
 	if err != nil {
 		return
@@ -39,16 +41,16 @@ func printDir(f fs.FS, dir string, indent string) {
 		}
 
 		if entry.IsDir() {
-			fmt.Printf("%s %s\n", prefix, dirStyle.Render("📁 "+entry.Name()+"/"))
+			fmt.Printf("%s %s\n", prefix, style.Dir.Render("📁 "+entry.Name()+"/"))
 			newIndent := indent
 			if isLast {
 				newIndent += "   "
 			} else {
 				newIndent += "│  "
 			}
-			printDir(f, dir+"/"+entry.Name(), newIndent)
+			PrintDir(f, dir+"/"+entry.Name(), newIndent)
 		} else {
-			fmt.Printf("%s %s\n", prefix, fileStyle.Render("📄 "+entry.Name()))
+			fmt.Printf("%s %s\n", prefix, style.File.Render("📄 "+entry.Name()))
 		}
 	}
 }
