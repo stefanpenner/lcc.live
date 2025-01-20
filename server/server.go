@@ -57,6 +57,7 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error)
 	})
 
 	e.GET("/healthcheck", func(c echo.Context) error {
+		// TODO: more accurate check
 		return c.String(http.StatusOK, "OK")
 	})
 
