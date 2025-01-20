@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"sync"
@@ -91,9 +92,9 @@ func (s *Store) Write(fn func(*Store)) {
 	fn(s)
 }
 
-func NewStoreFromFile(path string) (*Store, error) {
+func NewStoreFromFile(f fs.FS, filepath string) (*Store, error) {
 	canyons := &Canyons{}
-	err := canyons.Load(path)
+	err := canyons.Load(f, filepath)
 	if err != nil {
 		return nil, err
 	}

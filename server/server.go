@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 
@@ -15,6 +16,7 @@ import (
 // Template renderer for Echo
 type TemplateRenderer struct {
 	templates *template.Template
+	fs        fs.FS
 }
 
 var templateFuncs = template.FuncMap{}
@@ -23,33 +25,34 @@ func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, c 
 	return t.templates.ExecuteTemplate(w, name, data)
 }
 
-func Start(store *store.Store) (*echo.Echo, error) {
+func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error) {
 	e := echo.New()
+
+	e.StaticFS("/s", staticFS)
 
 	// Middleware
 	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: "method=${method}, uri=${uri}, status=${status}\n",
 	}))
-	e.Use(middleware.Recover())
 
-	tmpl := template.New("").Funcs(templateFuncs)
-	// Template renderer
+	e.Use(middleware.Recover())
+	// Custom Rendering Stuff [
+	tmpl, err := template.New("").Funcs(templateFuncs).ParseFS(tmplFS, "*.tmpl")
+	if err != nil {
+		return nil, err
+	}
 	renderer := &TemplateRenderer{
-		templates: template.Must(tmpl.ParseGlob("./views/*")),
+		templates: tmpl,
 	}
 	e.Renderer = renderer
+	// ]
 
-	// Error handler
-	e.HTTPErrorHandler = func(err error, c echo.Context) {
-		c.Render(http.StatusInternalServerError, "error.tmpl", map[string]interface{}{
-			"title": "Error",
-			"err":   err,
-		})
-	}
-
-	// Routes
 	e.GET("/", func(c echo.Context) error {
 		return c.Render(http.StatusOK, "canyon.html.tmpl", store.Canyon("LCC"))
+	})
+
+	e.GET("/healthcheck", func(c echo.Context) error {
+		return c.String(http.StatusOK, "OK")
 	})
 
 	e.GET("/bcc", func(c echo.Context) error {
@@ -78,6 +81,7 @@ func Start(store *store.Store) (*echo.Echo, error) {
 		return c.String(status, "image not found")
 	})
 
+	// TODO: explore
 	e.GET("/events", func(c echo.Context) error {
 		// c.Response().Header().Set("Content-Type", "text/event-stream")
 		// c.Response().Header().Set("Cache-Control", "no-cache")
@@ -116,9 +120,5 @@ func Start(store *store.Store) (*echo.Echo, error) {
 
 		return nil
 	})
-
-	// Static files
-	e.Static("/s", "public")
-
 	return e, nil
 }

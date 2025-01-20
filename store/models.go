@@ -3,7 +3,7 @@ package store
 import (
 	"encoding/json"
 	"fmt"
-	"os"
+	"io/fs"
 	"sync"
 )
 
@@ -43,28 +43,28 @@ type Canyons struct {
 	_   sync.Mutex
 }
 
-func (c *Canyons) Load(filename string) error {
-	data, err := os.ReadFile(filename)
+func (c *Canyons) Load(f fs.FS, filepath string) error {
+	data, err := f.(fs.ReadFileFS).ReadFile(filepath)
 	if err != nil {
-		return fmt.Errorf("failed to read %s: %w", filename, err)
+		return fmt.Errorf("failed to read %s: %w", filepath, err)
 	}
 
 	if len(data) == 0 {
-		return fmt.Errorf("file %s is empty", filename)
+		return fmt.Errorf("file %s is empty", filepath)
 	}
 
-	// Try to validate JSON structure before unmarshaling
+	// Try to validate JSON structurgge before unmarshaling
 	if !json.Valid(data) {
-		return fmt.Errorf("invalid JSON in file %s", filename)
+		return fmt.Errorf("invalid JSON in file %s", filepath)
 	}
 
 	if err := json.Unmarshal(data, c); err != nil {
-		return fmt.Errorf("failed to parse JSON from %s: %w", filename, err)
+		return fmt.Errorf("failed to parse JSON from %s: %w", filepath, err)
 	}
 
 	// Validate required data was loaded
 	if c.LCC.Status.Src == "" && c.BCC.Status.Src == "" {
-		return fmt.Errorf("JSON from %s did not contain expected canyon data", filename)
+		return fmt.Errorf("JSON from %s did not contain expected canyon data", filepath)
 	}
 
 	return nil
