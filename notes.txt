@@ -4,6 +4,5 @@ print template context:
 Things to explore:
 
 * learn middleware API
-* single binary. https://github.com/jteeuwen/go-bindata
 * pprof https://github.com/labstack/echo-contrib/tree/master/pprof
 
