@@ -72,7 +72,7 @@ func main() {
 	store.FetchImages(context.Background())
 
 	// kick-off camera syncing background thread, this one just runs forever
-	go keepCamerasInSync(context.Background(), store)
+	// go keepCamerasInSync(context.Background(), store)
 
 	app, err := server.Start(store, staticFS, tmplFS)
 	if err != nil {
