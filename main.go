@@ -78,7 +78,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := app.Start(":3000"); err != nil {
+	if err := app.Start("0.0.0.0:3000"); err != nil {
 		log.Fatal(err)
 	}
 }
