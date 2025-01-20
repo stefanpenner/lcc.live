@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
@@ -182,10 +183,11 @@ func (s *Store) FetchImages(ctx context.Context) {
 	fmt.Println(infoStyle.Render("📸 Starting image fetch for all cameras..."))
 	var wg sync.WaitGroup
 	startTime := time.Now()
-	changedCount := 0
-	errorCount := 0
-	unchangedCount := 0
-	var mu sync.Mutex // for thread-safe counter updates
+	var (
+		changedCount   int32 = 0
+		errorCount     int32 = 0
+		unchangedCount int32 = 0
+	)
 
 	for i := range s.entries {
 		entry := s.entries[i]
@@ -214,9 +216,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 			if err != nil {
 				fmt.Println(errorStyle.Render(fmt.Sprintf("❌ Error creating HEAD request for %s: %v",
 					urlStyle.Render(src), err)))
-				mu.Lock()
-				errorCount++
-				mu.Unlock()
+				atomic.AddInt32(&errorCount, 1)
 				return
 			}
 
@@ -224,9 +224,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 			if err != nil {
 				fmt.Println(errorStyle.Render(fmt.Sprintf("❌ Error making HEAD request for %s: %v",
 					urlStyle.Render(src), err)))
-				mu.Lock()
-				errorCount++
-				mu.Unlock()
+				atomic.AddInt32(&errorCount, 1)
 				return
 			}
 			headResp.Body.Close()
@@ -234,9 +232,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 			newETag := headResp.Header.Get("ETag")
 
 			if newETag != "" && newETag == headers.ETag {
-				mu.Lock()
-				unchangedCount++
-				mu.Unlock()
+				atomic.AddInt32(&unchangedCount, 1)
 				return
 			}
 
@@ -246,14 +242,11 @@ func (s *Store) FetchImages(ctx context.Context) {
 				return
 			}
 
-			// log.Printf("[CHANGED] Image %s (ETag: %s != %s)\n", camera.Src, newETag, camera.HTTPHeaders.ETag)
 			resp, err := s.client.Do(getReq)
 			if err != nil {
 				fmt.Println(errorStyle.Render(fmt.Sprintf("❌ Error fetching image %s: %v",
 					urlStyle.Render(src), err)))
-				mu.Lock()
-				errorCount++
-				mu.Unlock()
+				atomic.AddInt32(&errorCount, 1)
 				return
 			}
 			defer resp.Body.Close()
@@ -261,9 +254,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 			if resp.StatusCode != http.StatusOK {
 				fmt.Println(errorStyle.Render(fmt.Sprintf("❌ Bad status code from %s: %d",
 					urlStyle.Render(src), resp.StatusCode)))
-				mu.Lock()
-				errorCount++
-				mu.Unlock()
+				atomic.AddInt32(&errorCount, 1)
 				return
 			}
 
@@ -275,9 +266,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 			if err != nil {
 				fmt.Println(errorStyle.Render(fmt.Sprintf("❌ Error reading image body from %s: %v",
 					urlStyle.Render(src), err)))
-				mu.Lock()
-				errorCount++
-				mu.Unlock()
+				atomic.AddInt32(&errorCount, 1)
 				return
 			}
 
@@ -290,9 +279,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 				}
 				entry.Image.Bytes = imageBytes
 			})
-			mu.Lock()
-			changedCount++
-			mu.Unlock()
+			atomic.AddInt32(&changedCount, 1)
 		}(entry, s.client)
 	}
 	wg.Wait()
