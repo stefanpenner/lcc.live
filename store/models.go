@@ -11,8 +11,8 @@ import (
 
 type Image struct {
 	Src   string
-	Bytes []byte
 	ETag  string
+	Bytes []byte
 }
 
 type HTTPHeaders struct {
