@@ -3,42 +3,39 @@
   <head>
     <title>[LIVE] - LCC</title>
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-    <meta name="charset" content="utf-8"><meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="charset" content="utf-8">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="white">
     <meta name="theme-color" content="#f2f3f4">
     <meta name="msapplication-square310x310logo" content="icon_largetile.png">
     <meta name="Description" content="LCC Live">
     <link rel="stylesheet" href="/s/style.css">
-  {{if eq .Name "LCC"}}
+  {{- if eq .Name "LCC" -}}
     <link rel="prefetch" href="/bcc" />
-  {{else}}
+  {{- else -}}
     <link rel="prefetch" href="/" />
-  {{end}}
-    <!-- <link rel="apple-touch-icon" sizes="180x180" href="/s/apple-touch-icon.png"> -->
-    <!-- <link rel="icon" type="image/png" sizes="32x32" href="/s/favicon-32x32.png"> -->
-    <!-- <link rel="icon" type="image/png" sizes="16x16" href="/s/favicon-16x16.png"> -->
-    <!-- <link rel="icon" type="image/png" href="/s/favicon.ico"> -->
+  {{- end -}}
   </head>
   <body>
     <header>
       <nav class="canyon-toggle">
-      {{if eq .Name "LCC"}}
+      {{ if eq .Name "LCC" -}}
         <a aria-current="page" class="active" href="/" tabindex=0>LCC</a>
         <a class="" href="/bcc" tabindex=0>BCC</a>
-      {{else}}
+      {{- else -}}
         <a class="" href="/" tabindex=0>LCC</a>
         <a aria-current="page" class="active" href="/bcc" tabindex=0>BCC</a>
-      {{end}}
+      {{- end -}}
       </nav>
       <road-status>
         <img id="img-{{.Status.ID}}" src="image/{{.Status.ID}}" alt="{{.Status.Alt}}">
       </road-status>
     </header>
     <section id="container">
-    {{range $index, $c := .Cameras}}
-    {{if ne $c.Kind "roadstatus"}}
+    {{- range $index, $c := .Cameras -}}
+    {{- if ne $c.Kind "roadstatus" -}}
       <camera-feed tabindex=0> <!-- TODO: and reload !-->
-      {{if eq $c.Kind "iframe"}}
+      {{- if eq $c.Kind "iframe" -}}
         <!-- TODO: only lazy load stuff that is bellow the fold !-->
         <iframe 
           loading="lazy" 
@@ -49,23 +46,25 @@
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
           referrerpolicy="strict-origin-when-cross-origin">
         </iframe>
-      {{else}}
-        <img id="img-{{$c.ID}}" src="/image/{{$c.ID}}" alt="{{$c.Alt}}" loading="lazy">
-      {{end}}
+      {{- else -}}
+        {{- if le $index 1 -}}
+          <img id="img-{{$c.ID}}" src="/image/{{$c.ID}}" alt="{{$c.Alt}}" >
+        {{- else -}}
+          <img id="img-{{$c.ID}}" src="/image/{{$c.ID}}" alt="{{$c.Alt}}" loading="lazy" >
+        {{- end -}}
+      {{- end -}}
         <h4>{{$c.Alt}}</h4>
       </camera-feed>
-    {{end}}
-    {{end}}
+    {{- end -}}
+    {{- end -}}
     </section>
     <the-overlay></the-overlay>
     <script src="/s/script.js"></script>
-    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EKMJ5GKF38"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-    
       gtag('config', 'G-EKMJ5GKF38');
     </script>
   </body>
