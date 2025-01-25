@@ -8,9 +8,12 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/cespare/xxhash/v2"
 
 	"github.com/stefanpenner/lcc-live/style"
 )
@@ -37,6 +40,7 @@ type EntrySnapshot struct {
 	Image       *Image
 	HTTPHeaders *HTTPHeaders
 	ID          string
+	ETag        string
 }
 
 // Concurrency Model Overview:
@@ -46,7 +50,7 @@ type EntrySnapshot struct {
 //
 // To enable concurrent access to Entry structs, we follow this pattern:
 //  1. Each Entry struct is mutable and contains its own RWMutex, but remains internal to the Store.
-//  2. Each Entry holds references only to immutable values. When a value changes,
+//  2. Each Entry holicds references only to immutable values. When a value changes,
 //     the original remains unchanged. A new value is created and then assigned to the stable Entry.
 //  3. External access to entries is provided via snapshots of the Entry object.
 //  4. Consumers treat the provided EntrySnapshot (and its descendant structs) as "deep frozen",
@@ -252,7 +256,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 				atomic.AddInt32(&errorCount, 1)
 				return
 			}
-
+			etag := strconv.FormatUint(xxhash.Sum64(imageBytes), 10)
 			entry.Write(func(entry *Entry) {
 				entry.HTTPHeaders = &HTTPHeaders{
 					Status:        http.StatusOK,
@@ -261,6 +265,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 					ETag:          newETag,
 				}
 				entry.Image.Bytes = imageBytes
+				entry.Image.ETag = etag
 			})
 			atomic.AddInt32(&changedCount, 1)
 		}(entry, s.client)

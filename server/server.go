@@ -5,7 +5,6 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
-	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -52,80 +51,18 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error)
 		templates: tmpl,
 	}
 	e.Renderer = renderer
-	// ]
+	// handleIndex handles both GET and HEAD requests for the index route
 
-	e.GET("/", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "canyon.html.tmpl", store.Canyon("LCC"))
-	})
+	e.GET("/", CanyonRoute(store, "LCC"))
+	e.HEAD("/", CanyonRoute(store, "LCC"))
 
-	e.GET("/healthcheck", func(c echo.Context) error {
-		// TODO: more accurate check
-		return c.String(http.StatusOK, "OK")
-	})
+	e.GET("/bcc", CanyonRoute(store, "BCC"))
+	e.HEAD("/bcc", CanyonRoute(store, "BCC"))
 
-	e.GET("/bcc", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "canyon.html.tmpl", store.Canyon("BCC"))
-	})
+	e.GET("/image/:id", ImageRoute(store))
+	e.HEAD("/image/:id", ImageRoute(store))
 
-	e.GET("/image/:id", func(c echo.Context) error {
-		id := c.Param("id")
-		entry, exists := store.Get(id)
+	e.GET("/healthcheck", HealthCheckRoute())
 
-		status := http.StatusNotFound
-
-		if exists {
-			if entry.HTTPHeaders.Status == http.StatusOK {
-				headers := entry.HTTPHeaders
-
-				c.Response().Header().Set("Content-Type", headers.ContentType)
-				c.Response().Header().Set("Content-Length", fmt.Sprintf("%d", headers.ContentLength))
-
-				return c.Blob(http.StatusOK, headers.ContentType, entry.Image.Bytes)
-			}
-			status = entry.HTTPHeaders.Status
-		}
-
-		return c.String(status, "image not found")
-	})
-
-	// TODO: leave incase I want to explore SSE again
-	// e.GET("/events", func(c echo.Context) error {
-	// c.Response().Header().Set("Content-Type", "text/event-stream")
-	// c.Response().Header().Set("Cache-Control", "no-cache")
-	// c.Response().Header().Set("Connection", "keep-alive")
-	// c.Response().Header().Set("Transfer-Encoding", "chunked")
-	//
-	// writer := bufio.NewWriter(c.Response().Writer)
-	// flusher, ok := c.Response().Writer.(http.Flusher)
-	// if !ok {
-	// 	return echo.NewHTTPError(http.StatusInternalServerError, "Streaming unsupported!")
-	// }
-	//
-	// c.Response().WriteHeader(http.StatusOK)
-	//
-	// var i int
-	// for {
-	// 	select {
-	// 	case <-c.Request().Context().Done():
-	// 		return nil
-	// 	default:
-	// 	}
-	//
-	// 	i++
-	// 	msg := fmt.Sprintf("%d - the time is %v", i, time.Now())
-	//
-	// 	fmt.Fprintf(writer, "data: Message: %s\n\n", msg)
-	// 	fmt.Println(msg)
-	//
-	// 	if err := writer.Flush(); err != nil {
-	// 		fmt.Printf("Error while flushing: %v. Closing http connection.\n", err)
-	// 		break
-	// 	}
-	// 	flusher.Flush()
-	// 	time.Sleep(10 * time.Second)
-	// }
-
-	// return nil
-	// })
 	return e, nil
 }

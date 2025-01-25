@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"sync"
+	"strconv"
+
+	"github.com/mitchellh/hashstructure"
 )
 
 type Image struct {
 	Src   string
 	Bytes []byte
-	_     sync.Mutex
+	ETag  string
 }
 
 type HTTPHeaders struct {
@@ -18,7 +20,6 @@ type HTTPHeaders struct {
 	ETag          string
 	ContentLength int64
 	Status        int
-	_             sync.Mutex
 }
 
 type Camera struct {
@@ -27,20 +28,18 @@ type Camera struct {
 	Src    string `json:"src"`
 	Alt    string `json:"alt"`
 	Canyon string `json:"canyon"`
-	_      sync.Mutex
 }
 
 type Canyon struct {
 	Name    string   `json:"name"`
+	ETag    string   `json:"etag"`
 	Status  Camera   `json:"status"`
 	Cameras []Camera `json:"cameras"`
-	_       sync.Mutex
 }
 
 type Canyons struct {
 	LCC Canyon `json:"lcc"`
 	BCC Canyon `json:"bcc"`
-	_   sync.Mutex
 }
 
 func (c *Canyons) Load(f fs.FS, filepath string) error {
@@ -62,11 +61,28 @@ func (c *Canyons) Load(f fs.FS, filepath string) error {
 		return fmt.Errorf("failed to parse JSON from %s: %w", filepath, err)
 	}
 
+	// precompute etags
+	if err := c.setETag(&c.LCC); err != nil {
+		return fmt.Errorf("failed to compute LCC ETag: %w", err)
+	}
+	if err := c.setETag(&c.BCC); err != nil {
+		return fmt.Errorf("failed to compute BCC ETag: %w", err)
+	}
+
 	// Validate required data was loaded
 	if c.LCC.Status.Src == "" && c.BCC.Status.Src == "" {
 		return fmt.Errorf("JSON from %s did not contain expected canyon data", filepath)
 	}
 
+	return nil
+}
+
+func (c *Canyons) setETag(canyon *Canyon) error {
+	hash, err := hashstructure.Hash(canyon, nil)
+	if err != nil {
+		return err
+	}
+	canyon.ETag = strconv.FormatUint(hash, 10)
 	return nil
 }
 

@@ -3,8 +3,10 @@ module github.com/stefanpenner/lcc-live
 go 1.23.3
 
 require (
+	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/charmbracelet/lipgloss v1.0.0
 	github.com/labstack/echo/v4 v4.13.3
+	github.com/mitchellh/hashstructure v1.1.0
 )
 
 require (
