@@ -17,7 +17,7 @@ class Overlay extends HTMLElement {
 
   reload() {
     this.timer = setTimeout(() => {
-      img = this.querySelector("img");
+      const img = this.querySelector("img");
       if (img) {
         reloadImage(this.querySelector("img"));
         this.timer = setTimeout(() => this.reload(), 30_000);
@@ -105,9 +105,10 @@ document.addEventListener("visibilitychange", (event) => {
 });
 
 (async function reloadImages() {
-  self.console && console.time("load images")
+  // todo: timer, abort controller etc.
+  self.console && console.time && console.time("load images")
   await Promise.allSettled([...document.querySelectorAll("img")].map(reloadImage))
-  self.console && console.timeEnd("load images")
+  self.console && console.timeEnd && console.timeEnd("load images")
   await wait(2_000);
   reloadImages();
 })();
