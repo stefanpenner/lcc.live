@@ -19,7 +19,7 @@ class Overlay extends HTMLElement {
     this.timer = setTimeout(() => {
       img = this.querySelector("img");
       if (img) {
-        forceReload(this.querySelector("img"));
+        reloadImage(this.querySelector("img"));
         this.timer = setTimeout(() => this.reload(), 30_000);
       }
     }, 1_000);
@@ -80,40 +80,17 @@ document.body.addEventListener("click", (e) => {
   }
 });
 
-const ORIGINAL_SRC = new WeakMap();
-function ensureOriginalCachedSrc(image) {
-  if (image === null) { return }
-  // ensure the original src is set
-  const src = new URL(image.src);
-  if (src.searchParams.has('_x')) {
-    src.searchParams.delete('_x')
-    image.src = src.toString();
-  }
-
-  if (!ORIGINAL_SRC.has(image) && !image.src.includes('/s/oops.png')) {
-    ORIGINAL_SRC.set(image, image.src);
-  }
-}
-
-for (const image of [...document.querySelectorAll("img")]) {
-  ensureOriginalCachedSrc(image);
-
-  image.onerror = function() {
-    if (this.src.includes("/s/oops.png")) {
-      return;
-    }
-    this.src = "/s/oops.png";
-  };
-}
+// for (const image of [...document.querySelectorAll("img")]) {
+//   image.onerror = function() {
+//     if (this.src.includes("/s/oops.png")) {
+//       return;
+//     }
+//     this.src = "/s/oops.png";
+//   };
+// }
 
 
 function forceReload(image) {
-  ensureOriginalCachedSrc(image);
-
-  const original = ORIGINAL_SRC.get(image);
-  const sep = origin.includes("?") ? "&" : "?";
-
-  // image.src = `${original}${sep}_x=${Date.now()}`;
   image.src = image.src
 }
 
@@ -128,15 +105,30 @@ document.addEventListener("visibilitychange", (event) => {
 });
 
 (async function reloadImages() {
-  for (const image of [...document.querySelectorAll("img")]) {
-    forceReload(image);
-  }
-  await wait(2000 + (Math.random() * 8000)); // Random wait between 2-10 seconds
+  self.console && console.time("load images")
+  await Promise.allSettled([...document.querySelectorAll("img")].map(reloadImage))
+  self.console && console.timeEnd("load images")
+  await wait(2_000);
   reloadImages();
-  self.console && console.log("images reloaded")
 })();
 
 (async function reloadPage() {
   await wait(600_000 + (Math.random() * 1_200_000)); // Random wait between 5 - ~25 minutes
   self.location.reload()
 })();
+
+async function reloadImage(img) {
+  img.dataset.src = img.dataset.src || img.src
+  const request  = await fetch(img.dataset.src, {
+    mode: 'same-origin',
+    cache: 'default'
+  });
+
+  if (request.status === 200) {
+    etag = request.headers.get('etag')
+    if (img.dataset.etag != etag) {
+      img.dataset.etag = etag
+      img.src = URL.createObjectURL(await request.blob());
+    }
+  }
+}
