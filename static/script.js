@@ -113,7 +113,8 @@ function forceReload(image) {
   const original = ORIGINAL_SRC.get(image);
   const sep = origin.includes("?") ? "&" : "?";
 
-  image.src = `${original}${sep}_x=${Date.now()}`;
+  // image.src = `${original}${sep}_x=${Date.now()}`;
+  image.src = image.src
 }
 
 const wait = async (time) =>
