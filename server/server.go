@@ -28,7 +28,9 @@ func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, c 
 func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error) {
 	e := echo.New()
 	e.HideBanner = true
-
+	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
+		Level: 5,
+	}))
 	e.StaticFS("/s", staticFS)
 
 	// make some nicer log output
