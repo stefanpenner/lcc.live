@@ -80,16 +80,6 @@ document.body.addEventListener("click", (e) => {
   }
 });
 
-// for (const image of [...document.querySelectorAll("img")]) {
-//   image.onerror = function() {
-//     if (this.src.includes("/s/oops.png")) {
-//       return;
-//     }
-//     this.src = "/s/oops.png";
-//   };
-// }
-
-
 function forceReload(image) {
   image.src = image.src
 }
@@ -120,6 +110,11 @@ document.addEventListener("visibilitychange", (event) => {
 
 async function reloadImage(img) {
   img.dataset.src = img.dataset.src || img.src
+ 
+  if (!img.classList.contains("in-viewport")) {
+    return
+  }
+
   const request  = await fetch(img.dataset.src, {
     mode: 'same-origin',
     cache: 'default'
@@ -133,3 +128,20 @@ async function reloadImage(img) {
     }
   }
 }
+
+const images = document.querySelectorAll('img');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('in-viewport');
+    } else {
+      entry.target.classList.remove('in-viewport');
+    }
+  });
+}, {
+    root: null,
+    rootMargin: '0px',
+    threshold: 0
+  });
+
+images.forEach(img => observer.observe(img));
