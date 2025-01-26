@@ -48,9 +48,9 @@
         </iframe>
       {{- else -}}
         {{- if le $index 1 -}}
-          <img id="img-{{$c.ID}}" src="/image/{{$c.ID}}" alt="{{$c.Alt}}" >
+          <img src="/image/{{$c.ID}}" alt="{{$c.Alt}}" >
         {{- else -}}
-          <img id="img-{{$c.ID}}" src="/image/{{$c.ID}}" alt="{{$c.Alt}}" loading="lazy" >
+          <img src="/image/{{$c.ID}}" alt="{{$c.Alt}}" loading="lazy" >
         {{- end -}}
       {{- end -}}
         <h4>{{$c.Alt}}</h4>
