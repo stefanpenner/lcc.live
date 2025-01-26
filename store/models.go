@@ -82,7 +82,7 @@ func (c *Canyons) setETag(canyon *Canyon) error {
 	if err != nil {
 		return err
 	}
-	canyon.ETag = strconv.FormatUint(hash, 10)
+	canyon.ETag = "\"" + strconv.FormatUint(hash, 10) + "\""
 	return nil
 }
 

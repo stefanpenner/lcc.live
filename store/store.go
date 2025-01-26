@@ -256,7 +256,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 				atomic.AddInt32(&errorCount, 1)
 				return
 			}
-			etag := strconv.FormatUint(xxhash.Sum64(imageBytes), 10)
+			etag := "\"" + strconv.FormatUint(xxhash.Sum64(imageBytes), 10) + "\""
 			entry.Write(func(entry *Entry) {
 				entry.HTTPHeaders = &HTTPHeaders{
 					Status:        http.StatusOK,

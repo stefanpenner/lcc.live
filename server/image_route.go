@@ -20,7 +20,7 @@ func ImageRoute(store *store.Store) func(c echo.Context) error {
 				headers := entry.HTTPHeaders
 
 				c.Response().Header().Set("Content-Type", headers.ContentType)
-				c.Response().Header().Set("Cache-Control", "Public, max-age=5")
+				c.Response().Header().Set("Cache-Control", "public, max-age=5")
 				c.Response().Header().Set("ETag", entry.Image.ETag)
 				c.Response().Header().Set("Content-Length", fmt.Sprintf("%d", headers.ContentLength))
 
