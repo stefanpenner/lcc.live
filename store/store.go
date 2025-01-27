@@ -50,18 +50,23 @@ type EntrySnapshot struct {
 //
 // To enable concurrent access to Entry structs, we follow this pattern:
 //  1. Each Entry struct is mutable and contains its own RWMutex, but remains internal to the Store.
-//  2. Each Entry holicds references only to immutable values. When a value changes,
+//  2. Each Entry holds references only to immutable values. When a value changes,
 //     the original remains unchanged. A new value is created and then assigned to the stable Entry.
 //  3. External access to entries is provided via snapshots of the Entry object.
 //  4. Consumers treat the provided EntrySnapshot (and its descendant structs) as "deep frozen",
 //     following a handshake agreement.
 //
 // TODO: Consider making private members and public getters for EntrySnapshot and its descendant structs.
-func (e *Entry) ShallowSnapshot() *EntrySnapshot {
+func (e *Entry) ShallowSnapshot() EntrySnapshot {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	return &EntrySnapshot{
+	// Snapshot the member pointers, and drop the mutex.
+	// The members are immutable, so this works great:
+	// * we don't expose any mutable state, which includes mutex's and all the locking complexity
+	// * we don't need to copy the image bytes, as all consumers of the camera will share the same underlying image bytes.
+	// * once the images changes, the entry's image pointer is updated, but all existing EntrySnpashots remain unchanged.
+	return EntrySnapshot{
 		Camera:      e.Camera,
 		Image:       e.Image,
 		HTTPHeaders: e.HTTPHeaders,
@@ -258,14 +263,19 @@ func (s *Store) FetchImages(ctx context.Context) {
 			}
 			etag := "\"" + strconv.FormatUint(xxhash.Sum64(imageBytes), 10) + "\""
 			entry.Write(func(entry *Entry) {
+				// replace headers
 				entry.HTTPHeaders = &HTTPHeaders{
 					Status:        http.StatusOK,
 					ContentType:   contentType,
 					ContentLength: contentLength,
 					ETag:          newETag,
 				}
-				entry.Image.Bytes = imageBytes
-				entry.Image.ETag = etag
+				// replace image
+				entry.Image = &Image{
+					Bytes: imageBytes,
+					ETag:  etag,
+					Src:   entry.Image.Src,
+				}
 			})
 			atomic.AddInt32(&changedCount, 1)
 		}(entry, s.client)
@@ -286,7 +296,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 	}
 }
 
-func (s *Store) Get(cameraID string) (*EntrySnapshot, bool) {
+func (s *Store) Get(cameraID string) (EntrySnapshot, bool) {
 	entry, exists := s.index[cameraID]
 	return entry.ShallowSnapshot(), exists
 }
