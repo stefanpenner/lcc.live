@@ -19,12 +19,14 @@ import (
 )
 
 type Store struct {
-	client  *http.Client
-	canyons *Canyons
-	path    string
-	index   map[string]*Entry
-	entries []*Entry
-	mu      sync.RWMutex
+	client                     *http.Client
+	canyons                    *Canyons
+	path                       string
+	index                      map[string]*Entry
+	entries                    []*Entry
+	mu                         sync.RWMutex
+	imagesReady                sync.WaitGroup
+	isWaitingOnFirstImageReady atomic.Bool
 }
 
 type Entry struct {
@@ -146,7 +148,7 @@ func NewStore(canyons *Canyons) *Store {
 		createEntry(&canyons.BCC.Cameras[i])
 	}
 
-	return &Store{
+	store := &Store{
 		entries: entries,
 		index:   index,
 		canyons: canyons,
@@ -154,6 +156,10 @@ func NewStore(canyons *Canyons) *Store {
 			Timeout: 5 * time.Second,
 		},
 	}
+
+	store.imagesReady.Add(1) // wait for first signal
+	store.isWaitingOnFirstImageReady.Store(true)
+	return store
 }
 
 func (s *Store) Canyon(canyon string) *Canyon {
@@ -281,6 +287,10 @@ func (s *Store) FetchImages(ctx context.Context) {
 		}(entry, s.client)
 	}
 	wg.Wait()
+	if s.isWaitingOnFirstImageReady.Load() {
+		s.isWaitingOnFirstImageReady.Store(false)
+		s.imagesReady.Done()
+	}
 	duration := time.Since(startTime).Round(time.Millisecond)
 
 	summary := fmt.Sprintf("  ✨ Fetch complete in %v\n"+
@@ -297,6 +307,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 }
 
 func (s *Store) Get(cameraID string) (EntrySnapshot, bool) {
+	s.imagesReady.Wait()
 	entry, exists := s.index[cameraID]
 	return entry.ShallowSnapshot(), exists
 }
