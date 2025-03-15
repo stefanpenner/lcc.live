@@ -136,9 +136,13 @@ func NewStore(canyons *Canyons) *Store {
 		return entry
 	}
 
-	// Process status cameras
-	createEntry(&canyons.LCC.Status)
-	createEntry(&canyons.BCC.Status)
+	// Process status cameras if present
+	if canyons.LCC.Status.Src != "" {
+		createEntry(&canyons.LCC.Status)
+	}
+	if canyons.BCC.Status.Src != "" {
+		createEntry(&canyons.BCC.Status)
+	}
 
 	// Process regular cameras
 	for i := range canyons.LCC.Cameras {
@@ -210,7 +214,9 @@ func (s *Store) FetchImages(ctx context.Context) {
 				headers = *entry.HTTPHeaders // Copy
 			})
 
-			headReq, err := http.NewRequestWithContext(ctx, "HEAD", src, nil)
+			headCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+			defer cancel()
+			headReq, err := http.NewRequestWithContext(headCtx, "HEAD", src, nil)
 			if err != nil {
 				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error creating HEAD request for %s: %v",
 					style.URL.Render(src), err)))
@@ -225,6 +231,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 				atomic.AddInt32(&errorCount, 1)
 				return
 			}
+
 			headResp.Body.Close()
 
 			newETag := headResp.Header.Get("ETag")
@@ -234,7 +241,9 @@ func (s *Store) FetchImages(ctx context.Context) {
 				return
 			}
 
-			getReq, err := http.NewRequestWithContext(ctx, "GET", src, nil)
+			getCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+			defer cancel()
+			getReq, err := http.NewRequestWithContext(getCtx, "GET", src, nil)
 			if err != nil {
 				log.Printf("Error creating GET request for %s: %v\n", src, err)
 				return
@@ -309,5 +318,9 @@ func (s *Store) FetchImages(ctx context.Context) {
 func (s *Store) Get(cameraID string) (EntrySnapshot, bool) {
 	s.imagesReady.Wait()
 	entry, exists := s.index[cameraID]
-	return entry.ShallowSnapshot(), exists
+
+	if exists {
+		return entry.ShallowSnapshot(), true
+	}
+	return EntrySnapshot{}, false
 }

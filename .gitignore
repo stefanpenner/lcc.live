@@ -1,2 +1,4 @@
 tmp/**
 lcc.live
+.vscode
+**/__debug*
