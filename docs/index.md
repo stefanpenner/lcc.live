@@ -9,20 +9,13 @@ The frontend webpage uses JavaScript for a smoother user experience, handling th
 
 ```mermaid
 flowchart TD
-    A0["Web Server & Routing (Echo)
-"]
-    A1["In-Memory Data Store (`Store`)
-"]
-    A2["Data Models (`Canyons`, `Camera`, `Image`)
-"]
-    A3["Background Image Syncing
-"]
-    A4["Embedded Assets (`embed`)
-"]
-    A5["Concurrency Management (`context`, `goroutines`, `sync`)
-"]
-    A6["Frontend Logic (JavaScript)
-"]
+    A0["Web Server & Routing (Echo) "]
+    A1["In-Memory Data Store (Store) "]
+    A2["Data Models (Canyons, Camera, Image) "]
+    A3["Background Image Syncing "]
+    A4["Embedded Assets (embed) "]
+    A5["Concurrency Management (context, goroutines, sync) "]
+    A6["Frontend Logic (JavaScript)"]
     A0 -- "Gets data from" --> A1
     A0 -- "Serves assets/templates from" --> A4
     A1 -- "Structures data using" --> A2

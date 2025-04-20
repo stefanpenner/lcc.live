@@ -139,11 +139,10 @@ It's like taking the filled-out paper forms (the JSON data) and neatly filing th
 
 ```mermaid
 graph LR
-    A["canyons.json File <br/>(Text Data)"] -- Read File --> B(Raw Data);
-    B -- json.Unmarshal --> C{Go Data Models <br/>(Canyons, Canyon, Camera)};
-    C -- Used By --> D[Rest of the Application];
+    A["canyons.json File: Text Data"] -->|Read File| B(Raw Data)
+    B -->|json.Unmarshal| C{Go Data Models: Canyons, Canyon, Camera}
+    C -->|Used By| D[Rest of the Application]
 ```
-
 ## How are these Models Used?
 
 Once loaded, these data models are used everywhere in the application. For example, when you visit the webpage for Little Cottonwood Canyon:
