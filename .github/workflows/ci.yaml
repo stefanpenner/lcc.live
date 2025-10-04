@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, echo ]
+  pull_request:
+    branches: [ main, echo ]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  test:
+    name: Test with Bazel
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bazelisk
+        uses: bazel-contrib/setup-bazel@0.8.1
+        with:
+          bazelisk-cache: true
+          disk-cache: true
+          repository-cache: true
+
+      - name: Verify BUILD files are up to date
+        run: bazel run //:gazelle_check
+
+      - name: Run all tests
+        run: bazel test //...
+
+      - name: Build binary
+        run: bazel build //:lcc-live
+
+      - name: Verify linting (nogo)
+        run: bazel build //... --aspects=@rules_go//go:def.bzl%go_vet_aspect --output_groups=vet
+
+  status-check:
+    name: Status Check
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "Tests failed"
+            exit 1
+          fi
+          echo "All tests passed ✅"
+

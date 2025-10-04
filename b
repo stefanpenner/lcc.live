@@ -34,9 +34,9 @@ gazelle)
   ;;
 
 deps)
-  echo "📦 Updating dependencies from go.mod..."
-  bazel run //:gazelle-update-repos
-  bazel run //:gazelle
+  echo "📦 Updating dependencies..."
+  go mod tidy
+  bazel mod deps
   echo "✅ Dependencies updated"
   ;;
 

@@ -9,9 +9,14 @@ module(
 bazel_dep(name = "rules_go", version = "0.50.1")
 bazel_dep(name = "gazelle", version = "0.39.1")
 
+# OCI (container) rules
+bazel_dep(name = "rules_oci", version = "2.0.0")
+bazel_dep(name = "rules_pkg", version = "1.0.1")
+
 # Go SDK
 go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
 go_sdk.download(version = "1.23.3")
+go_sdk.nogo(nogo = "//:nogo_linter")
 
 # Go dependencies from go.mod
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
@@ -27,4 +32,17 @@ use_repo(
     "com_github_prometheus_client_golang",
     "com_github_stretchr_testify",
 )
+
+# OCI base images
+oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
+
+# Pull alpine base image with specific digest for reproducibility
+oci.pull(
+    name = "alpine",
+    digest = "sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1",
+    image = "docker.io/library/alpine",
+    platforms = ["linux/amd64"],
+)
+
+use_repo(oci, "alpine", "alpine_linux_amd64")
 

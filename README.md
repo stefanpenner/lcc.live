@@ -1,5 +1,8 @@
 ## lcc.live's codebase
 
+[![CI](https://github.com/stefanpenner/lcc.live/actions/workflows/ci.yml/badge.svg)](https://github.com/stefanpenner/lcc.live/actions/workflows/ci.yml)
+[![Fuzz Testing](https://github.com/stefanpenner/lcc.live/actions/workflows/fuzz.yml/badge.svg)](https://github.com/stefanpenner/lcc.live/actions/workflows/fuzz.yml)
+
 [https://lcc.live](https://lcc.live/)
 
 **Note:**  

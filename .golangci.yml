@@ -1,0 +1,88 @@
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck      # Check for unchecked errors
+    - gosimple      # Simplify code
+    - govet         # Reports suspicious constructs
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Advanced Go linter
+    - typecheck     # Type-checking
+    - unused        # Find unused code
+    - gofmt         # Format code
+    - goimports     # Manage imports
+    - misspell      # Spelling errors
+    - revive        # Fast, configurable Go linter
+    - stylecheck    # Style checks
+    - unconvert     # Remove unnecessary conversions
+    - unparam       # Find unused function parameters
+    - gocritic      # Opinionated Go linter
+    - gosec         # Security checks
+    - bodyclose     # Check HTTP response bodies are closed
+    - noctx         # Check http requests have context
+    - errname       # Check error names
+    - errorlint     # Error wrapping checks
+    - goconst       # Find repeated strings that could be constants
+
+linters-settings:
+  errcheck:
+    check-blank: false
+    check-type-assertions: true
+  
+  govet:
+    enable-all: true
+    disable:
+      - shadow
+  
+  gofmt:
+    simplify: true
+  
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+      - style
+    disabled-checks:
+      - commentedOutCode
+      - whyNoLint
+  
+  gosec:
+    excludes:
+      - G104  # Audit errors not checked (covered by errcheck)
+  
+  revive:
+    rules:
+      - name: exported
+        disabled: false
+      - name: package-comments
+        disabled: true
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gocritic
+        - gosec
+        - unparam
+    
+    # Exclude fuzz tests from some checks
+    - path: _fuzz_test\.go
+      linters:
+        - errcheck
+        - gosec
+  
+  max-same-issues: 0
+  max-issues-per-linter: 0
+  
+output:
+  formats:
+    - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  sort-results: true
+

@@ -27,6 +27,7 @@ build:fast --compilation_mode=fastbuild
 # Optimized builds for production
 build:opt --compilation_mode=opt
 build:opt --stamp
+build:opt --platforms=@rules_go//go/toolchain:linux_amd64
 
 # Debug builds
 build:debug --compilation_mode=dbg

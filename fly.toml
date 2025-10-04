@@ -20,7 +20,6 @@ kill_timeout = '5s'
 
 [deploy]
   strategy = "bluegreen"
-  release_command = "/usr/local/bin/purge-cache.sh"
 
 [http_service]
   internal_port = 3000

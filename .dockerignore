@@ -1,7 +1,25 @@
-# flyctl launch added from .gitignore
-**/tmp/**
-fly.toml
-notes.txt
-lcc.live
-.github
+# Git
 .git
+.gitignore
+
+# Build outputs
+lcc.live
+tmp/
+bazel-*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Documentation (keep some for reference)
+*.md
+!README.md
+!BAZEL.md
+
+# Development scripts (not needed for Bazel build)
+build.sh
+
+# User-specific config
+.bazelrc.user
