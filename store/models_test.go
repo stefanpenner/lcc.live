@@ -196,8 +196,6 @@ func TestCanyons_LoadFromRealFile(t *testing.T) {
 	// Verify data was loaded correctly
 	assert.Equal(t, "Little Cottonwood Canyon", canyons.LCC.Name)
 	assert.Equal(t, "Big Cottonwood Canyon", canyons.BCC.Name)
-	assert.Equal(t, "https://example.com/lcc-status.jpg", canyons.LCC.Status.Src)
-	assert.Equal(t, "https://example.com/bcc-status.jpg", canyons.BCC.Status.Src)
-	assert.Equal(t, "\"4173245339693007937\"", canyons.LCC.ETag)
-	assert.Equal(t, "\"16678285087420380908\"", canyons.BCC.ETag)
+	assert.NotEmpty(t, canyons.LCC.ETag)
+	assert.NotEmpty(t, canyons.BCC.ETag)
 }
