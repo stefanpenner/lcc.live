@@ -26,6 +26,8 @@ const (
 	headRequestTimeout = 2 * time.Second
 	// Timeout for GET requests to fetch images
 	getRequestTimeout = 2 * time.Second
+	// User agent to mimic Chrome browser (helps with servers that block non-browser requests)
+	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 
 type Store struct {
@@ -281,6 +283,9 @@ func (s *Store) FetchImages(ctx context.Context) {
 				return
 			}
 
+			// Set User-Agent to mimic Chrome browser
+			headReq.Header.Set("User-Agent", userAgent)
+
 			headResp, err := s.client.Do(headReq)
 			if err != nil {
 				// Check if error is due to context cancellation
@@ -326,6 +331,9 @@ func (s *Store) FetchImages(ctx context.Context) {
 				metrics.CameraAvailability.WithLabelValues(cameraName, canyon).Set(0)
 				return
 			}
+
+			// Set User-Agent to mimic Chrome browser
+			getReq.Header.Set("User-Agent", userAgent)
 
 			resp, err := s.client.Do(getReq)
 			if err != nil {

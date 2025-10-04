@@ -16,6 +16,9 @@ bazel_dep(name = "aspect_bazel_lib", version = "2.21.2")
 bazel_dep(name = "rules_oci", version = "2.2.6")
 bazel_dep(name = "rules_pkg", version = "1.1.0")
 
+# Shell rules for sh_binary and sh_test
+bazel_dep(name = "rules_shell", version = "0.4.1")
+
 # Go SDK
 go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
 go_sdk.download(version = "1.24.5")
