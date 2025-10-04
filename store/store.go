@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
 	"net/http"
 	"strconv"
 	"sync"
@@ -15,7 +14,17 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 
+	"github.com/stefanpenner/lcc-live/metrics"
 	"github.com/stefanpenner/lcc-live/style"
+)
+
+const (
+	// HTTP client timeout for fetching images
+	httpClientTimeout = 5 * time.Second
+	// Timeout for HEAD requests to check image changes
+	headRequestTimeout = 2 * time.Second
+	// Timeout for GET requests to fetch images
+	getRequestTimeout = 2 * time.Second
 )
 
 type Store struct {
@@ -84,8 +93,8 @@ func (e *Entry) Read(fn func(*Entry)) {
 }
 
 func (e *Entry) Write(fn func(*Entry)) {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
+	e.mu.Lock()
+	defer e.mu.Unlock()
 
 	fn(e)
 }
@@ -157,12 +166,19 @@ func NewStore(canyons *Canyons) *Store {
 		index:   index,
 		canyons: canyons,
 		client: &http.Client{
-			Timeout: 5 * time.Second,
+			Timeout: httpClientTimeout,
 		},
 	}
 
 	store.imagesReady.Add(1) // wait for first signal
 	store.isWaitingOnFirstImageReady.Store(true)
+
+	// Set metrics
+	metrics.StoreEntriesTotal.Set(float64(len(entries)))
+	metrics.CamerasTotal.WithLabelValues("LCC").Set(float64(len(canyons.LCC.Cameras)))
+	metrics.CamerasTotal.WithLabelValues("BCC").Set(float64(len(canyons.BCC.Cameras)))
+	metrics.ImagesReady.Set(0)
+
 	return store
 }
 
@@ -183,8 +199,12 @@ func (s *Store) Canyon(canyon string) *Canyon {
 // 2. provide image updates via push of some sort
 func (s *Store) FetchImages(ctx context.Context) {
 	fmt.Println(style.Info.Render("📸 Starting image fetch for all cameras..."))
-	var wg sync.WaitGroup
+
+	// Start timing for metrics
+	timer := metrics.ImageFetchDuration
 	startTime := time.Now()
+
+	var wg sync.WaitGroup
 	var (
 		changedCount   int32 = 0
 		errorCount     int32 = 0
@@ -202,6 +222,11 @@ func (s *Store) FetchImages(ctx context.Context) {
 		go func(entry *Entry, client *http.Client) {
 			defer wg.Done()
 
+			// Check if context is already cancelled before starting work
+			if ctx.Err() != nil {
+				return
+			}
+
 			// lock while reading
 			// let's simply copy the structs we need for the long-lived function,
 			// then unlock immediately after copying when we update, we will relock
@@ -214,18 +239,23 @@ func (s *Store) FetchImages(ctx context.Context) {
 				headers = *entry.HTTPHeaders // Copy
 			})
 
-			headCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+			headCtx, cancel := context.WithTimeout(ctx, headRequestTimeout)
 			defer cancel()
 			headReq, err := http.NewRequestWithContext(headCtx, "HEAD", src, nil)
 			if err != nil {
 				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error creating HEAD request for %s: %v",
 					style.URL.Render(src), err)))
 				atomic.AddInt32(&errorCount, 1)
+				metrics.ImageFetchErrorsTotal.WithLabelValues("head_request").Inc()
 				return
 			}
 
 			headResp, err := s.client.Do(headReq)
 			if err != nil {
+				// Check if error is due to context cancellation
+				if ctx.Err() != nil {
+					return
+				}
 				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error making HEAD request for %s: %v",
 					style.URL.Render(src), err)))
 				atomic.AddInt32(&errorCount, 1)
@@ -241,16 +271,22 @@ func (s *Store) FetchImages(ctx context.Context) {
 				return
 			}
 
-			getCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+			getCtx, cancel := context.WithTimeout(ctx, getRequestTimeout)
 			defer cancel()
 			getReq, err := http.NewRequestWithContext(getCtx, "GET", src, nil)
 			if err != nil {
-				log.Printf("Error creating GET request for %s: %v\n", src, err)
+				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error creating GET request for %s: %v",
+					style.URL.Render(src), err)))
+				atomic.AddInt32(&errorCount, 1)
 				return
 			}
 
 			resp, err := s.client.Do(getReq)
 			if err != nil {
+				// Check if error is due to context cancellation
+				if ctx.Err() != nil {
+					return
+				}
 				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error fetching image %s: %v",
 					style.URL.Render(src), err)))
 				atomic.AddInt32(&errorCount, 1)
@@ -269,7 +305,6 @@ func (s *Store) FetchImages(ctx context.Context) {
 			contentLength := resp.ContentLength
 
 			imageBytes, err := io.ReadAll(resp.Body)
-			defer resp.Body.Close()
 			if err != nil {
 				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error reading image body from %s: %v",
 					style.URL.Render(src), err)))
@@ -299,14 +334,22 @@ func (s *Store) FetchImages(ctx context.Context) {
 	if s.isWaitingOnFirstImageReady.Load() {
 		s.isWaitingOnFirstImageReady.Store(false)
 		s.imagesReady.Done()
+		metrics.ImagesReady.Set(1)
 	}
-	duration := time.Since(startTime).Round(time.Millisecond)
+	duration := time.Since(startTime)
+
+	// Record metrics
+	timer.Observe(duration.Seconds())
+	metrics.StoreFetchCyclesTotal.Inc()
+	metrics.ImageFetchTotal.WithLabelValues("success").Add(float64(changedCount))
+	metrics.ImageFetchTotal.WithLabelValues("unchanged").Add(float64(unchangedCount))
+	metrics.ImageFetchTotal.WithLabelValues("error").Add(float64(errorCount))
 
 	summary := fmt.Sprintf("  ✨ Fetch complete in %v\n"+
 		"  ✅ Changed: %d\n"+
 		"  💤 Unchanged: %d\n"+
 		"  ❌ Errors: %d",
-		duration, changedCount, unchangedCount, errorCount)
+		duration.Round(time.Millisecond), changedCount, unchangedCount, errorCount)
 
 	if errorCount > 0 {
 		fmt.Println(style.Error.Render(summary))

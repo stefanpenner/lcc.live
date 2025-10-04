@@ -30,7 +30,7 @@ func ImageRoute(store *store.Store) func(c echo.Context) error {
 					}
 				}
 				if c.Request().Method == http.MethodHead {
-					c.NoContent(http.StatusOK)
+					return c.NoContent(http.StatusOK)
 				} else {
 					return c.Blob(http.StatusOK, headers.ContentType, entry.Image.Bytes)
 				}

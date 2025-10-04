@@ -52,7 +52,7 @@ func (c *Canyons) Load(f fs.FS, filepath string) error {
 		return fmt.Errorf("file %s is empty", filepath)
 	}
 
-	// Try to validate JSON structurgge before unmarshaling
+	// Try to validate JSON structure before unmarshaling
 	if !json.Valid(data) {
 		return fmt.Errorf("invalid JSON in file %s", filepath)
 	}

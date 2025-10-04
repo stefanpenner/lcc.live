@@ -8,6 +8,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/stefanpenner/lcc-live/store"
 	"github.com/stefanpenner/lcc-live/style"
 )
@@ -63,6 +64,9 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error)
 	e.HEAD("/image/:id", ImageRoute(store))
 
 	e.GET("/healthcheck", HealthCheckRoute())
+
+	// Prometheus metrics endpoint
+	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
 	return e, nil
 }

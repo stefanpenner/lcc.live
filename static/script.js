@@ -65,7 +65,7 @@ document.addEventListener("keyup", (e) => {
 
 const maxWidth = window.matchMedia("(max-width: 724px)");
 
-maxWidth.addListener(
+maxWidth.addEventListener("change",
   (e) => e.matches && document.querySelector("the-overlay").hide()
 );
 
@@ -109,23 +109,28 @@ document.addEventListener("visibilitychange", (event) => {
 })();
 
 async function reloadImage(img) {
-  img.dataset.src = img.dataset.src || img.src
- 
-  if (!img.classList.contains("in-viewport")) {
-    return
-  }
-
-  const request  = await fetch(img.dataset.src, {
-    mode: 'same-origin',
-    cache: 'default'
-  });
-
-  if (request.status === 200) {
-    etag = request.headers.get('etag')
-    if (img.dataset.etag != etag) {
-      img.dataset.etag = etag
-      img.src = URL.createObjectURL(await request.blob());
+  try {
+    img.dataset.src = img.dataset.src || img.src
+   
+    if (!img.classList.contains("in-viewport")) {
+      return
     }
+
+    const request = await fetch(img.dataset.src, {
+      mode: 'same-origin',
+      cache: 'default'
+    });
+
+    if (request.status === 200) {
+      const etag = request.headers.get('etag')
+      if (img.dataset.etag != etag) {
+        img.dataset.etag = etag
+        img.src = URL.createObjectURL(await request.blob());
+      }
+    }
+  } catch (error) {
+    // Network error or fetch failed - silently fail and retry on next cycle
+    console.warn('Failed to reload image:', img.dataset.src, error);
   }
 }
 
