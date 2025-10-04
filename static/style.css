@@ -126,19 +126,26 @@ header {
   margin: 0 auto 1.25rem;
 }
 
+.canyon-nav {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 auto 1rem;
+  max-width: fit-content;
+}
+
 .canyon-toggle {
   display: flex;
   justify-content: center;
   gap: 0;
-  margin-bottom: 1rem;
   background: var(--bg-primary);
   border: 1px solid var(--border-default);
   border-radius: 6px;
   padding: 3px;
   box-shadow: 0 1px 3px var(--shadow-sm);
   width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .canyon-toggle a {
@@ -271,14 +278,21 @@ camera-feed img[src=""] {
 }
 
 camera-feed h4 {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.6875rem;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.5rem;
   font-weight: 400;
   color: var(--text-tertiary);
+  opacity: 0.35;
   text-align: center;
   background: var(--bg-primary);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
   border-top: 1px solid var(--border-light);
+  transition: opacity 0.2s ease;
+  text-transform: uppercase;
+}
+
+camera-feed:hover h4 {
+  opacity: 0.65;
 }
 
 /* Hide broken image alt text */
@@ -404,8 +418,13 @@ the-overlay:hover .overlay-hint {
     margin-bottom: 0.75rem;
   }
 
+  .canyon-nav {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
   .canyon-toggle {
-    width: 100%;
+    flex: 1;
   }
 
   .canyon-toggle a {
@@ -475,8 +494,13 @@ the-overlay:hover .overlay-hint {
   }
 
   camera-feed h4 {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.6875rem;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.5rem;
+    opacity: 0.3;
+  }
+  
+  camera-feed:hover h4 {
+    opacity: 0.6;
   }
 }
 
@@ -531,9 +555,7 @@ the-overlay:hover .overlay-hint {
    Theme Toggle Button
    ======================================== */
 .theme-toggle {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
+  position: relative;
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
@@ -545,8 +567,8 @@ the-overlay:hover .overlay-hint {
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  z-index: 100;
   outline: none;
+  flex-shrink: 0;
 }
 
 .theme-toggle:hover {
@@ -601,8 +623,6 @@ the-overlay:hover .overlay-hint {
 
 @media (max-width: 768px) {
   .theme-toggle {
-    top: 0.5rem;
-    right: 0.5rem;
     width: 2.25rem;
     height: 2.25rem;
   }

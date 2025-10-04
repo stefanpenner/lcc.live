@@ -49,6 +49,10 @@ func ImageRoute(store *store.Store) func(c echo.Context) error {
 			status = entry.HTTPHeaders.Status
 		}
 
+		// Ensure we have a valid HTTP status code
+		if status == 0 {
+			status = http.StatusNotFound
+		}
 		return c.String(status, "image not found")
 	}
 }
