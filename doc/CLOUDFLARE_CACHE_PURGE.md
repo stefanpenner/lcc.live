@@ -55,7 +55,7 @@ fly deploy
 ```
 
 The deployment process will:
-1. Build the Docker image
+1. Build the OCI image with Bazel
 2. Deploy the new version
 3. Automatically run the cache purge script
 4. Health check the new deployment
@@ -154,7 +154,7 @@ See [Cloudflare API documentation](https://developers.cloudflare.com/api/operati
 ## Files Modified
 
 - `fly.toml`: Added `release_command` to run cache purge
-- `Dockerfile`: Added curl and purge-cache.sh script
+- `BUILD.bazel`: OCI image includes purge-cache.sh script
 - `purge-cache.sh`: Script that calls Cloudflare API
 - `doc/CACHE_AND_VERSION.md`: Documents the overall caching strategy
 

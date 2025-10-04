@@ -124,11 +124,6 @@ The HTML pages now:
 
 ## Deployment
 
-### With build.sh
-When deploying with the updated `build.sh`, the version will automatically be set to the current git commit hash and build timestamp.
-
-For Fly.io deployment, the Dockerfile already uses `build.sh`, so no changes needed there.
-
 ### With Bazel
 For production builds with Bazel, use:
 ```bash
