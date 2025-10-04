@@ -1,3 +1,52 @@
+// ========================================
+// Theme Management
+// ========================================
+(function initTheme() {
+  // Get stored theme or detect system preference
+  const storedTheme = localStorage.getItem('theme');
+  const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  
+  // Apply theme immediately to avoid flash
+  if (storedTheme) {
+    document.documentElement.setAttribute('data-theme', storedTheme);
+  } else if (systemPrefersDark) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+})();
+
+// Theme toggle functionality
+document.addEventListener('DOMContentLoaded', () => {
+  const themeToggle = document.querySelector('.theme-toggle');
+  
+  if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      
+      // Optional: announce to screen readers
+      const announcement = `Switched to ${newTheme} mode`;
+      themeToggle.setAttribute('aria-label', announcement);
+      setTimeout(() => {
+        themeToggle.setAttribute('aria-label', 'Toggle dark mode');
+      }, 1000);
+    });
+  }
+  
+  // Listen for system theme changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    // Only auto-switch if user hasn't manually set a preference
+    if (!localStorage.getItem('theme')) {
+      document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+    }
+  });
+});
+
+// ========================================
+// Overlay Component
+// ========================================
 class Overlay extends HTMLElement {
   constructor() {
     super();
@@ -58,10 +107,32 @@ class Overlay extends HTMLElement {
     this.appendChild(cloned);
     this.show();
     
+    // Detect image aspect ratio and apply appropriate sizing
+    const img = cloned.querySelector("img");
+    if (img) {
+      // Wait for image to load to get dimensions
+      if (img.complete) {
+        this.applyImageSizing(img);
+      } else {
+        img.addEventListener("load", () => this.applyImageSizing(img));
+      }
+    }
+    
     // Trigger fade-in
     requestAnimationFrame(() => {
       cloned.style.opacity = "1";
     });
+  }
+
+  applyImageSizing(img) {
+    const aspectRatio = img.naturalWidth / img.naturalHeight;
+    
+    // Portrait: taller than wide
+    if (aspectRatio < 0.9) {
+      img.classList.add("portrait");
+    } else {
+      img.classList.remove("portrait");
+    }
   }
 
   navigatePrevious() {
