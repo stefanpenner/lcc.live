@@ -54,8 +54,72 @@ class Overlay extends HTMLElement {
     this.cameras = [];
     this.timer = null;
     
-    // Click anywhere to close (including the image)
-    this.addEventListener("click", () => this.hide());
+    // Touch handling for swipe gestures
+    this.touchStartX = 0;
+    this.touchEndX = 0;
+    this.touchStartY = 0;
+    this.touchEndY = 0;
+    this.swiped = false;
+    
+    // Click on overlay background to close (not on content)
+    this.addEventListener("click", (e) => {
+      // Close if clicking on overlay background or camera-feed container (but not img/iframe)
+      const isOverlayBackground = e.target === this;
+      const isCameraFeedContainer = e.target.tagName === 'CAMERA-FEED';
+      
+      if ((isOverlayBackground || isCameraFeedContainer) && !this.swiped) {
+        this.hide();
+      }
+      this.swiped = false;
+    });
+    
+    // Add touch event listeners for swipe gestures
+    this.addEventListener("touchstart", (e) => this.handleTouchStart(e), { passive: true });
+    this.addEventListener("touchend", (e) => this.handleTouchEnd(e), { passive: true });
+  }
+  
+  handleTouchStart(e) {
+    this.touchStartX = e.changedTouches[0].screenX;
+    this.touchStartY = e.changedTouches[0].screenY;
+  }
+  
+  handleTouchEnd(e) {
+    this.touchEndX = e.changedTouches[0].screenX;
+    this.touchEndY = e.changedTouches[0].screenY;
+    this.handleSwipe();
+  }
+  
+  handleSwipe() {
+    const deltaX = this.touchEndX - this.touchStartX;
+    const deltaY = this.touchEndY - this.touchStartY;
+    const minSwipeDistance = 50; // Minimum distance in pixels to trigger swipe
+    
+    // Check for vertical swipe (down to close)
+    if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > minSwipeDistance) {
+      if (deltaY > 0) {
+        // Swiped down - close overlay
+        this.swiped = true;
+        this.hide();
+        return;
+      }
+    }
+    
+    // Check for horizontal swipe (left/right to navigate)
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+      this.swiped = true;
+      if (deltaX > 0) {
+        // Swiped right - go to previous image
+        this.navigatePrevious();
+      } else {
+        // Swiped left - go to next image
+        this.navigateNext();
+      }
+      
+      // Reset swiped flag after a short delay
+      setTimeout(() => {
+        this.swiped = false;
+      }, 300);
+    }
   }
 
   empty() {
@@ -66,6 +130,8 @@ class Overlay extends HTMLElement {
   hide() {
     this.style.display = "none";
     this.empty();
+    // Restore scrolling
+    document.body.style.overflow = "";
     // Restore focus to the camera that was opened
     if (this.currentIndex >= 0 && this.cameras[this.currentIndex]) {
       this.cameras[this.currentIndex].focus();
@@ -84,6 +150,8 @@ class Overlay extends HTMLElement {
 
   show() {
     this.style.display = "flex";
+    // Disable scrolling
+    document.body.style.overflow = "hidden";
     this.reload();
   }
 

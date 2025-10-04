@@ -309,7 +309,8 @@ the-overlay {
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: 100vh;
+  min-height: 100vh;
   background: var(--overlay-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -318,7 +319,7 @@ the-overlay {
   align-items: center;
   justify-content: center;
   cursor: zoom-out;
-  padding: 1rem;
+  padding: 0;
   animation: fadeIn 0.15s ease;
 }
 
@@ -336,6 +337,29 @@ the-overlay[style*="display: flex"] {
   display: flex !important;
 }
 
+/* Disable scrolling when overlay is visible */
+body:has(the-overlay[style*="display: flex"]) {
+  overflow: hidden;
+}
+
+/* iOS-specific fixes for fullscreen - handles dynamic address bar */
+@supports (-webkit-touch-callout: none) {
+  the-overlay {
+    height: -webkit-fill-available;
+    min-height: -webkit-fill-available;
+  }
+  
+  the-overlay camera-feed {
+    height: -webkit-fill-available;
+    max-height: -webkit-fill-available;
+  }
+  
+  the-overlay img,
+  the-overlay iframe {
+    max-height: -webkit-fill-available;
+  }
+}
+
 the-overlay h4 {
   display: none;
 }
@@ -343,10 +367,13 @@ the-overlay h4 {
 the-overlay camera-feed {
   cursor: zoom-out;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-  max-width: 100%;
-  max-height: 100%;
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  max-width: 100vw;
+  max-height: 100vh;
   margin: 0;
-  border-radius: 4px;
+  border-radius: 0;
   border: none;
   background: transparent;
   display: flex;
@@ -361,27 +388,15 @@ the-overlay camera-feed:hover {
 
 the-overlay img,
 the-overlay iframe {
-  max-width: 95vw;
-  max-height: 95vh;
   cursor: zoom-out;
   border-radius: 4px;
   display: block;
-}
-
-/* Default: landscape images take full width */
-the-overlay img:not(.portrait),
-the-overlay iframe:not(.portrait) {
-  width: 90vw;
-  height: auto;
-  min-height: 60vh;
-}
-
-/* Portrait images take more height */
-the-overlay img.portrait,
-the-overlay iframe.portrait {
+  max-width: 100vw;
+  max-height: 100vh;
   width: auto;
-  height: 85vh;
-  min-width: 50vw;
+  height: auto;
+  object-fit: contain;
+  pointer-events: none; /* Allow clicks to pass through to parent for closing */
 }
 
 /* Navigation hint in fullscreen */
@@ -457,20 +472,7 @@ the-overlay:hover .overlay-hint {
   }
 
   the-overlay {
-    padding: 0.5rem;
-  }
-  
-  /* Mobile fullscreen images should take full available space */
-  the-overlay img:not(.portrait),
-  the-overlay iframe:not(.portrait) {
-    width: 95vw;
-    min-height: 50vh;
-  }
-
-  the-overlay img.portrait,
-  the-overlay iframe.portrait {
-    height: 80vh;
-    min-width: 40vw;
+    padding: 0;
   }
   
   .overlay-hint {
