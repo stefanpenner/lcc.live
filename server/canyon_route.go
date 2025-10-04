@@ -5,11 +5,15 @@ import (
 	"strings"
 
 	"github.com/labstack/echo/v4"
+	"github.com/stefanpenner/lcc-live/metrics"
 	"github.com/stefanpenner/lcc-live/store"
 )
 
 func CanyonRoute(store *store.Store, canyonID string) func(c echo.Context) error {
 	return func(c echo.Context) error {
+		// Track page view
+		metrics.PageViewsTotal.WithLabelValues(canyonID).Inc()
+
 		// Use no-cache to force revalidation while still allowing caching
 		// This helps with cache busting - CDN will always check with origin
 		// but can serve cached content if ETag matches

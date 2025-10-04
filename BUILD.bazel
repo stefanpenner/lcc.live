@@ -1,6 +1,6 @@
 load("@gazelle//:def.bzl", "gazelle")
 load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test", "nogo")
-load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push", "oci_load")
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load", "oci_push")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 
 # gazelle:prefix github.com/stefanpenner/lcc-live
@@ -74,8 +74,8 @@ pkg_tar(
 pkg_tar(
     name = "scripts_layer",
     srcs = ["purge-cache.sh"],
-    package_dir = "/usr/local/bin",
     mode = "0755",
+    package_dir = "/usr/local/bin",
     tags = ["manual"],
 )
 
@@ -84,15 +84,15 @@ oci_image(
     name = "image",
     base = "@alpine",
     entrypoint = ["/usr/local/bin/lcc-live"],
-    tars = [
-        ":lcc-live_layer",
-        ":scripts_layer",
-    ],
     env = {
         "PORT": "3000",
     },
     exposed_ports = ["3000/tcp"],
     tags = ["manual"],
+    tars = [
+        ":lcc-live_layer",
+        ":scripts_layer",
+    ],
 )
 
 # Load into local Docker daemon
@@ -119,8 +119,8 @@ sh_binary(
         "$(location :image_load)",
     ],
     data = [
-        ":image_load",
         "fly.toml",
+        ":image_load",
     ],
     tags = ["manual"],
 )

@@ -222,6 +222,10 @@ func (s *Store) FetchImages(ctx context.Context) {
 		go func(entry *Entry, client *http.Client) {
 			defer wg.Done()
 
+			// Track concurrent fetches
+			metrics.ConcurrentFetches.Inc()
+			defer metrics.ConcurrentFetches.Dec()
+
 			// Check if context is already cancelled before starting work
 			if ctx.Err() != nil {
 				return
@@ -232,12 +236,25 @@ func (s *Store) FetchImages(ctx context.Context) {
 			// then unlock immediately after copying when we update, we will relock
 			var src string
 			var headers HTTPHeaders
+			var camera *Camera
 
 			entry.Read(func(entry *Entry) {
 				src = entry.Camera.Src // Copy
+				camera = entry.Camera  // Copy pointer (safe to use for reading)
 				// TODO: explore option of an explicit copy via Copy() or Snapshot(), vs the current implicit approach
 				headers = *entry.HTTPHeaders // Copy
 			})
+
+			// Extract origin and camera info for metrics
+			origin := metrics.ExtractOrigin(src)
+			cameraName := camera.Alt
+			if cameraName == "" {
+				cameraName = camera.ID
+			}
+			canyon := camera.Canyon
+
+			// Start timing for per-camera metrics
+			cameraStartTime := time.Now()
 
 			headCtx, cancel := context.WithTimeout(ctx, headRequestTimeout)
 			defer cancel()
@@ -247,6 +264,10 @@ func (s *Store) FetchImages(ctx context.Context) {
 					style.URL.Render(src), err)))
 				atomic.AddInt32(&errorCount, 1)
 				metrics.ImageFetchErrorsTotal.WithLabelValues("head_request").Inc()
+				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
+				metrics.OriginFetchTotal.WithLabelValues(origin, "error").Inc()
+				metrics.OriginErrorsByType.WithLabelValues(origin, "head_request").Inc()
+				metrics.CameraAvailability.WithLabelValues(cameraName, canyon).Set(0)
 				return
 			}
 
@@ -259,6 +280,10 @@ func (s *Store) FetchImages(ctx context.Context) {
 				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error making HEAD request for %s: %v",
 					style.URL.Render(src), err)))
 				atomic.AddInt32(&errorCount, 1)
+				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
+				metrics.OriginFetchTotal.WithLabelValues(origin, "error").Inc()
+				metrics.OriginErrorsByType.WithLabelValues(origin, "connection").Inc()
+				metrics.CameraAvailability.WithLabelValues(cameraName, canyon).Set(0)
 				return
 			}
 
@@ -268,6 +293,13 @@ func (s *Store) FetchImages(ctx context.Context) {
 
 			if newETag != "" && newETag == headers.ETag {
 				atomic.AddInt32(&unchangedCount, 1)
+				// Record metrics for unchanged image
+				cameraDuration := time.Since(cameraStartTime).Seconds()
+				metrics.CameraFetchDuration.WithLabelValues(cameraName, canyon).Observe(cameraDuration)
+				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "unchanged").Inc()
+				metrics.OriginFetchTotal.WithLabelValues(origin, "success").Inc()
+				metrics.OriginFetchDuration.WithLabelValues(origin).Observe(cameraDuration)
+				metrics.CameraAvailability.WithLabelValues(cameraName, canyon).Set(1)
 				return
 			}
 
@@ -278,6 +310,10 @@ func (s *Store) FetchImages(ctx context.Context) {
 				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error creating GET request for %s: %v",
 					style.URL.Render(src), err)))
 				atomic.AddInt32(&errorCount, 1)
+				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
+				metrics.OriginFetchTotal.WithLabelValues(origin, "error").Inc()
+				metrics.OriginErrorsByType.WithLabelValues(origin, "get_request").Inc()
+				metrics.CameraAvailability.WithLabelValues(cameraName, canyon).Set(0)
 				return
 			}
 
@@ -290,6 +326,10 @@ func (s *Store) FetchImages(ctx context.Context) {
 				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error fetching image %s: %v",
 					style.URL.Render(src), err)))
 				atomic.AddInt32(&errorCount, 1)
+				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
+				metrics.OriginFetchTotal.WithLabelValues(origin, "error").Inc()
+				metrics.OriginErrorsByType.WithLabelValues(origin, "connection").Inc()
+				metrics.CameraAvailability.WithLabelValues(cameraName, canyon).Set(0)
 				return
 			}
 			defer resp.Body.Close()
@@ -298,6 +338,10 @@ func (s *Store) FetchImages(ctx context.Context) {
 				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Bad status code from %s: %d",
 					style.URL.Render(src), resp.StatusCode)))
 				atomic.AddInt32(&errorCount, 1)
+				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
+				metrics.OriginFetchTotal.WithLabelValues(origin, "error").Inc()
+				metrics.OriginErrorsByType.WithLabelValues(origin, "bad_status").Inc()
+				metrics.CameraAvailability.WithLabelValues(cameraName, canyon).Set(0)
 				return
 			}
 
@@ -309,6 +353,10 @@ func (s *Store) FetchImages(ctx context.Context) {
 				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error reading image body from %s: %v",
 					style.URL.Render(src), err)))
 				atomic.AddInt32(&errorCount, 1)
+				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
+				metrics.OriginFetchTotal.WithLabelValues(origin, "error").Inc()
+				metrics.OriginErrorsByType.WithLabelValues(origin, "read_body").Inc()
+				metrics.CameraAvailability.WithLabelValues(cameraName, canyon).Set(0)
 				return
 			}
 			etag := "\"" + strconv.FormatUint(xxhash.Sum64(imageBytes), 10) + "\""
@@ -328,6 +376,20 @@ func (s *Store) FetchImages(ctx context.Context) {
 				}
 			})
 			atomic.AddInt32(&changedCount, 1)
+
+			// Record success metrics
+			cameraDuration := time.Since(cameraStartTime).Seconds()
+			imageSize := float64(len(imageBytes))
+
+			metrics.CameraFetchDuration.WithLabelValues(cameraName, canyon).Observe(cameraDuration)
+			metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "success").Inc()
+			metrics.CameraAvailability.WithLabelValues(cameraName, canyon).Set(1)
+			metrics.CameraLastSuccessTimestamp.WithLabelValues(cameraName, canyon).SetToCurrentTime()
+			metrics.CameraImageSizeBytes.WithLabelValues(cameraName, canyon).Set(imageSize)
+
+			metrics.OriginFetchTotal.WithLabelValues(origin, "success").Inc()
+			metrics.OriginFetchDuration.WithLabelValues(origin).Observe(cameraDuration)
+			metrics.ImageFetchSizeBytes.Observe(imageSize)
 		}(entry, s.client)
 	}
 	wg.Wait()
@@ -344,6 +406,10 @@ func (s *Store) FetchImages(ctx context.Context) {
 	metrics.ImageFetchTotal.WithLabelValues("success").Add(float64(changedCount))
 	metrics.ImageFetchTotal.WithLabelValues("unchanged").Add(float64(unchangedCount))
 	metrics.ImageFetchTotal.WithLabelValues("error").Add(float64(errorCount))
+	metrics.FetchCycleDurationSeconds.Set(duration.Seconds())
+
+	// Update memory usage metrics
+	metrics.RecordMemoryUsage()
 
 	summary := fmt.Sprintf("  ✨ Fetch complete in %v\n"+
 		"  ✅ Changed: %d\n"+

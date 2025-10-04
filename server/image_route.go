@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/stefanpenner/lcc-live/metrics"
 	"github.com/stefanpenner/lcc-live/store"
 )
 
@@ -16,6 +17,12 @@ func ImageRoute(store *store.Store) func(c echo.Context) error {
 		status := http.StatusNotFound
 
 		if exists {
+			// Track image view
+			cameraName := entry.Camera.Alt
+			if cameraName == "" {
+				cameraName = entry.Camera.ID
+			}
+			metrics.ImageViewsTotal.WithLabelValues(cameraName, entry.Camera.Canyon).Inc()
 			if entry.HTTPHeaders.Status == http.StatusOK {
 				headers := entry.HTTPHeaders
 
@@ -26,12 +33,16 @@ func ImageRoute(store *store.Store) func(c echo.Context) error {
 
 				if ifNoneMatch := c.Request().Header.Get("If-None-Match"); ifNoneMatch != "" {
 					if ifNoneMatch == entry.Image.ETag {
+						// Track cache hit
+						metrics.CacheHits.WithLabelValues(c.Path()).Inc()
 						return c.NoContent(http.StatusNotModified)
 					}
 				}
 				if c.Request().Method == http.MethodHead {
 					return c.NoContent(http.StatusOK)
 				} else {
+					// Track response size
+					metrics.ResponseSizeBytes.WithLabelValues(c.Path()).Observe(float64(len(entry.Image.Bytes)))
 					return c.Blob(http.StatusOK, headers.ContentType, entry.Image.Bytes)
 				}
 			}

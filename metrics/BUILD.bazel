@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "metrics",
-    srcs = ["metrics.go"],
+    srcs = [
+        "helpers.go",
+        "metrics.go",
+    ],
     importpath = "github.com/stefanpenner/lcc-live/metrics",
     visibility = ["//visibility:public"],
     deps = [

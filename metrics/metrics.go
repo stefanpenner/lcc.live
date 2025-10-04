@@ -129,4 +129,158 @@ var (
 		},
 		[]string{"error_type"},
 	)
+
+	// === Per-Camera Origin Metrics ===
+
+	// CameraFetchTotal tracks fetches per camera with status
+	CameraFetchTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "lcc_camera_fetch_total",
+			Help: "Total number of fetches per camera by status",
+		},
+		[]string{"camera", "canyon", "status"}, // camera name, canyon (LCC/BCC), status (success/error/unchanged)
+	)
+
+	// CameraFetchDuration tracks fetch latency per camera
+	CameraFetchDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "lcc_camera_fetch_duration_seconds",
+			Help:    "Time to fetch image from specific camera",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"camera", "canyon"},
+	)
+
+	// CameraAvailability indicates if camera is responding (1=up, 0=down)
+	CameraAvailability = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "lcc_camera_availability",
+			Help: "Camera availability status (1=up, 0=down)",
+		},
+		[]string{"camera", "canyon"},
+	)
+
+	// CameraLastSuccessTimestamp records when camera was last successfully fetched
+	CameraLastSuccessTimestamp = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "lcc_camera_last_success_timestamp_seconds",
+			Help: "Unix timestamp of last successful camera fetch",
+		},
+		[]string{"camera", "canyon"},
+	)
+
+	// CameraImageSizeBytes tracks image size per camera
+	CameraImageSizeBytes = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "lcc_camera_image_size_bytes",
+			Help: "Current image size in bytes per camera",
+		},
+		[]string{"camera", "canyon"},
+	)
+
+	// === Per-Origin Metrics ===
+
+	// OriginFetchTotal tracks fetches per origin domain
+	OriginFetchTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "lcc_origin_fetch_total",
+			Help: "Total number of fetches per origin domain",
+		},
+		[]string{"origin", "status"}, // origin domain, status (success/error)
+	)
+
+	// OriginFetchDuration tracks fetch latency per origin
+	OriginFetchDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "lcc_origin_fetch_duration_seconds",
+			Help:    "Time to fetch from specific origin",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"origin"},
+	)
+
+	// OriginErrorsByType tracks errors per origin by error type
+	OriginErrorsByType = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "lcc_origin_errors_total",
+			Help: "Total errors per origin by error type",
+		},
+		[]string{"origin", "error_type"}, // origin, error_type (timeout, connection, bad_status, etc.)
+	)
+
+	// === Usage & Traffic Metrics ===
+
+	// PageViewsTotal tracks page views by canyon
+	PageViewsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "lcc_page_views_total",
+			Help: "Total page views by canyon",
+		},
+		[]string{"canyon"}, // LCC, BCC
+	)
+
+	// ImageViewsTotal tracks image views per camera
+	ImageViewsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "lcc_image_views_total",
+			Help: "Total image views per camera",
+		},
+		[]string{"camera", "canyon"},
+	)
+
+	// UniqueVisitors tracks unique visitors (based on IP) - approximate
+	UniqueVisitors = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "lcc_unique_visitors_approximate",
+			Help: "Approximate number of unique visitors in current window",
+		},
+		[]string{"canyon"},
+	)
+
+	// === Performance Metrics ===
+
+	// ImageStalenessSeconds tracks how old served images are
+	ImageStalenessSeconds = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "lcc_image_staleness_seconds",
+			Help:    "Age of served images in seconds",
+			Buckets: []float64{1, 3, 5, 10, 30, 60, 120, 300, 600}, // 1s to 10min
+		},
+		[]string{"canyon"},
+	)
+
+	// BandwidthBytesTotal tracks total bandwidth served
+	BandwidthBytesTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "lcc_bandwidth_bytes_total",
+			Help: "Total bandwidth served in bytes",
+		},
+		[]string{"canyon", "type"}, // canyon, type (page/image)
+	)
+
+	// === Application Health Metrics ===
+
+	// FetchCycleDurationSeconds tracks entire fetch cycle duration
+	FetchCycleDurationSeconds = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "lcc_fetch_cycle_duration_seconds",
+			Help: "Duration of last fetch cycle in seconds",
+		},
+	)
+
+	// ConcurrentFetches tracks number of concurrent image fetches
+	ConcurrentFetches = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "lcc_concurrent_fetches",
+			Help: "Number of concurrent image fetches in progress",
+		},
+	)
+
+	// MemoryUsageBytes tracks application memory usage
+	MemoryUsageBytes = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "lcc_memory_usage_bytes",
+			Help: "Application memory usage in bytes",
+		},
+	)
 )
