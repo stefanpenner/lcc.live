@@ -18,7 +18,7 @@ bazel_dep(name = "rules_pkg", version = "1.1.0")
 
 # Go SDK
 go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
-go_sdk.download(version = "1.23.3")
+go_sdk.download(version = "1.24.5")
 go_sdk.nogo(nogo = "//:nogo_linter")
 
 # Go dependencies from go.mod

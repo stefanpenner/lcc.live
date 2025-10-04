@@ -93,6 +93,8 @@ oci_image(
         ":lcc-live_layer",
         ":scripts_layer",
     ],
+    # Security: Run as unprivileged user
+    user = "nobody",
 )
 
 # Load into local Docker daemon
