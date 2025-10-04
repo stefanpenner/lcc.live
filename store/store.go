@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -161,12 +162,21 @@ func NewStore(canyons *Canyons) *Store {
 		createEntry(&canyons.BCC.Cameras[i])
 	}
 
+	// Create HTTP client with custom TLS config to handle camera servers
+	// with self-signed or non-standard certificates
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true, // Skip certificate verification for camera servers
+		},
+	}
+
 	store := &Store{
 		entries: entries,
 		index:   index,
 		canyons: canyons,
 		client: &http.Client{
-			Timeout: httpClientTimeout,
+			Timeout:   httpClientTimeout,
+			Transport: transport,
 		},
 	}
 
