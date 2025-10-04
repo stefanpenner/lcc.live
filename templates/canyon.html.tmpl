@@ -1,71 +1,155 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>[LIVE] - LCC</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-    <meta name="charset" content="utf-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="view-transition" content="same-origin">
+    
+    <!-- Page Title -->
+    <title>{{.Name}} Live Cameras | Utah Canyon Conditions</title>
+    
+    <!-- SEO & Social -->
+    <meta name="description" content="Live camera feeds for {{if eq .Name "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}}. Real-time road conditions and weather updates.">
+    <meta property="og:title" content="{{.Name}} Live Cameras">
+    <meta property="og:description" content="Real-time camera feeds for {{.Name}}">
+    <meta property="og:type" content="website">
+    
+    <!-- Mobile Optimization -->
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="white">
-    <meta name="theme-color" content="#f2f3f4">
-    <meta name="Description" content="LCC Live">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="{{.Name}} Live">
+    <meta name="theme-color" content="#667eea">
+    
+    <!-- Resources -->
     <link rel="stylesheet" href="/s/style.css">
-    <link rel="icon" type="image/x-icon" href="/s/favicon.png">
-  {{- if eq .Name "LCC" -}}
-    <link rel="prefetch" href="/bcc" />
-  {{- else -}}
-    <link rel="prefetch" href="/" />
-  {{- end -}}
+    <link rel="icon" type="image/png" href="/s/favicon.png">
+    
+    <!-- Prefetch -->
+    {{- if eq .Name "LCC" -}}
+    <link rel="prefetch" href="/bcc" as="document">
+    {{- else -}}
+    <link rel="prefetch" href="/" as="document">
+    {{- end -}}
+    
+    <!-- Preconnect for analytics -->
+    <link rel="preconnect" href="https://www.googletagmanager.com">
   </head>
+  
   <body>
-    <header>
-      <nav class="canyon-toggle">
-      {{ if eq .Name "LCC" -}}
-        <a aria-current="page" class="active" href="/" tabindex=0>LCC</a>
-        <a class="" href="/bcc" tabindex=0>BCC</a>
-      {{- else -}}
-        <a class="" href="/" tabindex=0>LCC</a>
-        <a aria-current="page" class="active" href="/bcc" tabindex=0>BCC</a>
-      {{- end -}}
+    <!-- Main Header -->
+    <header role="banner">
+      <!-- Canyon Navigation -->
+      <nav class="canyon-toggle" role="navigation" aria-label="Canyon selection">
+        {{ if eq .Name "LCC" -}}
+        <a href="/" 
+           aria-current="page" 
+           class="active" 
+           role="button"
+           aria-label="Little Cottonwood Canyon, currently selected">
+          LCC
+        </a>
+        <a href="/bcc" 
+           role="button"
+           aria-label="Switch to Big Cottonwood Canyon">
+          BCC
+        </a>
+        {{- else -}}
+        <a href="/" 
+           role="button"
+           aria-label="Switch to Little Cottonwood Canyon">
+          LCC
+        </a>
+        <a href="/bcc" 
+           aria-current="page" 
+           class="active" 
+           role="button"
+           aria-label="Big Cottonwood Canyon, currently selected">
+          BCC
+        </a>
+        {{- end -}}
       </nav>
-      <road-status>
-        <img id="img-{{.Status.ID}}" src="image/{{.Status.ID}}" alt="{{.Status.Alt}}">
+      
+      <!-- Road Status -->
+      <road-status role="region" aria-label="Road status">
+        <img 
+          id="img-{{.Status.ID}}" 
+          src="/image/{{.Status.ID}}" 
+          alt="{{.Status.Alt}}"
+          loading="eager"
+          decoding="async">
       </road-status>
     </header>
-    <section id="container">
-    {{- range $index, $c := .Cameras -}}
-    {{- if ne $c.Kind "roadstatus" -}}
-      <camera-feed tabindex=0> <!-- TODO: and reload !-->
-      {{- if eq $c.Kind "iframe" -}}
-        <!-- TODO: only lazy load stuff that is bellow the fold !-->
-        <iframe 
-          loading="lazy" 
-          src="{{$c.Src}}" 
-          title="{{$c.Alt}}" 
-          frameborder="0" 
-          fetchpriority=high
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-          referrerpolicy="strict-origin-when-cross-origin">
-        </iframe>
-      {{- else -}}
-        {{- if le $index 1 -}}
-          <img src="/image/{{$c.ID}}" alt="{{$c.Alt}}" >
-        {{- else -}}
-          <img src="/image/{{$c.ID}}" alt="{{$c.Alt}}" loading="lazy" >
+    
+    <!-- Camera Grid -->
+    <main role="main">
+      <section 
+        id="container" 
+        role="region" 
+        aria-label="{{if eq .Name "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}} camera feeds">
+        {{- range $index, $c := .Cameras -}}
+        {{- if ne $c.Kind "roadstatus" -}}
+        <camera-feed 
+          tabindex="0" 
+          role="article"
+          aria-label="{{$c.Alt}} camera feed">
+          
+          {{- if eq $c.Kind "iframe" -}}
+          <!-- Embedded iframe camera -->
+          <iframe 
+            loading="lazy" 
+            src="{{$c.Src}}" 
+            title="{{$c.Alt}}" 
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+            referrerpolicy="strict-origin-when-cross-origin"
+            aria-label="{{$c.Alt}}">
+          </iframe>
+          {{- else -}}
+          <!-- Standard image camera -->
+          {{- if le $index 1 -}}
+          <img 
+            src="/image/{{$c.ID}}" 
+            alt="{{$c.Alt}}"
+            loading="eager"
+            decoding="async"
+            class="in-viewport">
+          {{- else -}}
+          <img 
+            src="/image/{{$c.ID}}" 
+            alt="{{$c.Alt}}" 
+            loading="lazy"
+            decoding="async">
+          {{- end -}}
+          {{- end -}}
+          
+          <h4>{{$c.Alt}}</h4>
+        </camera-feed>
         {{- end -}}
-      {{- end -}}
-        <h4>{{$c.Alt}}</h4>
-      </camera-feed>
-    {{- end -}}
-    {{- end -}}
-    </section>
-    <the-overlay></the-overlay>
-    <script src="/s/script.js"></script>
+        {{- end -}}
+      </section>
+    </main>
+    
+    <!-- Lightbox Overlay -->
+    <the-overlay 
+      role="dialog" 
+      aria-modal="true" 
+      aria-label="Enlarged camera view">
+    </the-overlay>
+    
+    <!-- Scripts -->
+    <script src="/s/script.js" defer></script>
+    
+    <!-- Analytics (async, non-blocking) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EKMJ5GKF38"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-EKMJ5GKF38');
+      gtag('config', 'G-EKMJ5GKF38', {
+        'send_page_view': true,
+        'page_title': '{{.Name}} Live Cameras'
+      });
     </script>
   </body>
 </html>

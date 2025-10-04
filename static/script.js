@@ -1,8 +1,12 @@
 class Overlay extends HTMLElement {
   constructor() {
     super();
-    this.addEventListener("click", () => this.hide());
+    this.currentIndex = 0;
+    this.cameras = [];
     this.timer = null;
+    
+    // Click anywhere to close (including the image)
+    this.addEventListener("click", () => this.hide());
   }
 
   empty() {
@@ -13,50 +17,110 @@ class Overlay extends HTMLElement {
   hide() {
     this.style.display = "none";
     this.empty();
+    // Restore focus to the camera that was opened
+    if (this.currentIndex >= 0 && this.cameras[this.currentIndex]) {
+      this.cameras[this.currentIndex].focus();
+    }
   }
 
   reload() {
     this.timer = setTimeout(() => {
       const img = this.querySelector("img");
       if (img) {
-        reloadImage(this.querySelector("img"));
+        reloadImage(img);
         this.timer = setTimeout(() => this.reload(), 30_000);
       }
     }, 1_000);
   }
 
   show() {
-    this.style.display = "block";
+    this.style.display = "flex";
     this.reload();
   }
 
-  cameraWasClicked(camera) {
-    if (!camera.closest("body")) {
-      return;
-    }
+  showCamera(index) {
+    if (index < 0 || index >= this.cameras.length) return;
+    
+    this.currentIndex = index;
+    const camera = this.cameras[index];
+    
+    if (!camera.closest("body")) return;
+    
     const cloned = camera.cloneNode(true);
-    cloned.removeAttribute("tab-index");
+    cloned.removeAttribute("tabindex");
+    cloned.setAttribute("role", "img");
+    
+    // Add smooth fade-in
+    cloned.style.opacity = "0";
+    cloned.style.transition = "opacity 0.2s ease";
 
     this.empty();
     this.appendChild(cloned);
     this.show();
+    
+    // Trigger fade-in
+    requestAnimationFrame(() => {
+      cloned.style.opacity = "1";
+    });
+  }
+
+  navigatePrevious() {
+    if (this.currentIndex > 0) {
+      this.showCamera(this.currentIndex - 1);
+    }
+  }
+
+  navigateNext() {
+    if (this.currentIndex < this.cameras.length - 1) {
+      this.showCamera(this.currentIndex + 1);
+    }
+  }
+
+  cameraWasClicked(camera) {
+    // Update camera list on each click
+    this.cameras = [...document.querySelectorAll("camera-feed")];
+    const index = this.cameras.indexOf(camera);
+    this.showCamera(index);
   }
 }
 
 customElements.define("the-overlay", Overlay);
-document.addEventListener("keyup", (e) => {
+
+document.addEventListener("keydown", (e) => {
+  const overlay = document.querySelector("the-overlay");
+  const isOverlayVisible = overlay.style.display === "flex" || overlay.style.display === "block";
+  
   switch (e.key) {
     case "Escape": {
-      document.querySelector("the-overlay").hide();
+      if (isOverlayVisible) {
+        overlay.hide();
+        e.preventDefault();
+      }
+      break;
+    }
+    case "ArrowLeft":
+    case "Left": {
+      if (isOverlayVisible) {
+        overlay.navigatePrevious();
+        e.preventDefault();
+      }
+      break;
+    }
+    case "ArrowRight":
+    case "Right": {
+      if (isOverlayVisible) {
+        overlay.navigateNext();
+        e.preventDefault();
+      }
       break;
     }
     case "Enter": {
-      const { activeElement } = document;
-      if (
-        activeElement.closest("camera-feed") &&
-        !activeElement.closest("the-overlay")
-      ) {
-        document.querySelector("the-overlay").cameraWasClicked(activeElement);
+      if (!isOverlayVisible) {
+        const { activeElement } = document;
+        if (activeElement.closest("camera-feed")) {
+          overlay.cameraWasClicked(activeElement);
+          e.preventDefault();
+        }
       }
       break;
     }
@@ -125,7 +189,29 @@ async function reloadImage(img) {
       const etag = request.headers.get('etag')
       if (img.dataset.etag != etag) {
         img.dataset.etag = etag
-        img.src = URL.createObjectURL(await request.blob());
+        
+        // Add smooth transition when updating image
+        const oldSrc = img.src;
+        const newBlob = await request.blob();
+        const newUrl = URL.createObjectURL(newBlob);
+        
+        // Preload the image
+        const tempImg = new Image();
+        tempImg.onload = () => {
+          img.style.opacity = '0.7';
+          img.style.transition = 'opacity 0.3s ease';
+          
+          setTimeout(() => {
+            img.src = newUrl;
+            img.style.opacity = '1';
+            
+            // Clean up old blob URL
+            if (oldSrc.startsWith('blob:')) {
+              URL.revokeObjectURL(oldSrc);
+            }
+          }, 150);
+        };
+        tempImg.src = newUrl;
       }
     }
   } catch (error) {
@@ -150,3 +236,21 @@ const observer = new IntersectionObserver((entries) => {
   });
 
 images.forEach(img => observer.observe(img));
+
+// Subtle page load animations
+document.addEventListener('DOMContentLoaded', () => {
+  // Subtle fade in for camera feeds (only if user prefers motion)
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  
+  if (!prefersReducedMotion) {
+    const feeds = document.querySelectorAll('camera-feed');
+    feeds.forEach((feed, index) => {
+      feed.style.opacity = '0';
+      feed.style.transition = 'opacity 0.25s ease';
+      
+      setTimeout(() => {
+        feed.style.opacity = '1';
+      }, 30 + (index * 20)); // Quick stagger
+    });
+  }
+});
