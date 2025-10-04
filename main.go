@@ -1,11 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"embed"
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -80,7 +84,91 @@ func loadConfig() Config {
 	}
 }
 
+// purgeCloudflareCache purges the Cloudflare cache for the configured zone
+func purgeCloudflareCache() error {
+	zoneID := os.Getenv("CLOUDFLARE_ZONE_ID")
+	apiToken := os.Getenv("CLOUDFLARE_API_TOKEN")
+
+	if zoneID == "" || apiToken == "" {
+		fmt.Println("⚠️  Warning: CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN not set. Skipping cache purge.")
+		return nil
+	}
+
+	fmt.Printf("🔄 Purging Cloudflare cache for zone: %s\n", zoneID)
+
+	// Prepare request body
+	body := bytes.NewBufferString(`{"purge_everything":true}`)
+
+	// Create request with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST",
+		fmt.Sprintf("https://api.cloudflare.com/client/v4/zones/%s/purge_cache", zoneID),
+		body)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+apiToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	// Make request
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// Parse response
+	var result struct {
+		Success bool     `json:"success"`
+		Errors  []string `json:"errors"`
+	}
+
+	if err := json.Unmarshal(responseBody, &result); err != nil {
+		return fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	if result.Success {
+		fmt.Println("✅ Cloudflare cache purged successfully")
+		return nil
+	}
+
+	return fmt.Errorf("cache purge failed: %v", result.Errors)
+}
+
 func main() {
+	// Check for subcommands
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "purge-cache":
+			if err := purgeCloudflareCache(); err != nil {
+				fmt.Fprintf(os.Stderr, "❌ Error: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		case "help", "--help", "-h":
+			fmt.Println("LCC Live Camera Service")
+			fmt.Println("")
+			fmt.Println("Usage:")
+			fmt.Println("  lcc-live              Start the web server (default)")
+			fmt.Println("  lcc-live purge-cache  Purge Cloudflare cache")
+			fmt.Println("  lcc-live help         Show this help message")
+			return
+		}
+	}
+
 	fmt.Println(style.Title.Render("🌄 Starting LCC Live Camera Service"))
 	fmt.Println(style.Info.Render("https://lcc.live/\n"))
 

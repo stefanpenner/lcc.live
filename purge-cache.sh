@@ -15,11 +15,22 @@ echo "Purging Cloudflare cache for zone: $CLOUDFLARE_ZONE_ID"
 
 # Purge everything - use this for simplicity
 # For more granular control, you can purge specific URLs or tags
+# Add timeout to prevent hanging
 response=$(curl -s -X POST \
+  --max-time 10 \
+  --connect-timeout 5 \
   "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
   -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
   -H "Content-Type: application/json" \
-  --data '{"purge_everything":true}')
+  --data '{"purge_everything":true}' 2>&1)
+
+# Check curl exit code
+curl_exit=$?
+if [ $curl_exit -ne 0 ]; then
+  echo "✗ curl failed with exit code $curl_exit (network issue or timeout)"
+  # Don't fail the deploy if cache purge fails
+  exit 0
+fi
 
 # Check if successful
 if echo "$response" | grep -q '"success":true'; then
