@@ -1,0 +1,71 @@
+name: Fuzz Testing
+
+on:
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      fuzz_time:
+        description: 'Fuzz time per test (e.g., 5s, 1m, 5m)'
+        required: false
+        default: '30s'
+  # Run weekly on Sunday at 2 AM UTC
+  schedule:
+    - cron: '0 2 * * 0'
+  # Run on push to main
+  push:
+    branches: [ main ]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+
+jobs:
+  fuzz:
+    name: Fuzzing Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.3'
+      
+      - name: Cache fuzz corpus
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/testdata/fuzz
+          key: ${{ runner.os }}-fuzz-corpus-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-fuzz-corpus-
+      
+      - name: Run fuzz tests
+        env:
+          FUZZ_TIME: ${{ github.event.inputs.fuzz_time || '30s' }}
+        run: |
+          chmod +x ./fuzz-all.sh
+          ./fuzz-all.sh
+      
+      - name: Upload fuzz corpus artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-corpus-${{ github.run_number }}
+          path: |
+            **/testdata/fuzz
+          retention-days: 30
+      
+      - name: Upload crash reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crashes-${{ github.run_number }}
+          path: |
+            **/testdata/fuzz/**/*crash*
+          retention-days: 90
+          if-no-files-found: ignore
+
