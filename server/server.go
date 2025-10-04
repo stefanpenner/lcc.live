@@ -75,8 +75,19 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error)
 	e.GET("/healthcheck", HealthCheckRoute())
 
 	// Internal/admin endpoints under /_/
-	e.GET("/_/version", VersionRoute())
-	e.GET("/_/metrics", echo.WrapHandler(promhttp.Handler()))
+	// These endpoints should never be cached
+	internal := e.Group("/_")
+	internal.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Prevent any caching of internal endpoints
+			c.Response().Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, private, max-age=0")
+			c.Response().Header().Set("Pragma", "no-cache")
+			c.Response().Header().Set("Expires", "0")
+			return next(c)
+		}
+	})
+	internal.GET("/version", VersionRoute())
+	internal.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
 	return e, nil
 }

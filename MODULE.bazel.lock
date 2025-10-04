@@ -634,7 +634,7 @@
     "@@rules_oci+//oci:extensions.bzl%oci": {
       "general": {
         "bzlTransitiveDigest": "/FoHmJ5XJ1dlKzNBWud7y+3H9C55ms6p1tl6FQKOxBs=",
-        "usagesDigest": "go90Gy5QeOreSijhFR2tjj86st6QcvmT9Q7KOPXgj/k=",
+        "usagesDigest": "Je4tR0cuFKgbLX7WVKlYOB1QHaGaGQGs8sgxHM4uTsA=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -651,6 +651,18 @@
               "bazel_tags": []
             }
           },
+          "alpine_linux_arm64_v8": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_pull",
+            "attributes": {
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "library/alpine",
+              "identifier": "sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1",
+              "platform": "linux/arm64/v8",
+              "target_name": "alpine_linux_arm64_v8",
+              "bazel_tags": []
+            }
+          },
           "alpine": {
             "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_alias",
             "attributes": {
@@ -660,7 +672,8 @@
               "repository": "library/alpine",
               "identifier": "sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1",
               "platforms": {
-                "@@platforms//cpu:x86_64": "@alpine_linux_amd64"
+                "@@platforms//cpu:x86_64": "@alpine_linux_amd64",
+                "@@platforms//cpu:arm64": "@alpine_linux_arm64_v8"
               },
               "bzlmod_repository": "alpine",
               "reproducible": true
@@ -1033,7 +1046,8 @@
         "moduleExtensionMetadata": {
           "explicitRootModuleDirectDeps": [
             "alpine",
-            "alpine_linux_amd64"
+            "alpine_linux_amd64",
+            "alpine_linux_arm64_v8"
           ],
           "explicitRootModuleDirectDevDeps": [],
           "useAllRepos": "NO",

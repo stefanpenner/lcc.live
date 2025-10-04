@@ -46,6 +46,12 @@ opt)
   echo "✅ Optimized build complete: bazel-bin/lcc-live_/lcc-live"
   ;;
 
+deploy)
+  TARGET="${2:-fly}"
+  echo "🚀 Deploying..."
+  bazel run --config=opt //:deploy -- "$TARGET"
+  ;;
+
 help | *)
   cat <<EOF
 Bazel helper script for lcc.live
@@ -53,19 +59,23 @@ Bazel helper script for lcc.live
 Usage: ./b <command>
 
 Commands:
-  build    - Build the binary
-  test     - Run all tests
-  run      - Run the server
-  clean    - Clean build artifacts
-  gazelle  - Regenerate BUILD files
-  deps     - Update dependencies from go.mod
-  opt      - Build optimized binary for production
-  help     - Show this help message
+  build        - Build the binary
+  test         - Run all tests
+  run          - Run the server
+  clean        - Clean build artifacts
+  gazelle      - Regenerate BUILD files
+  deps         - Update dependencies from go.mod
+  opt          - Build optimized binary for production
+  deploy       - Deploy to Fly.io
+  deploy local - Build, load, and run image in local Docker
+  help         - Show this help message
 
 Examples:
   ./b build
   ./b test
   ./b run
+  ./b deploy local    # Deploy to local Docker
+  ./b deploy          # Deploy to Fly.io
 
 For more details, see doc/BAZEL.md
 EOF

@@ -110,3 +110,17 @@ oci_push(
     repository = "registry.fly.io/lcc-live-dark-paper-70",
     tags = ["manual"],
 )
+
+# Deployment script
+sh_binary(
+    name = "deploy",
+    srcs = ["scripts/deploy.sh"],
+    args = [
+        "$(location :image_load)",
+    ],
+    data = [
+        ":image_load",
+        "fly.toml",
+    ],
+    tags = ["manual"],
+)

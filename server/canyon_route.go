@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/stefanpenner/lcc-live/store"
@@ -27,6 +28,13 @@ func CanyonRoute(store *store.Store, canyonID string) func(c echo.Context) error
 		if c.Request().Method == http.MethodHead {
 			return c.NoContent(http.StatusOK)
 		}
+
+		// Check Accept header to determine response format
+		accept := c.Request().Header.Get("Accept")
+		if strings.Contains(accept, "application/json") {
+			return c.JSON(http.StatusOK, canyon)
+		}
+
 		return c.Render(http.StatusOK, "canyon.html.tmpl", canyon)
 	}
 }

@@ -124,6 +124,15 @@ bazel run //:image_load
 
 # Run the container
 docker run -p 3000:3000 lcc.live:latest
+
+# Deploy to Fly.io
+./b deploy
+# or: bazel run //:deploy
+
+# Deploy to local Docker (builds and runs automatically)
+./b deploy local
+# or: bazel run //:deploy -- local
+# Then test: curl http://localhost:3000/healthcheck
 ```
 
 ### Development Workflow
@@ -133,6 +142,54 @@ docker run -p 3000:3000 lcc.live:latest
 3. Run `bazel test //...` to verify tests pass
 4. Run `bazel run //:gazelle_check` to verify BUILD files are correct
 5. Commit changes
+
+## Deployment
+
+### Deploy to Fly.io (Production)
+
+Deploy the optimized image to Fly.io:
+
+```bash
+./b deploy
+# or: bazel run //:deploy
+```
+
+This will:
+1. Build the OCI image with `--config=opt`
+2. Load the image into Docker
+3. Deploy to Fly.io using `fly deploy --local-only`
+4. Show the deployment status
+
+### Deploy to Local Docker (Testing)
+
+Build, load, and run the image locally without deploying to Fly.io:
+
+```bash
+./b deploy local
+# or: bazel run //:deploy -- local
+```
+
+This will:
+1. Build the OCI image with `--config=opt`
+2. Load the image into Docker as `lcc.live:latest`
+3. Stop and remove any existing `lcc-live` containers
+4. Start a new container named `lcc-live` on port 3000
+
+The container runs automatically. Test it:
+
+```bash
+# Check health
+curl http://localhost:3000/healthcheck
+
+# Check version
+curl http://localhost:3000/_/version
+
+# View logs
+docker logs -f lcc-live
+
+# Stop the container
+docker stop lcc-live
+```
 
 ## Troubleshooting
 

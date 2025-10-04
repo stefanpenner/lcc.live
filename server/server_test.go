@@ -586,3 +586,123 @@ func TestMetricsEndpoint(t *testing.T) {
 	assert.Contains(t, body, "# HELP")
 	assert.Contains(t, body, "# TYPE")
 }
+
+func TestInternalEndpointsCacheHeaders(t *testing.T) {
+	srv, _ := setupTestServer(t)
+
+	tests := []struct {
+		name string
+		path string
+	}{
+		{"version", "/_/version"},
+		{"metrics", "/_/metrics"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest("GET", tt.path, nil)
+			rec := httptest.NewRecorder()
+
+			srv.Handler.ServeHTTP(rec, req)
+
+			assert.Equal(t, http.StatusOK, rec.Code)
+			// Verify that internal endpoints are uncachable
+			assert.Equal(t, "no-store, no-cache, must-revalidate, private, max-age=0", rec.Header().Get("Cache-Control"))
+			assert.Equal(t, "no-cache", rec.Header().Get("Pragma"))
+			assert.Equal(t, "0", rec.Header().Get("Expires"))
+		})
+	}
+}
+
+// JSON Response Tests
+
+func TestCanyonRoute_GET_JSON_LCC(t *testing.T) {
+	srv, _ := setupTestServer(t)
+
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Accept", "application/json")
+	rec := httptest.NewRecorder()
+
+	srv.Handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Header().Get("Content-Type"), "application/json")
+	assert.Equal(t, "\"test-lcc-etag\"", rec.Header().Get("ETAG"))
+	assert.Equal(t, "public, no-cache, must-revalidate", rec.Header().Get("Cache-Control"))
+
+	// Verify JSON structure
+	body := rec.Body.String()
+	assert.Contains(t, body, `"name":"Little Cottonwood Canyon"`)
+	assert.Contains(t, body, `"etag":"\"test-lcc-etag\""`)
+}
+
+func TestCanyonRoute_GET_JSON_BCC(t *testing.T) {
+	srv, _ := setupTestServer(t)
+
+	req := httptest.NewRequest("GET", "/bcc", nil)
+	req.Header.Set("Accept", "application/json")
+	rec := httptest.NewRecorder()
+
+	srv.Handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Header().Get("Content-Type"), "application/json")
+	assert.Equal(t, "\"test-bcc-etag\"", rec.Header().Get("ETAG"))
+
+	body := rec.Body.String()
+	assert.Contains(t, body, `"name":"Big Cottonwood Canyon"`)
+	assert.Contains(t, body, `"etag":"\"test-bcc-etag\""`)
+}
+
+func TestCanyonRoute_JSON_ETag_NotModified(t *testing.T) {
+	srv, _ := setupTestServer(t)
+
+	// Request with matching ETag should return 304 even for JSON requests
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("If-None-Match", "\"test-lcc-etag\"")
+	rec := httptest.NewRecorder()
+
+	srv.Handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusNotModified, rec.Code)
+	assert.Empty(t, rec.Body.String())
+}
+
+func TestCanyonRoute_JSON_AcceptHeader_Variations(t *testing.T) {
+	srv, _ := setupTestServer(t)
+
+	testCases := []struct {
+		name         string
+		acceptHeader string
+		expectJSON   bool
+	}{
+		{"explicit JSON", "application/json", true},
+		{"JSON with quality", "application/json; q=0.9", true},
+		{"JSON in list", "text/html, application/json, */*", true},
+		{"no Accept header", "", false},
+		{"HTML only", "text/html", false},
+		{"wildcard", "*/*", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "/", nil)
+			if tc.acceptHeader != "" {
+				req.Header.Set("Accept", tc.acceptHeader)
+			}
+			rec := httptest.NewRecorder()
+
+			srv.Handler.ServeHTTP(rec, req)
+
+			assert.Equal(t, http.StatusOK, rec.Code)
+			if tc.expectJSON {
+				assert.Contains(t, rec.Header().Get("Content-Type"), "application/json")
+				assert.Contains(t, rec.Body.String(), `"name":"Little Cottonwood Canyon"`)
+			} else {
+				assert.NotContains(t, rec.Header().Get("Content-Type"), "application/json")
+				assert.Contains(t, rec.Body.String(), "<!DOCTYPE html>")
+			}
+		})
+	}
+}
