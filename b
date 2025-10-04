@@ -47,9 +47,13 @@ opt)
   ;;
 
 deploy)
-  TARGET="${2:-fly}"
   echo "🚀 Deploying..."
-  bazel run --config=opt //:deploy -- "$TARGET"
+  bazel run --config=opt //:deploy
+  ;;
+
+deploy:local)
+  echo "🚀 Deploying... locally"
+  bazel run --config=opt //:deploy -- local
   ;;
 
 logs)
@@ -59,9 +63,19 @@ logs)
 
 metrics)
   echo "📊 Opening metrics endpoint..."
-  open "https://lcc.live/_/metrics" 2>/dev/null || \
-  xdg-open "https://lcc.live/_/metrics" 2>/dev/null || \
-  echo "Visit: https://lcc.live/_/metrics"
+  open "https://lcc.live/_/metrics" 2>/dev/null ||
+    xdg-open "https://lcc.live/_/metrics" 2>/dev/null ||
+    echo "Visit: https://lcc.live/_/metrics"
+  ;;
+
+graphana)
+  echo "📊 Opening Graphana dashboard..."
+  open https://fly-metrics.net/d/fly-app/fly-app?orgId=115526
+  ;;
+
+console)
+  echo "📊 Opening Graphana dashboard..."
+  fly console
   ;;
 
 dashboard)
@@ -84,7 +98,7 @@ Commands:
   deps         - Update dependencies from go.mod
   opt          - Build optimized binary for production
   deploy       - Deploy to Fly.io
-  deploy local - Build, load, and run image in local Docker
+  deploy:local - Build, load, and run image in local Docker
   logs         - View Fly.io logs
   metrics      - Open metrics endpoint
   dashboard    - Open Fly.io dashboard
@@ -94,11 +108,12 @@ Examples:
   ./b build
   ./b test
   ./b run
-  ./b deploy local    # Deploy to local Docker
+  ./b deploy:local    # Deploy to local Docker
   ./b deploy          # Deploy to Fly.io
   ./b logs            # View Fly.io logs
-  ./b metrics         # Open metrics endpoint in browser
   ./b dashboard       # Open Fly.io dashboard
+  ./b Graphana        # Open Graphana
+  ./b console         # Open Grap
 
 For more details, see doc/BAZEL.md
 EOF
