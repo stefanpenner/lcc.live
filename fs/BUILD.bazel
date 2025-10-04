@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "fs",
+    srcs = ["fs.go"],
+    importpath = "github.com/stefanpenner/lcc-live/fs",
+    visibility = ["//visibility:public"],
+    deps = ["//style"],
+)
+
+go_test(
+    name = "fs_test",
+    srcs = ["fs_test.go"],
+    embed = [":fs"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

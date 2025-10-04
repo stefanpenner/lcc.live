@@ -110,7 +110,7 @@ func TestCanyonRoute_GET_LCC(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Body.String(), "Little Cottonwood Canyon")
 	assert.Equal(t, "\"test-lcc-etag\"", rec.Header().Get("ETAG"))
-	assert.Equal(t, "public, max-age=60", rec.Header().Get("Cache-Control"))
+	assert.Equal(t, "public, no-cache, must-revalidate", rec.Header().Get("Cache-Control"))
 }
 
 func TestCanyonRoute_HEAD_LCC(t *testing.T) {
@@ -124,7 +124,7 @@ func TestCanyonRoute_HEAD_LCC(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Empty(t, rec.Body.String())
 	assert.Equal(t, "\"test-lcc-etag\"", rec.Header().Get("ETAG"))
-	assert.Equal(t, "public, max-age=60", rec.Header().Get("Cache-Control"))
+	assert.Equal(t, "public, no-cache, must-revalidate", rec.Header().Get("Cache-Control"))
 }
 
 func TestCanyonRoute_GET_BCC(t *testing.T) {
@@ -476,8 +476,43 @@ func TestCanyonRoute_CacheHeaders(t *testing.T) {
 	srv.Handler.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, "public, max-age=60", rec.Header().Get("Cache-Control"))
+	assert.Equal(t, "public, no-cache, must-revalidate", rec.Header().Get("Cache-Control"))
 	assert.Equal(t, "\"test-lcc-etag\"", rec.Header().Get("ETAG"))
+}
+
+func TestCanyonRoute_ETag_NotModified(t *testing.T) {
+	srv, _ := setupTestServer(t)
+
+	// First request to get the ETag
+	req1 := httptest.NewRequest("GET", "/", nil)
+	rec1 := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(rec1, req1)
+
+	etag := rec1.Header().Get("ETAG")
+	assert.Equal(t, http.StatusOK, rec1.Code)
+	assert.NotEmpty(t, etag)
+
+	// Second request with matching ETag should return 304
+	req2 := httptest.NewRequest("GET", "/", nil)
+	req2.Header.Set("If-None-Match", etag)
+	rec2 := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(rec2, req2)
+
+	assert.Equal(t, http.StatusNotModified, rec2.Code)
+	assert.Empty(t, rec2.Body.String())
+}
+
+func TestCanyonRoute_ETag_Modified(t *testing.T) {
+	srv, _ := setupTestServer(t)
+
+	// Request with wrong ETag should return full content
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("If-None-Match", "\"wrong-etag\"")
+	rec := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Little Cottonwood Canyon")
 }
 
 func TestImageRoute_WrongETag(t *testing.T) {
@@ -535,7 +570,7 @@ func TestImageRoute_WrongETag(t *testing.T) {
 func TestMetricsEndpoint(t *testing.T) {
 	srv, _ := setupTestServer(t)
 
-	req := httptest.NewRequest("GET", "/metrics", nil)
+	req := httptest.NewRequest("GET", "/_/metrics", nil)
 	rec := httptest.NewRecorder()
 
 	srv.Handler.ServeHTTP(rec, req)

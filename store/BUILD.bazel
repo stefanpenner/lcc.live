@@ -1,0 +1,33 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "store",
+    srcs = [
+        "models.go",
+        "store.go",
+    ],
+    importpath = "github.com/stefanpenner/lcc-live/store",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//metrics",
+        "//style",
+        "@com_github_cespare_xxhash_v2//:xxhash",
+        "@com_github_mitchellh_hashstructure//:hashstructure",
+    ],
+)
+
+go_test(
+    name = "store_test",
+    srcs = [
+        "models_test.go",
+        "store_bench_test.go",
+        "store_fuzz_test.go",
+        "store_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":store"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

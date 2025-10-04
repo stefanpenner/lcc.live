@@ -1,0 +1,58 @@
+load("@gazelle//:def.bzl", "gazelle")
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+# gazelle:prefix github.com/stefanpenner/lcc-live
+# gazelle:exclude tmp
+# gazelle:exclude .git
+gazelle(name = "gazelle")
+
+gazelle(
+    name = "gazelle-update-repos",
+    args = [
+        "-from_file=go.mod",
+        "-to_macro=deps.bzl%go_repositories",
+        "-prune",
+    ],
+    command = "update-repos",
+)
+
+go_library(
+    name = "lcc-live_lib",
+    srcs = ["main.go"],
+    embedsrcs = [
+        "data.json",
+        "static/favicon.png",
+        "static/oops.png",
+        "static/script.js",
+        "static/style.css",
+        "templates/canyon.html.tmpl",
+    ],
+    importpath = "github.com/stefanpenner/lcc-live",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//fs",
+        "//server",
+        "//store",
+        "//style",
+    ],
+)
+
+go_binary(
+    name = "lcc-live",
+    embed = [":lcc-live_lib"],
+    visibility = ["//visibility:public"],
+    x_defs = {
+        "github.com/stefanpenner/lcc-live/server.Version": "{STABLE_GIT_COMMIT}",
+        "github.com/stefanpenner/lcc-live/server.BuildTime": "{BUILD_TIMESTAMP}",
+    },
+)
+
+go_test(
+    name = "lcc-live_test",
+    srcs = ["main_test.go"],
+    embed = [":lcc-live_lib"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

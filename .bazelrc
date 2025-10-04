@@ -1,0 +1,37 @@
+# Common build settings
+build --enable_platform_specific_config
+build --incompatible_strict_action_env
+
+# Performance
+build --experimental_reuse_sandbox_directories
+build --nolegacy_external_runfiles
+
+# Output
+build --show_progress_rate_limit=5
+build --color=yes
+build --curses=yes
+
+# Go specific settings
+build --@rules_go//go/config:pure
+
+# Workspace status for version stamping
+build --workspace_status_command=$(pwd)/workspace_status.sh
+
+# Test output
+test --test_output=errors
+test --test_summary=detailed
+
+# Fast builds for development
+build:fast --compilation_mode=fastbuild
+
+# Optimized builds for production
+build:opt --compilation_mode=opt
+build:opt --stamp
+
+# Debug builds
+build:debug --compilation_mode=dbg
+build:debug --strip=never
+
+# Try to import user-specific .bazelrc
+try-import %workspace%/.bazelrc.user
+

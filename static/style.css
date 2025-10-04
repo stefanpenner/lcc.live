@@ -430,7 +430,7 @@ the-overlay:hover .overlay-hint {
 
   camera-feed img,
   camera-feed iframe {
-    height: 220px;
+    height: 320px;
   }
 
   camera-feed:hover {
@@ -471,7 +471,7 @@ the-overlay:hover .overlay-hint {
 
   camera-feed img,
   camera-feed iframe {
-    height: 200px;
+    height: 280px;
   }
 
   camera-feed h4 {

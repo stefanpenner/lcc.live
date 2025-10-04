@@ -28,6 +28,15 @@ func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, c 
 func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error) {
 	e := echo.New()
 	e.HideBanner = true
+
+	// Add version header to all responses
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Response().Header().Set("X-Version", GetVersionString())
+			return next(c)
+		}
+	})
+
 	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
 		Level: 5,
 	}))
@@ -65,8 +74,9 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error)
 
 	e.GET("/healthcheck", HealthCheckRoute())
 
-	// Prometheus metrics endpoint
-	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
+	// Internal/admin endpoints under /_/
+	e.GET("/_/version", VersionRoute())
+	e.GET("/_/metrics", echo.WrapHandler(promhttp.Handler()))
 
 	return e, nil
 }

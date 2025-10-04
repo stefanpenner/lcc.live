@@ -25,7 +25,24 @@ While this project might seem largely experimental, it's a fun place to explore 
 - Despite being somewhat rough around the edges, it performs exceptionally well and consumes few resources.
 - The codebase may be messy, but it's surprisingly approachable, especially for someone new to Go.
 
-** TODO **
+**Building:**
+
+This project uses [Bazel 8.x](https://bazel.build/) with Bzlmod for building:
+
+```bash
+# Build the binary
+bazel build //:lcc-live
+
+# Run tests
+bazel test //...
+
+# Run the server
+bazel run //:lcc-live
+```
+
+See [BAZEL.md](doc/BAZEL.md) for detailed build instructions and configuration.
+
+**TODO:**
 
 - [ ] nothing really, it's fine
 - [ ] write some tests, so I feel confident makes quick changes
