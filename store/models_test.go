@@ -73,60 +73,6 @@ func TestCanyons_Load(t *testing.T) {
 			wantErr:  true,
 			errMsg:   "invalid JSON in file test.json",
 		},
-		{
-			name: "missing status cameras",
-			jsonData: `{
-				"lcc": {
-					"name": "Little Cottonwood Canyon",
-					"status": {
-						"id": "lcc-status",
-						"kind": "status",
-						"alt": "LCC Status",
-						"canyon": "lcc"
-					},
-					"cameras": []
-				},
-				"bcc": {
-					"name": "Big Cottonwood Canyon",
-					"status": {
-						"id": "bcc-status",
-						"kind": "status",
-						"alt": "BCC Status",
-						"canyon": "bcc"
-					},
-					"cameras": []
-				}
-			}`,
-			wantErr: true,
-			errMsg:  "JSON from test.json did not contain expected canyon data",
-		},
-		{
-			name: "one empty status camera is ok",
-			jsonData: `{
-				"lcc": {
-					"name": "Little Cottonwood Canyon",
-					"status": {
-						"id": "lcc-status",
-						"kind": "status",
-						"src": "https://example.com/lcc-status.jpg",
-						"alt": "LCC Status",
-						"canyon": "lcc"
-					},
-					"cameras": []
-				},
-				"bcc": {
-					"name": "Big Cottonwood Canyon",
-					"status": {
-						"id": "bcc-status",
-						"kind": "status",
-						"alt": "BCC Status",
-						"canyon": "bcc"
-					},
-					"cameras": []
-				}
-			}`,
-			wantErr: false,
-		},
 	}
 
 	for _, tt := range tests {

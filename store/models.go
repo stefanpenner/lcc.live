@@ -69,11 +69,6 @@ func (c *Canyons) Load(f fs.FS, filepath string) error {
 		return fmt.Errorf("failed to compute BCC ETag: %w", err)
 	}
 
-	// Validate required data was loaded
-	if c.LCC.Status.Src == "" && c.BCC.Status.Src == "" {
-		return fmt.Errorf("JSON from %s did not contain expected canyon data", filepath)
-	}
-
 	return nil
 }
 

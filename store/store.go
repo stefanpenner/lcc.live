@@ -277,8 +277,8 @@ func (s *Store) FetchImages(ctx context.Context) {
 				if ctx.Err() != nil {
 					return
 				}
-				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error making HEAD request for %s: %v",
-					style.URL.Render(src), err)))
+				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error making HEAD request for %s (camera: %s, origin: %s): %v",
+					style.URL.Render(src), cameraName, origin, err)))
 				atomic.AddInt32(&errorCount, 1)
 				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
 				metrics.OriginFetchTotal.WithLabelValues(origin, "error").Inc()
@@ -323,8 +323,8 @@ func (s *Store) FetchImages(ctx context.Context) {
 				if ctx.Err() != nil {
 					return
 				}
-				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error fetching image %s: %v",
-					style.URL.Render(src), err)))
+				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error fetching image %s (camera: %s, origin: %s): %v",
+					style.URL.Render(src), cameraName, origin, err)))
 				atomic.AddInt32(&errorCount, 1)
 				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
 				metrics.OriginFetchTotal.WithLabelValues(origin, "error").Inc()
@@ -335,8 +335,19 @@ func (s *Store) FetchImages(ctx context.Context) {
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusOK {
-				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Bad status code from %s: %d",
-					style.URL.Render(src), resp.StatusCode)))
+				// Read response body for diagnostic info (limit to 500 bytes)
+				bodySnippet := ""
+				if body, err := io.ReadAll(io.LimitReader(resp.Body, 500)); err == nil && len(body) > 0 {
+					bodySnippet = fmt.Sprintf(", body: %s", string(body))
+				}
+
+				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Bad status code from %s: %d %s (Content-Type: %s, Server: %s%s)",
+					style.URL.Render(src),
+					resp.StatusCode,
+					http.StatusText(resp.StatusCode),
+					resp.Header.Get("Content-Type"),
+					resp.Header.Get("Server"),
+					bodySnippet)))
 				atomic.AddInt32(&errorCount, 1)
 				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
 				metrics.OriginFetchTotal.WithLabelValues(origin, "error").Inc()
@@ -350,8 +361,8 @@ func (s *Store) FetchImages(ctx context.Context) {
 
 			imageBytes, err := io.ReadAll(resp.Body)
 			if err != nil {
-				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error reading image body from %s: %v",
-					style.URL.Render(src), err)))
+				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error reading image body from %s (camera: %s, origin: %s, content-length: %d): %v",
+					style.URL.Render(src), cameraName, origin, resp.ContentLength, err)))
 				atomic.AddInt32(&errorCount, 1)
 				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
 				metrics.OriginFetchTotal.WithLabelValues(origin, "error").Inc()

@@ -1,11 +1,6 @@
 {
     "lcc": {
       "name": "LCC",
-      "status": {
-        "kind": "status",
-        "src": "https://udottraffic.utah.gov/AnimatedGifs/100032.gif",
-        "alt": ""
-      },
       "cameras": [
         {
           "kind": "img",
@@ -116,11 +111,6 @@
     },
     "bcc": {
       "name": "BCC",
-      "status": {
-        "kind": "status",
-        "src": "https://udottraffic.utah.gov/AnimatedGifs/100033.gif",
-        "alt": ""
-      },
       "cameras": [
         {
           "kind": "img",
