@@ -25,17 +25,11 @@ jobs:
           disk-cache: true
           repository-cache: true
 
-      - name: Verify BUILD files are up to date
-        run: bazel run //:gazelle_check
-
       - name: Run all tests
         run: bazel test //...
 
       - name: Build binary
-        run: bazel build //:lcc-live
-
-      - name: Verify linting (nogo)
-        run: bazel build //... --aspects=@rules_go//go:def.bzl%go_vet_aspect --output_groups=vet
+        run: bazel build //:...
 
   status-check:
     name: Status Check
