@@ -14,7 +14,7 @@ build --curses=yes
 # Go specific settings
 build --@rules_go//go/config:pure
 
-# Workspace status for version stamping
+# Workspace status for vegvrsion stamping
 build --workspace_status_command=$(pwd)/workspace_status.sh
 
 # Test output
@@ -28,6 +28,9 @@ build:fast --compilation_mode=fastbuild
 build:opt --compilation_mode=opt
 build:opt --stamp
 build:opt --platforms=@rules_go//go/toolchain:linux_amd64
+build:opt --strip=always
+build:opt --@rules_go//go/config:gc_linkopts=-s,-w
+build:opt --linkopt=-buildmode=pie
 
 # Debug builds
 build:debug --compilation_mode=dbg

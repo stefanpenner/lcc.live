@@ -52,6 +52,23 @@ deploy)
   bazel run --config=opt //:deploy -- "$TARGET"
   ;;
 
+logs)
+  echo "📋 Viewing Fly.io logs..."
+  fly logs
+  ;;
+
+metrics)
+  echo "📊 Opening metrics endpoint..."
+  open "https://lcc.live/_/metrics" 2>/dev/null || \
+  xdg-open "https://lcc.live/_/metrics" 2>/dev/null || \
+  echo "Visit: https://lcc.live/_/metrics"
+  ;;
+
+dashboard)
+  echo "📊 Opening Fly.io dashboard..."
+  fly dashboard
+  ;;
+
 help | *)
   cat <<EOF
 Bazel helper script for lcc.live
@@ -68,6 +85,9 @@ Commands:
   opt          - Build optimized binary for production
   deploy       - Deploy to Fly.io
   deploy local - Build, load, and run image in local Docker
+  logs         - View Fly.io logs
+  metrics      - Open metrics endpoint
+  dashboard    - Open Fly.io dashboard
   help         - Show this help message
 
 Examples:
@@ -76,6 +96,9 @@ Examples:
   ./b run
   ./b deploy local    # Deploy to local Docker
   ./b deploy          # Deploy to Fly.io
+  ./b logs            # View Fly.io logs
+  ./b metrics         # Open metrics endpoint in browser
+  ./b dashboard       # Open Fly.io dashboard
 
 For more details, see doc/BAZEL.md
 EOF

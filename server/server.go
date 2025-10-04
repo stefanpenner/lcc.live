@@ -37,6 +37,9 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error)
 		}
 	})
 
+	// Add metrics middleware early to track all requests
+	e.Use(MetricsMiddleware())
+
 	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
 		Level: 5,
 	}))

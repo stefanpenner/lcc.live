@@ -101,4 +101,32 @@ var (
 			Help: "Number of HTTP requests currently being processed",
 		},
 	)
+
+	// CacheHits tracks HTTP cache hits by path
+	CacheHits = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "lcc_http_cache_hits_total",
+			Help: "Total number of HTTP cache hits (304 Not Modified responses)",
+		},
+		[]string{"path"},
+	)
+
+	// ResponseSizeBytes measures HTTP response sizes
+	ResponseSizeBytes = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "lcc_http_response_size_bytes",
+			Help:    "HTTP response size in bytes",
+			Buckets: prometheus.ExponentialBuckets(100, 10, 7), // 100B to 10MB
+		},
+		[]string{"path"},
+	)
+
+	// ErrorsByType tracks application errors by type
+	ErrorsByType = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "lcc_errors_total",
+			Help: "Total number of application errors by type",
+		},
+		[]string{"error_type"},
+	)
 )
