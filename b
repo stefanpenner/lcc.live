@@ -89,6 +89,23 @@ deploy:local)
   bazel run --config=opt //:deploy -- local
   ;;
 
+deploy:clean)
+  echo "🧹 Cleaning up before deployment..."
+  ./scripts/cleanup.sh
+  echo "🚀 Deploying... locally"
+  bazel run --config=opt //:deploy -- local
+  ;;
+
+cleanup)
+  echo "🧹 Cleaning up Docker containers and images..."
+  ./scripts/cleanup.sh
+  ;;
+
+cleanup:aggressive)
+  echo "🧹 Aggressive cleanup of Docker resources..."
+  ./scripts/cleanup.sh --aggressive
+  ;;
+
 logs)
   echo "📋 Viewing Fly.io logs..."
   fly logs
@@ -134,6 +151,9 @@ Commands:
   opt          - Build optimized binary for production
   deploy       - Deploy to Fly.io
   deploy:local - Build, load, and run image in local Docker
+  deploy:clean - Clean up Docker resources before deploying locally
+  cleanup      - Clean up Docker containers and images
+  cleanup:aggressive - Aggressive cleanup of Docker resources
   logs         - View Fly.io logs
   metrics      - Open metrics endpoint
   dashboard    - Open Fly.io dashboard
@@ -146,6 +166,8 @@ Examples:
   ./b dev             # Development server with live reload
   ./b dev:stop        # Stop development server
   ./b deploy:local    # Deploy to local Docker
+  ./b deploy:clean    # Clean up and deploy to local Docker
+  ./b cleanup         # Clean up Docker resources
   ./b deploy          # Deploy to Fly.io
   ./b logs            # View Fly.io logs
   ./b dashboard       # Open Fly.io dashboard
