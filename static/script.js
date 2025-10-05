@@ -267,11 +267,7 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-const maxWidth = window.matchMedia("(max-width: 724px)");
-
-maxWidth.addEventListener("change",
-  (e) => e.matches && document.querySelector("the-overlay").hide()
-);
+// Removed problematic mobile overlay hiding - fullscreen should work on all screen sizes
 
 function findCamera(target) {
   return target.closest("camera-feed");
@@ -284,7 +280,7 @@ document.body.addEventListener("click", (e) => {
   }
   
   let camera;
-  if (maxWidth.matches === false && (camera = findCamera(e.target))) {
+  if (camera = findCamera(e.target)) {
     e.preventDefault(); // Prevent navigation to camera detail page
     document.querySelector("the-overlay").cameraWasClicked(camera);
   }
