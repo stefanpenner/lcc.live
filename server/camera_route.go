@@ -18,7 +18,11 @@ type CameraPageData struct {
 
 func CameraRoute(store *store.Store) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		id := c.Param("id")
+		// Get the wildcard parameter (everything after /camera/)
+		path := c.Param("*")
+		// Remove .json suffix if present
+		id := strings.TrimSuffix(path, ".json")
+
 		entry, exists := store.Get(id)
 
 		if !exists {

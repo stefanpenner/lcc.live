@@ -32,6 +32,7 @@ go_library(
         "static/script.js",
         "static/style.css",
         "templates/canyon.html.tmpl",
+        "templates/camera.html.tmpl",
     ],
     importpath = "github.com/stefanpenner/lcc-live",
     visibility = ["//visibility:private"],
@@ -53,6 +54,19 @@ go_binary(
     },
 )
 
+# Linux binary for container builds
+go_binary(
+    name = "lcc-live-linux",
+    embed = [":lcc-live_lib"],
+    goarch = "amd64",
+    goos = "linux",
+    visibility = ["//visibility:public"],
+    x_defs = {
+        "github.com/stefanpenner/lcc-live/server.Version": "{STABLE_GIT_COMMIT}",
+        "github.com/stefanpenner/lcc-live/server.BuildTime": "{BUILD_TIMESTAMP}",
+    },
+)
+
 go_test(
     name = "lcc-live_test",
     srcs = ["main_test.go"],
@@ -63,19 +77,22 @@ go_test(
     ],
 )
 
-# Package the binary into a tar layer
-pkg_tar(
-    name = "lcc-live_layer",
-    srcs = [":lcc-live"],
-    package_dir = "/usr/local/bin",
+# Copy and rename the Linux binary for packaging
+genrule(
+    name = "lcc-live_renamed",
+    srcs = [":lcc-live-linux"],
+    outs = ["bin/lcc-live"],
+    cmd = "cp $< $@",
     tags = ["manual"],
 )
 
-# No longer need separate purge-cache.sh script - it's built into the binary
-# Keep this target for backwards compatibility but make it empty
+# Package the binary into a tar layer
 pkg_tar(
-    name = "scripts_layer",
-    srcs = [],
+    name = "lcc-live_layer",
+    srcs = [":lcc-live_renamed"],
+    mode = "0755",
+    package_dir = "/usr/local/bin",
+    strip_prefix = "bin",
     tags = ["manual"],
 )
 
@@ -91,7 +108,6 @@ oci_image(
     tags = ["manual"],
     tars = [
         ":lcc-live_layer",
-        ":scripts_layer",
     ],
     # Security: Run as unprivileged user
     user = "nobody",
@@ -136,5 +152,7 @@ sh_test(
     tags = [
         "integration",  # Integration test
         "local",  # Requires local Docker daemon
+        "no-remote",
+        "no-remote-exec",  # Explicitly prevent RBE execution
     ],
 )

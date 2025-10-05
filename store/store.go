@@ -141,6 +141,7 @@ func NewStore(canyons *Canyons) *Store {
 			Camera:      camera,
 			Image:       &Image{},
 			HTTPHeaders: &HTTPHeaders{},
+			ID:          camera.ID,
 			mu:          sync.RWMutex{},
 		}
 		index[camera.ID] = entry

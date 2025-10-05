@@ -84,10 +84,8 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error)
 	e.GET("/image/:id", ImageRoute(store))
 	e.HEAD("/image/:id", ImageRoute(store))
 
-	e.GET("/camera/:id", CameraRoute(store))
-	e.HEAD("/camera/:id", CameraRoute(store))
-	e.GET("/camera/:id.json", CameraRoute(store))
-	e.HEAD("/camera/:id.json", CameraRoute(store))
+	e.GET("/camera/*", CameraRoute(store))
+	e.HEAD("/camera/*", CameraRoute(store))
 
 	e.GET("/healthcheck", HealthCheckRoute())
 

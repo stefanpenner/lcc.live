@@ -36,6 +36,8 @@ build:opt --linkopt=-buildmode=pie
 build:debug --compilation_mode=dbg
 build:debug --strip=never
 
+# Container builds (always use Linux platform for Docker images)
+build:container --platforms=@rules_go//go/toolchain:linux_amd64
+
 # Try to import user-specific .bazelrc
 try-import %workspace%/.bazelrc.user
-

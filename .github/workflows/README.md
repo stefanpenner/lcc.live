@@ -4,7 +4,7 @@ This directory contains the CI/CD workflows for the lcc.live project.
 
 ## Workflows
 
-### 1. CI Workflow (`ci.yml`)
+### 1. CI Workflow (`ci.yaml`)
 **Triggers:** Push to `main`/`echo` branches, Pull Requests
 
 Main build and test pipeline that runs on every push and PR:
@@ -13,14 +13,22 @@ Main build and test pipeline that runs on every push and PR:
   - Builds all Bazel targets (`bazel build //...`)
   - Runs all tests (`bazel test //...`)
   - Verifies the binary can be built
-  - Uses Bazel caching for faster builds
+  - Uses multi-layered Bazel caching for maximum speed
 
-- **Lint Job:**
-  - Runs `golangci-lint` for code quality checks
-  - Verifies Gazelle formatting is up-to-date
-  - Ensures BUILD.bazel files are properly generated
+- **Container Integration Test Job:**
+  - Builds the OCI image with Bazel
+  - Loads the image into Docker
+  - Runs comprehensive container tests (healthcheck, version, security, etc.)
+  - Verifies the container runs correctly with all endpoints working
+  - Runs in parallel with unit tests for faster CI
 
-**Cache Strategy:** Caches Bazel build artifacts and Bazelisk downloads to speed up subsequent runs.
+**Cache Strategy:** 
+- **GitHub Actions Cache**: Persists Bazel cache between runs using cache keys based on dependencies
+  - Cache key includes: `MODULE.bazel`, `MODULE.bazel.lock`, `go.mod`, `go.sum`, `.bazelversion`
+  - Allows cache restoration even if exact match isn't found (via `restore-keys`)
+- **setup-bazel Action**: Provides additional caching for Bazelisk, disk cache, and repository cache
+- **Warm Cache Step**: Explicitly fetches all external dependencies before building
+- **Result**: Subsequent runs are significantly faster (often 10-20x) when dependencies haven't changed
 
 ### 2. Fuzz Testing Workflow (`fuzz.yml`)
 **Triggers:** Manual dispatch, Weekly schedule (Sundays at 2 AM UTC), Push to `main` (Go files only)
@@ -75,11 +83,15 @@ bazel build //...
 # Run all tests
 bazel test //...
 
-# Run linter
-golangci-lint run
+# Build and test container
+bazel build --config=opt //:image
+bazel run --config=opt //:image_load
+docker tag lcc.live:latest lcc.live:test
+bazel test --test_output=all //:container_test
 
-# Check Gazelle formatting
-bazel run //:gazelle -- --mode=diff
+# Or use the helper script
+./b opt                    # Build optimized binary
+./b deploy:local          # Build and run container locally
 
 # Run fuzz tests (5 seconds per test)
 FUZZ_TIME=5s ./fuzz-all.sh

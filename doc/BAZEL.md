@@ -142,10 +142,32 @@ The project requires Bazel 8.x. If you have a different version installed global
 
 ## Performance Tips
 
-1. **Use remote cache** - Set up a remote cache for faster builds across machines
+1. **Local cache warming** - Use `./b warm-cache` to pre-populate your local cache
 2. **Parallel builds** - Bazel automatically parallelizes builds
 3. **Incremental builds** - Only rebuilds what changed
 4. **Sandbox cleanup** - The `.bazelrc` enables sandbox directory reuse for faster builds
+5. **Remote cache** - For teams or CI/CD, consider setting up a remote cache (see below)
+
+### Remote Caching (Advanced)
+
+For even better performance across team members and CI/CD, you can set up a remote cache. This allows all developers and CI runs to share build artifacts.
+
+**Options:**
+1. **GitHub Actions Cache** (already configured) - Automatic caching between CI runs
+2. **Bazel Remote Cache** - Self-hosted or cloud-based (Google Cloud Storage, AWS S3, etc.)
+3. **BuildBuddy** - Free for open source, provides remote cache and build insights
+
+**To enable remote caching**, create a `.bazelrc.user` file (gitignored):
+```bash
+# Example: Using BuildBuddy (free for open source)
+build --remote_cache=grpcs://remote.buildbuddy.io
+build --remote_timeout=3600
+
+# Or using Google Cloud Storage
+# build --remote_cache=https://storage.googleapis.com/your-bucket-name
+```
+
+The `.bazelrc` already includes `try-import %workspace%/.bazelrc.user` for personal overrides.
 
 ## Additional Resources
 

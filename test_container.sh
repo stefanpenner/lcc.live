@@ -22,7 +22,7 @@ log_warn() {
 }
 
 # Configuration
-IMAGE_NAME="lcc.live:test"
+IMAGE_NAME="lcc.live:latest"
 CONTAINER_NAME="lcc-live-test-$$"
 # Use a random port to avoid conflicts (especially in parallel test runs)
 PORT=$((3001 + RANDOM % 1000))
@@ -47,10 +47,33 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Check if the image exists
+# Check if the image exists, and load it if not
 if ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
-    log_error "Image $IMAGE_NAME not found. Build it first with: bazel run //:image_load"
-    exit 1
+    log_info "Image $IMAGE_NAME not found, loading it..."
+    
+    # The image_load target is in the runfiles
+    # Find the loader script in the runfiles
+    if [ -n "${RUNFILES_DIR:-}" ]; then
+        LOADER="$RUNFILES_DIR/_main/image_load.sh"
+    elif [ -n "${RUNFILES_MANIFEST_FILE:-}" ]; then
+        # Parse manifest file to find the loader
+        LOADER=$(grep "_main/image_load.sh$" "$RUNFILES_MANIFEST_FILE" | cut -d' ' -f2)
+    else
+        # Fall back to relative path
+        LOADER="$(dirname "$0")/image_load.sh"
+    fi
+    
+    if [ -f "$LOADER" ] && [ -x "$LOADER" ]; then
+        log_info "Running image loader: $LOADER"
+        if ! "$LOADER"; then
+            log_error "Failed to load image"
+            exit 1
+        fi
+    else
+        log_error "Image $IMAGE_NAME not found and loader script not available at: $LOADER"
+        log_error "Build it first with: bazel run //:image_load"
+        exit 1
+    fi
 fi
 
 log_info "Image $IMAGE_NAME found"
