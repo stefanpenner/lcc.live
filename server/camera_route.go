@@ -56,13 +56,35 @@ func CameraRoute(store *store.Store) func(c echo.Context) error {
 			ImageURL:   "/image/" + id,
 		}
 
+		// Determine response format and set appropriate headers BEFORE caching headers
+		isJSON := strings.HasSuffix(c.Request().URL.Path, ".json")
+
+		// Set Content-Type early so Cloudflare knows what we're caching
+		if isJSON {
+			c.Response().Header().Set("Content-Type", "application/json; charset=UTF-8")
+		} else {
+			c.Response().Header().Set("Content-Type", "text/html; charset=UTF-8")
+		}
+
+		// Use different ETags for JSON vs HTML to prevent cache confusion
+		// This ensures Cloudflare caches them separately
+		etag := entry.Image.ETag
+		if isJSON {
+			etag = entry.Image.ETag + "-json"
+		} else {
+			etag = entry.Image.ETag + "-html"
+		}
+
 		// Set cache headers similar to canyon pages
 		c.Response().Header().Set("Cache-Control", "public, no-cache, must-revalidate")
-		c.Response().Header().Set("ETAG", entry.Image.ETag)
+		c.Response().Header().Set("ETag", etag)
+
+		// Add Vary header to ensure Cloudflare caches by Content-Type
+		c.Response().Header().Set("Vary", "Accept")
 
 		// Check if client has matching ETag
 		if ifNoneMatch := c.Request().Header.Get("If-None-Match"); ifNoneMatch != "" {
-			if ifNoneMatch == entry.Image.ETag {
+			if ifNoneMatch == etag {
 				return c.NoContent(http.StatusNotModified)
 			}
 		}
@@ -71,8 +93,8 @@ func CameraRoute(store *store.Store) func(c echo.Context) error {
 			return c.NoContent(http.StatusOK)
 		}
 
-		// Check if request path ends with .json to determine response format
-		if strings.HasSuffix(c.Request().URL.Path, ".json") {
+		// Return appropriate response format
+		if isJSON {
 			return c.JSON(http.StatusOK, data)
 		}
 

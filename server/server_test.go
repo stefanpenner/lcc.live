@@ -112,7 +112,7 @@ func TestCanyonRoute_GET_LCC(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Body.String(), "Little Cottonwood Canyon")
-	assert.Equal(t, "\"test-lcc-etag\"", rec.Header().Get("ETAG"))
+	assert.Equal(t, "\"test-lcc-etag\"-html", rec.Header().Get("ETag"))
 	assert.Equal(t, "public, no-cache, must-revalidate", rec.Header().Get("Cache-Control"))
 }
 
@@ -126,7 +126,7 @@ func TestCanyonRoute_HEAD_LCC(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Empty(t, rec.Body.String())
-	assert.Equal(t, "\"test-lcc-etag\"", rec.Header().Get("ETAG"))
+	assert.Equal(t, "\"test-lcc-etag\"-html", rec.Header().Get("ETag"))
 	assert.Equal(t, "public, no-cache, must-revalidate", rec.Header().Get("Cache-Control"))
 }
 
@@ -140,7 +140,7 @@ func TestCanyonRoute_GET_BCC(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Body.String(), "Big Cottonwood Canyon")
-	assert.Equal(t, "\"test-bcc-etag\"", rec.Header().Get("ETAG"))
+	assert.Equal(t, "\"test-bcc-etag\"-html", rec.Header().Get("ETag"))
 }
 
 func TestCanyonRoute_HEAD_BCC(t *testing.T) {
@@ -153,7 +153,7 @@ func TestCanyonRoute_HEAD_BCC(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Empty(t, rec.Body.String())
-	assert.Equal(t, "\"test-bcc-etag\"", rec.Header().Get("ETAG"))
+	assert.Equal(t, "\"test-bcc-etag\"-html", rec.Header().Get("ETag"))
 }
 
 func TestImageRoute_NotFound(t *testing.T) {
@@ -480,7 +480,7 @@ func TestCanyonRoute_CacheHeaders(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(t, "public, no-cache, must-revalidate", rec.Header().Get("Cache-Control"))
-	assert.Equal(t, "\"test-lcc-etag\"", rec.Header().Get("ETAG"))
+	assert.Equal(t, "\"test-lcc-etag\"-html", rec.Header().Get("ETag"))
 }
 
 func TestCanyonRoute_ETag_NotModified(t *testing.T) {
@@ -629,7 +629,7 @@ func TestCanyonRoute_GET_JSON_LCC(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Header().Get("Content-Type"), "application/json")
-	assert.Equal(t, "\"test-lcc-etag\"", rec.Header().Get("ETAG"))
+	assert.Equal(t, "\"test-lcc-etag\"-json", rec.Header().Get("ETag"))
 	assert.Equal(t, "public, no-cache, must-revalidate", rec.Header().Get("Cache-Control"))
 
 	// Verify JSON structure
@@ -648,7 +648,7 @@ func TestCanyonRoute_GET_JSON_BCC(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Header().Get("Content-Type"), "application/json")
-	assert.Equal(t, "\"test-bcc-etag\"", rec.Header().Get("ETAG"))
+	assert.Equal(t, "\"test-bcc-etag\"-json", rec.Header().Get("ETag"))
 
 	body := rec.Body.String()
 	assert.Contains(t, body, `"name":"Big Cottonwood Canyon"`)
@@ -660,7 +660,7 @@ func TestCanyonRoute_JSON_ETag_NotModified(t *testing.T) {
 
 	// Request with matching ETag should return 304 even for JSON requests
 	req := httptest.NewRequest("GET", "/.json", nil)
-	req.Header.Set("If-None-Match", "\"test-lcc-etag\"")
+	req.Header.Set("If-None-Match", "\"test-lcc-etag\"-json")
 	rec := httptest.NewRecorder()
 
 	srv.Handler.ServeHTTP(rec, req)
