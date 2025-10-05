@@ -77,19 +77,29 @@ go_test(
     ],
 )
 
+# Copy and rename the Linux binary for packaging
+genrule(
+    name = "lcc-live_renamed",
+    srcs = [":lcc-live-linux"],
+    outs = ["bin/lcc-live"],
+    cmd = "cp $< $@",
+    tags = ["manual"],
+)
+
 # Package the binary into a tar layer
 pkg_tar(
     name = "lcc-live_layer",
-    srcs = [":lcc-live-linux"],
+    srcs = [":lcc-live_renamed"],
     mode = "0755",
     package_dir = "/usr/local/bin",
+    strip_prefix = "bin",
     tags = ["manual"],
 )
 
 # Build OCI image
 oci_image(
     name = "image",
-    base = "@alpine",
+    base = "@alpine_linux_amd64",
     entrypoint = ["/usr/local/bin/lcc-live"],
     env = {
         "PORT": "3000",

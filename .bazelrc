@@ -5,6 +5,8 @@ build --incompatible_strict_action_env
 # Performance
 build --experimental_reuse_sandbox_directories
 build --nolegacy_external_runfiles
+# Shared disk cache for action results across builds
+build --disk_cache=~/.cache/bazel-disk-cache
 
 # Output
 build --show_progress_rate_limit=5
@@ -14,30 +16,34 @@ build --curses=yes
 # Go specific settings
 build --@rules_go//go/config:pure
 
-# Workspace status for vegvrsion stamping
+# Workspace status for version stamping
 build --workspace_status_command=$(pwd)/workspace_status.sh
+
+# Always use optimized builds (no cache invalidation, consistent behavior)
+# Note: We use explicit goos/goarch in go_binary rules for cross-compilation
+# instead of --platforms to maintain cache across all targets
+build --compilation_mode=opt
+build --stamp
+build --strip=always
+build --@rules_go//go/config:gc_linkopts=-s,-w
+build --linkopt=-buildmode=pie
 
 # Test output
 test --test_output=errors
 test --test_summary=detailed
 
-# Fast builds for development
-build:fast --compilation_mode=fastbuild
-
-# Optimized builds for production
+# Opt config (no-op since opt is already default, kept for backward compatibility)
 build:opt --compilation_mode=opt
-build:opt --stamp
-build:opt --platforms=@rules_go//go/toolchain:linux_amd64
-build:opt --strip=always
-build:opt --@rules_go//go/config:gc_linkopts=-s,-w
-build:opt --linkopt=-buildmode=pie
+
+# Optional: Fast builds for local development (disables optimizations)
+build:fast --compilation_mode=fastbuild
+build:fast --nostamp
+build:fast --strip=never
+build:fast --@rules_go//go/config:gc_linkopts=
 
 # Debug builds
 build:debug --compilation_mode=dbg
 build:debug --strip=never
-
-# Container builds (always use Linux platform for Docker images)
-build:container --platforms=@rules_go//go/toolchain:linux_amd64
 
 # Try to import user-specific .bazelrc
 try-import %workspace%/.bazelrc.user
