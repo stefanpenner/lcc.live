@@ -27,6 +27,131 @@
   animation-name: fade-in;
 }
 
+/* ========================================
+   Design System - Enhanced Tokens
+   ======================================== */
+:root {
+  /* Color System - Light Mode */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8fafc;
+  --color-bg-tertiary: #f1f5f9;
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #475569;
+  --color-text-tertiary: #64748b;
+  --color-border-light: #f1f5f9;
+  --color-border-default: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-accent-primary: #0f172a;
+  --color-accent-hover: #1e293b;
+  --color-accent-focus: #3b82f6;
+  --color-overlay: rgba(0, 0, 0, 0.95);
+
+  /* Spacing Scale */
+  --space-xs: 0.25rem;    /* 4px */
+  --space-sm: 0.5rem;     /* 8px */
+  --space-md: 0.75rem;    /* 12px */
+  --space-lg: 1rem;        /* 16px */
+  --space-xl: 1.25rem;     /* 20px */
+  --space-2xl: 1.5rem;     /* 24px */
+  --space-3xl: 2rem;       /* 32px */
+
+  /* Typography Scale */
+  --text-xs: 0.5rem;      /* 8px */
+  --text-sm: 0.75rem;      /* 12px */
+  --text-base: 0.875rem;   /* 14px */
+  --text-lg: 1rem;         /* 16px */
+  --text-xl: 1.125rem;     /* 18px */
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 50%;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.6);
+
+  /* Transitions */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.3s ease;
+
+  /* Z-Index Scale */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal: 1000;
+  --z-popover: 1100;
+  --z-tooltip: 1200;
+
+  /* Legacy aliases for backward compatibility */
+  --bg-primary: var(--color-bg-primary);
+  --bg-secondary: var(--color-bg-secondary);
+  --bg-tertiary: var(--color-bg-tertiary);
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-tertiary: var(--color-text-tertiary);
+  --border-light: var(--color-border-light);
+  --border-default: var(--color-border-default);
+  --border-strong: var(--color-border-strong);
+  --accent-primary: var(--color-accent-primary);
+  --accent-hover: var(--color-accent-hover);
+  --accent-focus: var(--color-accent-focus);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --overlay-bg: var(--color-overlay);
+}
+
+/* Dark Mode Colors */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg-primary: #0a0a0a;
+    --color-bg-secondary: #000000;
+    --color-bg-tertiary: #1a1a1a;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #b4b4b4;
+    --color-text-tertiary: #737373;
+    --color-border-light: #1a1a1a;
+    --color-border-default: #2a2a2a;
+    --color-border-strong: #3a3a3a;
+    --color-accent-primary: #ffffff;
+    --color-accent-hover: #f5f5f5;
+    --color-accent-focus: #4a9eff;
+    --color-overlay: rgba(0, 0, 0, 0.97);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.7);
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.9);
+    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.6);
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-bg-primary: #0a0a0a;
+  --color-bg-secondary: #000000;
+  --color-bg-tertiary: #1a1a1a;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #b4b4b4;
+  --color-text-tertiary: #737373;
+  --color-border-light: #1a1a1a;
+  --color-border-default: #2a2a2a;
+  --color-border-strong: #3a3a3a;
+  --color-accent-primary: #ffffff;
+  --color-accent-hover: #f5f5f5;
+  --color-accent-focus: #4a9eff;
+  --color-overlay: rgba(0, 0, 0, 0.97);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.9);
+  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* ========================================
+   Animation System
+   ======================================== */
 @keyframes fade-out {
   to { opacity: 0; }
 }
@@ -35,69 +160,19 @@
   from { opacity: 0; }
 }
 
-/* ========================================
-   CSS Custom Properties (Design Tokens)
-   ======================================== */
-:root {
-  /* Light mode colors */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --bg-tertiary: #f1f5f9;
-  --text-primary: #1e293b;
-  --text-secondary: #475569;
-  --text-tertiary: #64748b;
-  --border-light: #f1f5f9;
-  --border-default: #e2e8f0;
-  --border-strong: #cbd5e1;
-  --accent-primary: #0f172a;
-  --accent-hover: #1e293b;
-  --accent-focus: #3b82f6;
-  --shadow-sm: rgba(0, 0, 0, 0.05);
-  --shadow-md: rgba(0, 0, 0, 0.08);
-  --shadow-lg: rgba(0, 0, 0, 0.12);
-  --overlay-bg: rgba(0, 0, 0, 0.95);
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
-/* Dark mode colors - Deep Black theme */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg-primary: #0a0a0a;
-    --bg-secondary: #000000;
-    --bg-tertiary: #1a1a1a;
-    --text-primary: #ffffff;
-    --text-secondary: #b4b4b4;
-    --text-tertiary: #737373;
-    --border-light: #1a1a1a;
-    --border-default: #2a2a2a;
-    --border-strong: #3a3a3a;
-    --accent-primary: #ffffff;
-    --accent-hover: #f5f5f5;
-    --accent-focus: #4a9eff;
-    --shadow-sm: rgba(0, 0, 0, 0.5);
-    --shadow-md: rgba(0, 0, 0, 0.7);
-    --shadow-lg: rgba(0, 0, 0, 0.9);
-    --overlay-bg: rgba(0, 0, 0, 0.97);
-  }
+@keyframes loading {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
-/* Manual dark mode override - Deep Black theme */
-:root[data-theme="dark"] {
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #000000;
-  --bg-tertiary: #1a1a1a;
-  --text-primary: #ffffff;
-  --text-secondary: #b4b4b4;
-  --text-tertiary: #737373;
-  --border-light: #1a1a1a;
-  --border-default: #2a2a2a;
-  --border-strong: #3a3a3a;
-  --accent-primary: #ffffff;
-  --accent-hover: #f5f5f5;
-  --accent-focus: #4a9eff;
-  --shadow-sm: rgba(0, 0, 0, 0.5);
-  --shadow-md: rgba(0, 0, 0, 0.7);
-  --shadow-lg: rgba(0, 0, 0, 0.9);
-  --overlay-bg: rgba(0, 0, 0, 0.97);
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* ========================================
@@ -111,13 +186,61 @@ html {
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 16px;
+  font-size: var(--text-lg);
   line-height: 1.5;
-  color: var(--text-primary);
-  background: var(--bg-secondary);
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
   min-height: 100vh;
-  padding: 0.75rem;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  padding: var(--space-md);
+  transition: background-color var(--transition-slow), color var(--transition-slow);
+}
+
+/* ========================================
+   Utility Classes
+   ======================================== */
+.focus-visible {
+  outline: 2px solid var(--color-accent-focus);
+  outline-offset: 2px;
+}
+
+.transition-base {
+  transition: all var(--transition-base);
+}
+
+.transition-fast {
+  transition: all var(--transition-fast);
+}
+
+.card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-base);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-border-strong);
+}
+
+.button-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.button-base:focus-visible {
+  outline: 2px solid var(--color-accent-focus);
+  outline-offset: 2px;
 }
 
 /* ========================================
@@ -125,7 +248,7 @@ body {
    ======================================== */
 header {
   max-width: 1600px;
-  margin: 0 auto 1.25rem;
+  margin: 0 auto var(--space-xl);
 }
 
 .canyon-nav {
@@ -133,8 +256,8 @@ header {
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  gap: 0.75rem;
-  margin: 0 auto 1rem;
+  gap: var(--space-md);
+  margin: 0 auto var(--space-lg);
   max-width: fit-content;
 }
 
@@ -142,11 +265,11 @@ header {
   display: flex;
   justify-content: center;
   gap: 0;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-default);
-  border-radius: 6px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
   padding: 3px;
-  box-shadow: 0 1px 3px var(--shadow-sm);
+  box-shadow: var(--shadow-sm);
   width: fit-content;
 }
 
@@ -155,32 +278,32 @@ header {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 1.75rem;
-  font-size: 0.875rem;
+  padding: var(--space-sm) 1.75rem;
+  font-size: var(--text-base);
   font-weight: 600;
   letter-spacing: 0.01em;
   text-decoration: none;
-  color: var(--text-tertiary);
-  border-radius: 4px;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
   outline: none;
   min-width: 75px;
 }
 
 .canyon-toggle a:hover:not(.active) {
-  color: var(--text-secondary);
-  background: var(--bg-tertiary);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-tertiary);
 }
 
 .canyon-toggle a:focus-visible {
-  outline: 2px solid var(--accent-focus);
+  outline: 2px solid var(--color-accent-focus);
   outline-offset: 2px;
 }
 
 .canyon-toggle a.active {
-  color: var(--bg-secondary);
-  background: var(--accent-primary);
-  box-shadow: 0 1px 3px var(--shadow-md);
+  color: var(--color-bg-secondary);
+  background: var(--color-accent-primary);
+  box-shadow: var(--shadow-md);
 }
 
 /* ========================================
@@ -190,35 +313,35 @@ header {
   position: relative;
   width: 2.5rem;
   height: 2.5rem;
-  border-radius: 50%;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-default);
-  box-shadow: 0 2px 8px var(--shadow-md);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  box-shadow: var(--shadow-md);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
   outline: none;
   flex-shrink: 0;
 }
 
 .theme-toggle:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 12px var(--shadow-lg);
-  border-color: var(--border-strong);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-border-strong);
 }
 
 .theme-toggle:focus-visible {
-  outline: 2px solid var(--accent-focus);
+  outline: 2px solid var(--color-accent-focus);
   outline-offset: 2px;
 }
 
 .theme-toggle svg {
   width: 1.25rem;
   height: 1.25rem;
-  color: var(--text-primary);
-  transition: transform 0.3s ease;
+  color: var(--color-text-primary);
+  transition: transform var(--transition-slow);
 }
 
 .theme-toggle:hover svg {
@@ -228,7 +351,7 @@ header {
 .theme-toggle .icon-sun,
 .theme-toggle .icon-moon {
   position: absolute;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity var(--transition-slow), transform var(--transition-slow);
 }
 
 :root[data-theme="light"] .icon-moon,
@@ -259,22 +382,22 @@ header {
 road-status {
   display: block;
   max-width: 600px;
-  margin: 0 auto 1.25rem;
+  margin: 0 auto var(--space-xl);
 }
 
 road-status img {
   width: 100%;
   height: auto;
   display: block;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px var(--shadow-md);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  background: var(--color-bg-primary);
 }
 
 road-status img:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px var(--shadow-lg);
+  box-shadow: var(--shadow-lg);
 }
 
 /* ========================================
@@ -285,8 +408,8 @@ road-status img:hover {
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 1rem;
-  padding-bottom: 1.5rem;
+  gap: var(--space-lg);
+  padding-bottom: var(--space-2xl);
 }
 
 /* ========================================
@@ -295,12 +418,12 @@ road-status img:hover {
 camera-feed {
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
-  border-radius: 6px;
-  border: 1px solid var(--border-default);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-default);
   overflow: hidden;
-  box-shadow: 0 1px 3px var(--shadow-md);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-base);
   cursor: zoom-in;
   position: relative;
   outline: none;
@@ -308,12 +431,12 @@ camera-feed {
 
 camera-feed:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--shadow-lg);
-  border-color: var(--border-strong);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-border-strong);
 }
 
 camera-feed:focus-visible {
-  outline: 2px solid var(--accent-focus);
+  outline: 2px solid var(--color-accent-focus);
   outline-offset: 2px;
 }
 
@@ -337,23 +460,18 @@ camera-feed iframe {
   display: block;
   border: none;
   cursor: zoom-in;
-  background: var(--bg-tertiary);
+  background: var(--color-bg-tertiary);
 }
 
 /* Loading skeleton animation */
 camera-feed img:not([src]),
 camera-feed img[src=""] {
   background: linear-gradient(90deg,
-      var(--bg-tertiary) 0%,
-      var(--border-default) 50%,
-      var(--bg-tertiary) 100%);
+      var(--color-bg-tertiary) 0%,
+      var(--color-border-default) 50%,
+      var(--color-bg-tertiary) 100%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
 }
 
 /* Hide broken image alt text */
@@ -369,21 +487,21 @@ camera-feed .camera-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.375rem 0.5rem;
-  background: var(--bg-primary);
-  border-top: 1px solid var(--border-light);
-  gap: 0.5rem;
+  padding: 0.375rem var(--space-sm);
+  background: var(--color-bg-primary);
+  border-top: 1px solid var(--color-border-light);
+  gap: var(--space-sm);
 }
 
 camera-feed h4 {
   flex: 1;
-  font-size: 0.5rem;
+  font-size: var(--text-xs);
   font-weight: 400;
-  color: var(--text-tertiary);
+  color: var(--color-text-tertiary);
   opacity: 0.35;
   text-align: center;
   letter-spacing: 0.02em;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--transition-base);
   text-transform: uppercase;
   margin: 0;
 }
@@ -395,22 +513,22 @@ camera-feed:hover h4 {
 camera-feed .share-button {
   background: transparent;
   border: none;
-  padding: 0.25rem;
+  padding: var(--space-xs);
   cursor: pointer;
-  color: var(--text-tertiary);
+  color: var(--color-text-tertiary);
   opacity: 0.35;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   outline: none;
 }
 
 camera-feed .share-button:hover {
   opacity: 0.8;
-  background: var(--bg-tertiary);
-  color: var(--accent-focus);
+  background: var(--color-bg-tertiary);
+  color: var(--color-accent-focus);
 }
 
 camera-feed .share-button:active {
@@ -418,7 +536,7 @@ camera-feed .share-button:active {
 }
 
 camera-feed .share-button:focus-visible {
-  outline: 2px solid var(--accent-focus);
+  outline: 2px solid var(--color-accent-focus);
   outline-offset: 2px;
 }
 
@@ -437,20 +555,15 @@ the-overlay {
   height: 100vh;
   cursor: zoom-out;
   min-height: 100vh;
-  background: var(--overlay-bg);
+  background: var(--color-overlay);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  z-index: 1000;
+  z-index: var(--z-modal);
   display: none;
   align-items: center;
   justify-content: center;
   padding: 0;
   animation: fadeIn 0.15s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 the-overlay[style*="display: block"],
@@ -463,7 +576,7 @@ body:has(the-overlay[style*="display: flex"]) {
   overflow: hidden;
 }
 
-/* iOS-specific fixes for fullscreen - handles dynamic address bar */
+/* iOS-specific fixes for fullscreen */
 @supports (-webkit-touch-callout: none) {
   the-overlay {
     height: -webkit-fill-available;
@@ -488,7 +601,7 @@ the-overlay h4 {
 
 the-overlay camera-feed {
   cursor: zoom-out;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-xl);
   width: 100vw;
   height: 100vh;
   min-height: 100vh;
@@ -505,13 +618,13 @@ the-overlay camera-feed {
 
 the-overlay camera-feed:hover {
   transform: none;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-xl);
 }
 
 the-overlay img,
 the-overlay iframe {
   cursor: zoom-out;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   display: block;
   max-width: 100vw;
   max-height: 100vh;
@@ -524,19 +637,19 @@ the-overlay iframe {
 /* Navigation hint in fullscreen */
 .overlay-hint {
   position: fixed;
-  bottom: 2rem;
+  bottom: var(--space-3xl);
   left: 50%;
   transform: translateX(-50%);
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   background: rgba(0, 0, 0, 0.5);
-  padding: 0.5rem 1rem;
+  padding: var(--space-sm) var(--space-lg);
   border-radius: 20px;
   backdrop-filter: blur(10px);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--transition-slow);
 }
 
 the-overlay:hover .overlay-hint {
@@ -565,26 +678,21 @@ the-overlay:hover .overlay-hint {
   animation: loading 1.5s infinite;
 }
 
-@keyframes loading {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
 /* ========================================
    Responsive Design
    ======================================== */
 @media (max-width: 768px) {
   body {
-    padding: 0.5rem;
+    padding: var(--space-sm);
   }
 
   header {
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--space-md);
   }
 
   .canyon-nav {
     flex-direction: row;
-    gap: 0.5rem;
+    gap: var(--space-sm);
   }
 
   .canyon-toggle {
@@ -593,18 +701,18 @@ the-overlay:hover .overlay-hint {
 
   .canyon-toggle a {
     flex: 1;
-    padding: 0.5rem 1rem;
+    padding: var(--space-sm) var(--space-lg);
     font-size: 0.8125rem;
   }
 
   road-status {
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--space-md);
   }
 
   #container {
     grid-template-columns: 1fr;
-    gap: 0.75rem;
-    padding-bottom: 1rem;
+    gap: var(--space-md);
+    padding-bottom: var(--space-lg);
   }
 
   camera-feed {
@@ -660,11 +768,11 @@ the-overlay:hover .overlay-hint {
   }
 
   camera-feed .camera-footer {
-    padding: 0.25rem 0.375rem;
+    padding: var(--space-xs) 0.375rem;
   }
 
   camera-feed h4 {
-    font-size: 0.5rem;
+    font-size: var(--text-xs);
     opacity: 0.3;
   }
 
@@ -673,7 +781,7 @@ the-overlay:hover .overlay-hint {
   }
 
   camera-feed .share-button {
-    padding: 0.25rem;
+    padding: var(--space-xs);
   }
 }
 
@@ -721,6 +829,6 @@ the-overlay:hover .overlay-hint {
 
 /* Focus visible support */
 :focus-visible {
-  outline: 2px solid var(--accent-focus);
+  outline: 2px solid var(--color-accent-focus);
   outline-offset: 2px;
 }
