@@ -33,9 +33,8 @@ func CanyonRoute(store *store.Store, canyonID string) func(c echo.Context) error
 			return c.NoContent(http.StatusOK)
 		}
 
-		// Check Accept header to determine response format
-		accept := c.Request().Header.Get("Accept")
-		if strings.Contains(accept, "application/json") {
+		// Check if request path ends with .json to determine response format
+		if strings.HasSuffix(c.Request().URL.Path, ".json") {
 			return c.JSON(http.StatusOK, canyon)
 		}
 

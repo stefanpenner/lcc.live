@@ -157,7 +157,7 @@ func main() {
 				fmt.Fprintf(os.Stderr, "❌ Error: %v\n", err)
 				os.Exit(1)
 			}
-			return
+			os.Exit(0)
 		case "help", "--help", "-h":
 			fmt.Println("LCC Live Camera Service")
 			fmt.Println("")

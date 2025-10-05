@@ -73,6 +73,9 @@ func setupTestServer(t *testing.T) (*http.Server, *store.Store) {
 		"canyon.html.tmpl": &fstest.MapFile{
 			Data: []byte(`<!DOCTYPE html><html><head><title>{{.Name}}</title></head><body><h1>{{.Name}}</h1></body></html>`),
 		},
+		"camera.html.tmpl": &fstest.MapFile{
+			Data: []byte(`<!DOCTYPE html><html><head><title>{{.Camera.Alt}}</title></head><body><h1>{{.Camera.Alt}}</h1></body></html>`),
+		},
 	}
 
 	staticFS := fstest.MapFS{
@@ -619,8 +622,7 @@ func TestInternalEndpointsCacheHeaders(t *testing.T) {
 func TestCanyonRoute_GET_JSON_LCC(t *testing.T) {
 	srv, _ := setupTestServer(t)
 
-	req := httptest.NewRequest("GET", "/", nil)
-	req.Header.Set("Accept", "application/json")
+	req := httptest.NewRequest("GET", "/.json", nil)
 	rec := httptest.NewRecorder()
 
 	srv.Handler.ServeHTTP(rec, req)
@@ -639,8 +641,7 @@ func TestCanyonRoute_GET_JSON_LCC(t *testing.T) {
 func TestCanyonRoute_GET_JSON_BCC(t *testing.T) {
 	srv, _ := setupTestServer(t)
 
-	req := httptest.NewRequest("GET", "/bcc", nil)
-	req.Header.Set("Accept", "application/json")
+	req := httptest.NewRequest("GET", "/bcc.json", nil)
 	rec := httptest.NewRecorder()
 
 	srv.Handler.ServeHTTP(rec, req)
@@ -658,8 +659,7 @@ func TestCanyonRoute_JSON_ETag_NotModified(t *testing.T) {
 	srv, _ := setupTestServer(t)
 
 	// Request with matching ETag should return 304 even for JSON requests
-	req := httptest.NewRequest("GET", "/", nil)
-	req.Header.Set("Accept", "application/json")
+	req := httptest.NewRequest("GET", "/.json", nil)
 	req.Header.Set("If-None-Match", "\"test-lcc-etag\"")
 	rec := httptest.NewRecorder()
 
@@ -669,28 +669,23 @@ func TestCanyonRoute_JSON_ETag_NotModified(t *testing.T) {
 	assert.Empty(t, rec.Body.String())
 }
 
-func TestCanyonRoute_JSON_AcceptHeader_Variations(t *testing.T) {
+func TestCanyonRoute_JSON_Extension(t *testing.T) {
 	srv, _ := setupTestServer(t)
 
 	testCases := []struct {
-		name         string
-		acceptHeader string
-		expectJSON   bool
+		name       string
+		path       string
+		expectJSON bool
 	}{
-		{"explicit JSON", "application/json", true},
-		{"JSON with quality", "application/json; q=0.9", true},
-		{"JSON in list", "text/html, application/json, */*", true},
-		{"no Accept header", "", false},
-		{"HTML only", "text/html", false},
-		{"wildcard", "*/*", false},
+		{"root with .json", "/.json", true},
+		{"bcc with .json", "/bcc.json", true},
+		{"root without .json", "/", false},
+		{"bcc without .json", "/bcc", false},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest("GET", "/", nil)
-			if tc.acceptHeader != "" {
-				req.Header.Set("Accept", tc.acceptHeader)
-			}
+			req := httptest.NewRequest("GET", tc.path, nil)
 			rec := httptest.NewRecorder()
 
 			srv.Handler.ServeHTTP(rec, req)
@@ -698,11 +693,22 @@ func TestCanyonRoute_JSON_AcceptHeader_Variations(t *testing.T) {
 			assert.Equal(t, http.StatusOK, rec.Code)
 			if tc.expectJSON {
 				assert.Contains(t, rec.Header().Get("Content-Type"), "application/json")
-				assert.Contains(t, rec.Body.String(), `"name":"Little Cottonwood Canyon"`)
 			} else {
 				assert.NotContains(t, rec.Header().Get("Content-Type"), "application/json")
 				assert.Contains(t, rec.Body.String(), "<!DOCTYPE html>")
 			}
 		})
 	}
+}
+
+func TestCameraRoute_NotFound(t *testing.T) {
+	srv, _ := setupTestServer(t)
+
+	req := httptest.NewRequest("GET", "/camera/nonexistent", nil)
+	rec := httptest.NewRecorder()
+
+	srv.Handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Camera not found")
 }

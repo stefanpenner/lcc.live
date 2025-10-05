@@ -150,17 +150,21 @@ func NewStore(canyons *Canyons) *Store {
 
 	// Process status cameras if present
 	if canyons.LCC.Status.Src != "" {
+		canyons.LCC.Status.Canyon = "LCC"
 		createEntry(&canyons.LCC.Status)
 	}
 	if canyons.BCC.Status.Src != "" {
+		canyons.BCC.Status.Canyon = "BCC"
 		createEntry(&canyons.BCC.Status)
 	}
 
 	// Process regular cameras
 	for i := range canyons.LCC.Cameras {
+		canyons.LCC.Cameras[i].Canyon = "LCC"
 		createEntry(&canyons.LCC.Cameras[i])
 	}
 	for i := range canyons.BCC.Cameras {
+		canyons.BCC.Cameras[i].Canyon = "BCC"
 		createEntry(&canyons.BCC.Cameras[i])
 	}
 

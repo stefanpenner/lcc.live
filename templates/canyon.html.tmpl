@@ -10,9 +10,40 @@
     
     <!-- SEO & Social -->
     <meta name="description" content="Live camera feeds for {{if eq .Name "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}}. Real-time road conditions and weather updates.">
-    <meta property="og:title" content="{{.Name}} Live Cameras">
-    <meta property="og:description" content="Real-time camera feeds for {{.Name}}">
+    
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
+    <meta property="og:url" content="https://lcc.live{{if eq .Name "BCC"}}/bcc{{end}}">
+    <meta property="og:title" content="{{.Name}} Live Cameras | Utah Canyon Conditions">
+    <meta property="og:description" content="Live camera feeds for {{if eq .Name "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}}. Real-time road conditions and weather updates.">
+    <meta property="og:site_name" content="LCC.live">
+    {{- if .Cameras -}}
+    {{- range $index, $c := .Cameras -}}
+    {{- if eq $index 0 -}}
+    {{- if ne $c.Kind "iframe" -}}
+    <meta property="og:image" content="https://lcc.live/image/{{$c.ID}}">
+    <meta property="og:image:alt" content="{{$c.Alt}}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    {{- end -}}
+    {{- end -}}
+    {{- end -}}
+    {{- end -}}
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://lcc.live{{if eq .Name "BCC"}}/bcc{{end}}">
+    <meta name="twitter:title" content="{{.Name}} Live Cameras | Utah Canyon Conditions">
+    <meta name="twitter:description" content="Live camera feeds for {{if eq .Name "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}}.">
+    {{- if .Cameras -}}
+    {{- range $index, $c := .Cameras -}}
+    {{- if eq $index 0 -}}
+    {{- if ne $c.Kind "iframe" -}}
+    <meta name="twitter:image" content="https://lcc.live/image/{{$c.ID}}">
+    {{- end -}}
+    {{- end -}}
+    {{- end -}}
+    {{- end -}}
     
     <!-- Mobile Optimization -->
     <meta name="mobile-web-app-capable" content="yes">
@@ -109,7 +140,8 @@
             aria-label="{{$c.Alt}}">
           </iframe>
           {{- else -}}
-          <!-- Standard image camera -->
+          <!-- Standard image camera with link to camera detail page -->
+          <a href="/camera/{{$c.ID}}" aria-label="View {{$c.Alt}} full page">
           {{- if le $index 1 -}}
           <img 
             src="/image/{{$c.ID}}" 
@@ -124,9 +156,21 @@
             loading="lazy"
             decoding="async">
           {{- end -}}
+          </a>
           {{- end -}}
           
-          <h4>{{$c.Alt}}</h4>
+          <div class="camera-footer">
+            <h4>{{$c.Alt}}</h4>
+            <button class="share-button" 
+                    data-camera-id="{{$c.ID}}" 
+                    data-camera-name="{{$c.Alt}}"
+                    aria-label="Share {{$c.Alt}}"
+                    title="Share this camera">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+            </button>
+          </div>
         </camera-feed>
         {{- end -}}
         {{- end -}}

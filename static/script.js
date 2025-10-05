@@ -61,16 +61,17 @@ class Overlay extends HTMLElement {
     this.touchEndY = 0;
     this.swiped = false;
     
-    // Click on overlay background to close (not on content)
+    // Click on overlay or enlarged image to close
     this.addEventListener("click", (e) => {
-      // Close if clicking on overlay background or camera-feed container (but not img/iframe)
-      const isOverlayBackground = e.target === this;
-      const isCameraFeedContainer = e.target.tagName === 'CAMERA-FEED';
-      
-      if ((isOverlayBackground || isCameraFeedContainer) && !this.swiped) {
-        this.hide();
+      // Don't close if the user just swiped
+      if (this.swiped) {
+        this.swiped = false;
+        return;
       }
-      this.swiped = false;
+      
+      // Close overlay on click (anywhere on overlay or image)
+      // This mimics standard lightbox behavior
+      this.hide();
     });
     
     // Add touch event listeners for swipe gestures
@@ -277,8 +278,14 @@ function findCamera(target) {
 }
 
 document.body.addEventListener("click", (e) => {
+  // Don't open overlay if clicking share button
+  if (e.target.closest('.share-button')) {
+    return;
+  }
+  
   let camera;
   if (maxWidth.matches === false && (camera = findCamera(e.target))) {
+    e.preventDefault(); // Prevent navigation to camera detail page
     document.querySelector("the-overlay").cameraWasClicked(camera);
   }
 });
@@ -391,5 +398,68 @@ document.addEventListener('DOMContentLoaded', () => {
         feed.style.opacity = '1';
       }, 30 + (index * 20)); // Quick stagger
     });
+  }
+});
+
+// ========================================
+// Share Button Functionality
+// ========================================
+document.body.addEventListener('click', async (e) => {
+  const shareButton = e.target.closest('.share-button');
+  if (!shareButton) return;
+  
+  // Prevent camera click/overlay from opening
+  e.stopPropagation();
+  e.preventDefault();
+  
+  const cameraId = shareButton.dataset.cameraId;
+  const cameraName = shareButton.dataset.cameraName;
+  const cameraUrl = `${window.location.origin}/camera/${cameraId}`;
+  
+  // Try native Web Share API first (available on mobile)
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `${cameraName} Live Camera`,
+        text: `Check out this live camera feed from ${cameraName}`,
+        url: cameraUrl
+      });
+      return;
+    } catch (err) {
+      // User cancelled or share failed, fall back to copy
+      if (err.name !== 'AbortError') {
+        console.warn('Share failed:', err);
+      }
+    }
+  }
+  
+  // Fallback: Copy to clipboard
+  try {
+    await navigator.clipboard.writeText(cameraUrl);
+    
+    // Visual feedback
+    const originalHTML = shareButton.innerHTML;
+    shareButton.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+    `;
+    shareButton.style.color = 'var(--accent-focus)';
+    shareButton.style.opacity = '1';
+    
+    setTimeout(() => {
+      shareButton.innerHTML = originalHTML;
+      shareButton.style.color = '';
+      shareButton.style.opacity = '';
+    }, 2000);
+  } catch (err) {
+    console.error('Failed to copy to clipboard:', err);
+    // If clipboard fails, try to select the URL in a temporary input
+    const input = document.createElement('input');
+    input.value = cameraUrl;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    document.body.removeChild(input);
   }
 });

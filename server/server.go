@@ -68,12 +68,26 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error)
 
 	e.GET("/", CanyonRoute(store, "LCC"))
 	e.HEAD("/", CanyonRoute(store, "LCC"))
+	e.GET("/.json", CanyonRoute(store, "LCC"))
+	e.HEAD("/.json", CanyonRoute(store, "LCC"))
+
+	e.GET("/lcc", CanyonRoute(store, "LCC"))
+	e.HEAD("/lcc", CanyonRoute(store, "LCC"))
+	e.GET("/lcc.json", CanyonRoute(store, "LCC"))
+	e.HEAD("/lcc.json", CanyonRoute(store, "LCC"))
 
 	e.GET("/bcc", CanyonRoute(store, "BCC"))
 	e.HEAD("/bcc", CanyonRoute(store, "BCC"))
+	e.GET("/bcc.json", CanyonRoute(store, "BCC"))
+	e.HEAD("/bcc.json", CanyonRoute(store, "BCC"))
 
 	e.GET("/image/:id", ImageRoute(store))
 	e.HEAD("/image/:id", ImageRoute(store))
+
+	e.GET("/camera/:id", CameraRoute(store))
+	e.HEAD("/camera/:id", CameraRoute(store))
+	e.GET("/camera/:id.json", CameraRoute(store))
+	e.HEAD("/camera/:id.json", CameraRoute(store))
 
 	e.GET("/healthcheck", HealthCheckRoute())
 
