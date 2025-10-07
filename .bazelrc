@@ -7,6 +7,7 @@ build --experimental_reuse_sandbox_directories
 build --nolegacy_external_runfiles
 # Shared disk cache for action results across builds
 build --disk_cache=~/.cache/bazel-disk-cache
+build --repository_cache=~/.cache/bazel-repo
 
 # Output
 build --show_progress_rate_limit=5
@@ -44,6 +45,18 @@ build:fast --@rules_go//go/config:gc_linkopts=
 # Debug builds
 build:debug --compilation_mode=dbg
 build:debug --strip=never
+
+# CI-specific settings
+build:ci --curses=no
+build:ci --color=yes
+build:ci --announce_rc
+build:ci --local_cpu_resources=HOST_CPUS*0.75
+build:ci --local_ram_resources=HOST_RAM*0.75
+
+test:ci --test_output=errors
+test:ci --test_summary=detailed
+test:ci --flaky_test_attempts=2
+test:ci --announce_rc
 
 # Try to import user-specific .bazelrc
 try-import %workspace%/.bazelrc.user

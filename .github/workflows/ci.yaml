@@ -10,10 +10,18 @@ permissions:
   contents: read
   pull-requests: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
-    name: Test with Bazel
+  ci:
+    name: Bazel and Container Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Help Bazelisk avoid GitHub API rate limits
+      BAZELISK_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,78 +32,44 @@ jobs:
           path: |
             ~/.cache/bazel
             ~/.cache/bazelisk
+            ~/.cache/bazel-disk-cache
+            ~/.cache/bazel-repo
           key: ${{ runner.os }}-bazel-${{ hashFiles('MODULE.bazel', 'MODULE.bazel.lock', 'go.mod', 'go.sum', '.bazelversion') }}
           restore-keys: |
             ${{ runner.os }}-bazel-
 
-      - name: Setup Bazelisk
+      - name: Setup Bazel
         uses: bazel-contrib/setup-bazel@0.8.1
         with:
           bazelisk-cache: true
           disk-cache: true
           repository-cache: true
 
-      - name: Run all tests
-        run: bazel test //...
+      - name: Verify Docker is available
+        run: docker version
 
-      - name: Build binary
-        run: bazel build //...
+      - name: Prepare artifacts dir
+        run: mkdir -p artifacts
 
-  container-test:
-    name: Container Integration Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Unit tests (Bazel)
+        run: |
+          bazel test --config=ci --test_tag_filters=-integration \
+            --build_event_json_file=artifacts/unit-bep.json \
+            //...
 
-      - name: Mount Bazel cache
-        uses: actions/cache@v4
+      - name: Container integration test
+        run: |
+          bazel test --config=ci \
+            --build_event_json_file=artifacts/container-bep.json \
+            //:container_test
+
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
         with:
+          name: bazel-logs
+          retention-days: 7
           path: |
-            ~/.cache/bazel
-            ~/.cache/bazelisk
-          key: ${{ runner.os }}-bazel-${{ hashFiles('MODULE.bazel', 'MODULE.bazel.lock', 'go.mod', 'go.sum', '.bazelversion') }}
-          restore-keys: |
-            ${{ runner.os }}-bazel-
-
-      - name: Setup Bazelisk
-        uses: bazel-contrib/setup-bazel@0.8.1
-        with:
-          bazelisk-cache: true
-          disk-cache: true
-          repository-cache: true
-
-      - name: Build OCI image
-        run: bazel build --config=opt //:image
-
-      - name: Load image into Docker
-        run: bazel run --config=opt //:image_load
-
-      - name: Verify Docker image
-        run: docker images lcc.live:latest
-
-      - name: Run container integration test
-        run: |
-          # Tag the image for the test script
-          docker tag lcc.live:latest lcc.live:test
-          # Run the integration test
-          bazel test --test_output=all //:container_test
-
-  status-check:
-    name: Status Check
-    runs-on: ubuntu-latest
-    needs: [test, container-test]
-    if: always()
-    steps:
-      - name: Check test results
-        run: |
-          if [ "${{ needs.test.result }}" != "success" ]; then
-            echo "Tests failed"
-            exit 1
-          fi
-          if [ "${{ needs.container-test.result }}" != "success" ]; then
-            echo "Container tests failed"
-            exit 1
-          fi
-          echo "All tests passed ✅"
+            artifacts/**
+            bazel-testlogs/**/test.log
 
