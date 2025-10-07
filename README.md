@@ -36,13 +36,6 @@ Visit `http://localhost:3000`.
     bazel run //:lcc-live -- purge-cache
   ```
 
-### Docs
-- Build: [doc/BAZEL.md](doc/BAZEL.md)
-- Development: [doc/DEVELOPMENT.md](doc/DEVELOPMENT.md)
-- Deployment: [doc/DEPLOYMENT.md](doc/DEPLOYMENT.md)
-- Cache/versioning: [doc/CACHE_AND_VERSION.md](doc/CACHE_AND_VERSION.md)
-- Cloudflare: [doc/CLOUDFLARE_CACHE_PURGE.md](doc/CLOUDFLARE_CACHE_PURGE.md)
-
 ---
 
 PRs welcome.
