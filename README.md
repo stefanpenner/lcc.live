@@ -1,57 +1,48 @@
-## lcc.live's codebase
+## LCC Live
 
 [![CI](https://github.com/stefanpenner/lcc.live/actions/workflows/ci.yml/badge.svg)](https://github.com/stefanpenner/lcc.live/actions/workflows/ci.yml)
 [![Fuzz Testing](https://github.com/stefanpenner/lcc.live/actions/workflows/fuzz.yml/badge.svg)](https://github.com/stefanpenner/lcc.live/actions/workflows/fuzz.yml)
 
-[https://lcc.live](https://lcc.live/)
+Fast, single-binary Go service that serves live canyon webcams for Little and Big Cottonwood Canyons. Visit [lcc.live](https://lcc.live/).
 
-**Note:**  
-- This is largely a hack and a playground—proceed with caution ("here be dragons").
+### Features
+- **Single binary, tiny image**: ships as one executable; tiny Alpine container (~7.8MB total)
+- **In-memory serving**: images via a custom store; static assets via embedded FS
+- **Efficient fetch loop**: background sync keeps images fresh
+- **Echo-powered HTTP**: simple, fast web + API server
+- **Prometheus metrics**: exported at `/_/metrics`
+- **Bazel build**: reproducible builds with Bzlmod
 
-**Overview:**
-
-While this project might seem largely experimental, it's a fun place to explore different technologies and approaches. The goal is to provide [https://lcc.live](https://lcc.live/), a site that quickly displays all the webcams I CARE ABOUT covering Little and Big Cottonwood Canyons.
-
-**TL;DR**
-* single executable that in production runs within a tiny alpine linux image (7.8MB total)
-* everything is served from memory
-  * images are served from a custom store
-  * static assets (html, css, js etc) are served from embed_fs
-* 1 go-routine for fetching remote images, and updating the in memory store
-* [echo](https://echo.labstack.com/) provides the server API
-* running siege & doing some testing, it's only bottle-neck so far appears to be outbound IO.
-
-
-**Current Status:**
-
-- The current iteration is an experiment built using Go, and it works.
-- Despite being somewhat rough around the edges, it performs exceptionally well and consumes few resources.
-- The codebase may be messy, but it's surprisingly approachable, especially for someone new to Go.
-
-**Building:**
-
-This project uses [Bazel 8.x](https://bazel.build/) with Bzlmod for building:
-
+### Quick start
 ```bash
-# Build the binary
-bazel build //:lcc-live
-
-# Run tests
-bazel test //...
-
 # Run the server
 bazel run //:lcc-live
+
+# Build and test
+bazel build //:lcc-live
+bazel test //...
 ```
+Visit `http://localhost:3000`.
 
-See [BAZEL.md](doc/BAZEL.md) for detailed build instructions and configuration.
+### Configuration
+- **PORT**: HTTP port (default: `3000`)
+- **SYNC_INTERVAL**: image refresh interval, Go duration (default: `3s`)
 
-**TODO:**
+### Operations
+- **Prometheus metrics**: `/_/metrics`
+- **Cloudflare purge**:
+  ```bash
+  CLOUDFLARE_ZONE_ID=... CLOUDFLARE_API_TOKEN=... \
+    bazel run //:lcc-live -- purge-cache
+  ```
 
-- [ ] nothing really, it's fine
-- [ ] write some tests, so I feel confident makes quick changes
-- [ ] improve the UX, especially the dialog
-- [ ] add some additional data (snow, temp, forcasts, etc)
+### Docs
+- Build: [doc/BAZEL.md](doc/BAZEL.md)
+- Development: [doc/DEVELOPMENT.md](doc/DEVELOPMENT.md)
+- Deployment: [doc/DEPLOYMENT.md](doc/DEPLOYMENT.md)
+- Cache/versioning: [doc/CACHE_AND_VERSION.md](doc/CACHE_AND_VERSION.md)
+- Cloudflare: [doc/CLOUDFLARE_CACHE_PURGE.md](doc/CLOUDFLARE_CACHE_PURGE.md)
 
 ---
 
-Feel free to explore, experiment & contribute. PRs welcome!
+PRs welcome.
