@@ -50,7 +50,8 @@ build:debug --strip=never
 build:ci --curses=no
 build:ci --color=yes
 build:ci --announce_rc
-build:ci --local_resources=cpu=HOST_CPUS*0.75,memory=HOST_RAM*0.75
+build:ci --local_resources=cpu=HOST_CPUS*0.75
+build:ci --local_resources=memory=HOST_RAM*0.75
 
 test:ci --test_output=errors
 test:ci --test_summary=detailed
