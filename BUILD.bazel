@@ -50,7 +50,7 @@ go_binary(
     visibility = ["//visibility:public"],
     x_defs = {
         "github.com/stefanpenner/lcc-live/server.Version": "{STABLE_GIT_COMMIT}",
-        "github.com/stefanpenner/lcc-live/server.BuildTime": "{BUILD_TIMESTAMP}",
+        "github.com/stefanpenner/lcc-live/server.BuildTime": "{STABLE_BUILD_TIMESTAMP}",
     },
 )
 
@@ -63,7 +63,7 @@ go_binary(
     visibility = ["//visibility:public"],
     x_defs = {
         "github.com/stefanpenner/lcc-live/server.Version": "{STABLE_GIT_COMMIT}",
-        "github.com/stefanpenner/lcc-live/server.BuildTime": "{BUILD_TIMESTAMP}",
+        "github.com/stefanpenner/lcc-live/server.BuildTime": "{STABLE_BUILD_TIMESTAMP}",
     },
 )
 

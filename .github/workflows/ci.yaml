@@ -26,17 +26,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Mount Bazel cache
+      - name: Cache Bazelisk downloads
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cache/bazel
             ~/.cache/bazelisk
-            ~/.cache/bazel-disk-cache
-            ~/.cache/bazel-repo
-          key: ${{ runner.os }}-bazel-${{ hashFiles('MODULE.bazel', 'MODULE.bazel.lock', 'go.mod', 'go.sum', '.bazelversion') }}
+          key: ${{ runner.os }}-bazelisk-${{ hashFiles('.bazelversion') }}
           restore-keys: |
-            ${{ runner.os }}-bazel-
+            ${{ runner.os }}-bazelisk-
+          save-always: true
+
+      - name: Cache Bazel repository cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/bazel-repo
+          key: ${{ runner.os }}-bazel-repo-${{ hashFiles('MODULE.bazel', 'MODULE.bazel.lock', '.bazelversion') }}
+          restore-keys: |
+            ${{ runner.os }}-bazel-repo-
+          save-always: true
+
+      - name: Cache Bazel disk cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/bazel-disk-cache
+          key: ${{ runner.os }}-bazel-disk-${{ runner.arch }}-${{ hashFiles('MODULE.bazel', 'go.mod', 'go.sum', '.bazelversion') }}
+          restore-keys: |
+            ${{ runner.os }}-bazel-disk-${{ runner.arch }}-
+            ${{ runner.os }}-bazel-disk-
+          save-always: true
 
       - name: Setup Bazel
         uses: bazel-contrib/setup-bazel@0.8.1
