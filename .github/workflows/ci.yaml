@@ -26,36 +26,35 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Cache Bazelisk downloads
-        uses: actions/cache@v4
+      - name: Restore Bazelisk downloads cache
+        id: restore-bazelisk
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache/bazelisk
           key: ${{ runner.os }}-bazelisk-${{ hashFiles('.bazelversion') }}
           restore-keys: |
             ${{ runner.os }}-bazelisk-
-          save-always: true
 
-      - name: Cache Bazel repository cache
-        uses: actions/cache@v4
+      - name: Restore Bazel repository cache
+        id: restore-bazel-repo
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache/bazel-repo
           key: ${{ runner.os }}-bazel-repo-${{ hashFiles('MODULE.bazel', 'MODULE.bazel.lock', '.bazelversion') }}
           restore-keys: |
             ${{ runner.os }}-bazel-repo-
-          save-always: true
 
-      - name: Cache Bazel disk cache
-        uses: actions/cache@v4
+      - name: Restore Bazel disk cache
+        id: restore-bazel-disk
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache/bazel-disk-cache
-          key: ${{ runner.os }}-bazel-disk-${{ runner.arch }}-${{ hashFiles('MODULE.bazel', 'go.mod', 'go.sum', '.bazelversion') }}
+          key: ${{ runner.os }}-bazel-disk-${{ hashFiles('MODULE.bazel', 'go.mod', 'go.sum', '.bazelversion') }}
           restore-keys: |
-            ${{ runner.os }}-bazel-disk-${{ runner.arch }}-
             ${{ runner.os }}-bazel-disk-
-          save-always: true
 
       - name: Setup Bazel
         uses: bazel-contrib/setup-bazel@0.8.1
@@ -63,6 +62,10 @@ jobs:
           bazelisk-cache: true
           disk-cache: true
           repository-cache: true
+
+      - name: Ensure cache directories exist
+        run: |
+          mkdir -p ~/.cache/bazelisk ~/.cache/bazel-repo ~/.cache/bazel-disk-cache
 
       - name: Verify Docker is available
         run: docker version
@@ -81,6 +84,30 @@ jobs:
           bazel test --config=ci \
             --build_event_json_file=artifacts/container-bep.json \
             //:container_test
+
+      - name: Save Bazel repository cache
+        if: always() && steps.restore-bazel-repo.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/bazel-repo
+          key: ${{ runner.os }}-bazel-repo-${{ hashFiles('MODULE.bazel', 'MODULE.bazel.lock', '.bazelversion') }}
+
+      - name: Save Bazel disk cache
+        if: always() && steps.restore-bazel-disk.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/bazel-disk-cache
+          key: ${{ runner.os }}-bazel-disk-${{ hashFiles('MODULE.bazel', 'go.mod', 'go.sum', '.bazelversion') }}
+
+      - name: Save Bazelisk downloads cache
+        if: always() && steps.restore-bazelisk.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/bazelisk
+          key: ${{ runner.os }}-bazelisk-${{ hashFiles('.bazelversion') }}
 
       - name: Upload artifacts on failure
         if: failure()
