@@ -5,6 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="view-transition" content="same-origin">
     
+    <style>
+      /* Prevent flash of unstyled content */
+      camera-feed img {
+        content-visibility: auto;
+      }
+      
+      /* View Transitions for smooth page changes */
+      @view-transition {
+        navigation: auto;
+      }
+      
+      /* Smooth fade for root */
+      ::view-transition-old(root),
+      ::view-transition-new(root) {
+        animation-duration: 0.3s;
+      }
+      
+      /* Crossfade animation */
+      ::view-transition-old(root) {
+        animation-name: fade-out;
+      }
+      
+      ::view-transition-new(root) {
+        animation-name: fade-in;
+      }
+      
+      @keyframes fade-out {
+        to {
+          opacity: 0;
+        }
+      }
+      
+      @keyframes fade-in {
+        from {
+          opacity: 0;
+        }
+      }
+      
+      /* Smooth transitions for images specifically */
+      camera-feed {
+        view-transition-name: auto;
+      }
+      
+      /* Smooth transition for navigation */
+      .canyon-nav {
+        view-transition-name: nav;
+      }
+      
+      ::view-transition-old(nav),
+      ::view-transition-new(nav) {
+        animation-duration: 0.2s;
+      }
+    </style>
+    
     <!-- Page Title -->
     <title>{{.Name}} Live Cameras | Utah Canyon Conditions</title>
     

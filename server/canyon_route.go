@@ -35,10 +35,9 @@ func CanyonRoute(store *store.Store, canyonID string) func(c echo.Context) error
 			etag = canyon.ETag + "-html"
 		}
 
-		// Use no-cache to force revalidation while still allowing caching
-		// This helps with cache busting - CDN will always check with origin
-		// but can serve cached content if ETag matches
-		c.Response().Header().Set("Cache-Control", "public, no-cache, must-revalidate")
+		// Use stale-while-revalidate for smoother UX
+		// Allows serving stale content while fetching fresh in background
+		c.Response().Header().Set("Cache-Control", "public, max-age=10, stale-while-revalidate=30, must-revalidate")
 		c.Response().Header().Set("ETag", etag)
 
 		// Add Vary header to ensure Cloudflare caches by Content-Type

@@ -14,34 +14,31 @@
   }
 })();
 
-// Theme toggle functionality
-document.addEventListener('DOMContentLoaded', () => {
-  const themeToggle = document.querySelector('.theme-toggle');
+// Theme toggle functionality using event delegation
+document.body.addEventListener('click', (e) => {
+  const themeToggle = e.target.closest('.theme-toggle');
+  if (!themeToggle) return;
   
-  if (themeToggle) {
-    themeToggle.addEventListener('click', () => {
-      const currentTheme = document.documentElement.getAttribute('data-theme');
-      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      
-      document.documentElement.setAttribute('data-theme', newTheme);
-      localStorage.setItem('theme', newTheme);
-      
-      // Optional: announce to screen readers
-      const announcement = `Switched to ${newTheme} mode`;
-      themeToggle.setAttribute('aria-label', announcement);
-      setTimeout(() => {
-        themeToggle.setAttribute('aria-label', 'Toggle dark mode');
-      }, 1000);
-    });
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  
+  // Optional: announce to screen readers
+  const announcement = `Switched to ${newTheme} mode`;
+  themeToggle.setAttribute('aria-label', announcement);
+  setTimeout(() => {
+    themeToggle.setAttribute('aria-label', 'Toggle dark mode');
+  }, 1000);
+});
+
+// Listen for system theme changes
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+  // Only auto-switch if user hasn't manually set a preference
+  if (!localStorage.getItem('theme')) {
+    document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
   }
-  
-  // Listen for system theme changes
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-    // Only auto-switch if user hasn't manually set a preference
-    if (!localStorage.getItem('theme')) {
-      document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
-    }
-  });
 });
 
 // ========================================
@@ -297,15 +294,20 @@ document.addEventListener("visibilitychange", (event) => {
   if (event.target.visibilityState !== "visible") {
     return;
   }
-  document.querySelectorAll("img").forEach((image) => forceReload(image));
+  // Instead of force reload, just check for updates normally
+  // This prevents flickering when switching back to the tab
+  document.querySelectorAll("img").forEach((image) => {
+    if (image.classList.contains("in-viewport")) {
+      reloadImage(image);
+    }
+  });
 });
 
 (async function reloadImages() {
-  // todo: timer, abort controller etc.
-  self.console && console.time && console.time("load images")
+  // Check images every 3 seconds - fast refresh but flicker-free
+  // Only updates when ETag changes, so no visual flicker on unchanged images
   await Promise.allSettled([...document.querySelectorAll("img")].map(reloadImage))
-  self.console && console.timeEnd && console.timeEnd("load images")
-  await wait(2_000);
+  await wait(3_000); // Check every 3 seconds - ETags prevent unnecessary updates
   reloadImages();
 })();
 
@@ -322,36 +324,53 @@ async function reloadImage(img) {
       return
     }
 
-    const request = await fetch(img.dataset.src, {
+    // Use HEAD request first - much faster, only fetches headers
+    // This is the key optimization: check if image changed without downloading it
+    const headRequest = await fetch(img.dataset.src, {
+      method: 'HEAD',
       mode: 'same-origin',
-      cache: 'default'
+      cache: 'no-cache',
+      credentials: 'same-origin'
     });
 
-    if (request.status === 200) {
-      const etag = request.headers.get('etag')
+    if (headRequest.status === 200) {
+      const etag = headRequest.headers.get('etag')
+      
+      // Only fetch full image if ETag changed
       if (img.dataset.etag != etag) {
         img.dataset.etag = etag
         
-        // Add smooth transition when updating image
-        const oldSrc = img.src;
+        // Now fetch the actual image
+        const request = await fetch(img.dataset.src, {
+          mode: 'same-origin',
+          cache: 'force-cache', // Use cache since we know ETag changed
+          credentials: 'same-origin'
+        });
+        
         const newBlob = await request.blob();
         const newUrl = URL.createObjectURL(newBlob);
         
-        // Preload the image
+        // Preload the new image completely before swapping
         const tempImg = new Image();
         tempImg.onload = () => {
-          img.style.opacity = '0.7';
-          img.style.transition = 'opacity 0.3s ease';
-          
-          setTimeout(() => {
-            img.src = newUrl;
-            img.style.opacity = '1';
+          // Double buffer technique: only swap when new image is fully loaded
+          requestAnimationFrame(() => {
+            const oldSrc = img.src;
             
-            // Clean up old blob URL
-            if (oldSrc.startsWith('blob:')) {
-              URL.revokeObjectURL(oldSrc);
-            }
-          }, 150);
+            // Instant atomic swap - no flicker
+            img.src = newUrl;
+            
+            // Clean up old blob URL after a delay
+            setTimeout(() => {
+              if (oldSrc.startsWith('blob:')) {
+                URL.revokeObjectURL(oldSrc);
+              }
+            }, 1000);
+          });
+        };
+        tempImg.onerror = () => {
+          // If preload fails, revoke the new blob URL
+          URL.revokeObjectURL(newUrl);
         };
         tempImg.src = newUrl;
       }
@@ -379,8 +398,8 @@ const observer = new IntersectionObserver((entries) => {
 
 images.forEach(img => observer.observe(img));
 
-// Subtle page load animations
-document.addEventListener('DOMContentLoaded', () => {
+// Subtle page load animations with View Transitions API support
+function initPageAnimations() {
   // Subtle fade in for camera feeds (only if user prefers motion)
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   
@@ -395,6 +414,58 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 30 + (index * 20)); // Quick stagger
     });
   }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Enable View Transitions for smooth navigation between pages
+  if (document.startViewTransition && 'navigation' in window) {
+    // Intercept same-origin navigation for smooth transitions
+    navigation.addEventListener('navigate', (e) => {
+      // Only handle same-origin navigations
+      if (e.canIntercept && !e.hashChange && !e.downloadRequest) {
+        const url = new URL(e.destination.url);
+        
+        // Only transition between LCC and BCC pages
+        if ((url.pathname === '/' || url.pathname === '/bcc' || 
+             url.pathname === '/lcc') && url.origin === location.origin) {
+          e.intercept({
+            async handler() {
+              // Show loading state on active button
+              const activeLink = document.querySelector('.canyon-nav a.active');
+              if (activeLink) {
+                activeLink.style.opacity = '0.5';
+              }
+              
+              const response = await fetch(url.pathname);
+              const html = await response.text();
+              const parser = new DOMParser();
+              const newDoc = parser.parseFromString(html, 'text/html');
+              
+              // Use View Transition API
+              const transition = document.startViewTransition(() => {
+                // Replace only the body content, preserving theme on documentElement
+                document.body.innerHTML = newDoc.body.innerHTML;
+                
+                // Update page title
+                document.title = newDoc.title;
+                
+                // Re-initialize animations and observers
+                initPageAnimations();
+                
+                // Re-initialize intersection observer for new images
+                const images = document.querySelectorAll('img');
+                images.forEach(img => observer.observe(img));
+              });
+              
+              await transition.finished;
+            }
+          });
+        }
+      }
+    });
+  }
+  
+  initPageAnimations();
 });
 
 // ========================================

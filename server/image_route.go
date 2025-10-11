@@ -27,7 +27,8 @@ func ImageRoute(store *store.Store) func(c echo.Context) error {
 				headers := entry.HTTPHeaders
 
 				c.Response().Header().Set("Content-Type", headers.ContentType)
-				c.Response().Header().Set("Cache-Control", "public, max-age=5")
+				// Short cache for fast updates, but with stale-while-revalidate for smooth UX
+				c.Response().Header().Set("Cache-Control", "public, max-age=2, stale-while-revalidate=8")
 				c.Response().Header().Set("ETag", entry.Image.ETag)
 				c.Response().Header().Set("Content-Length", fmt.Sprintf("%d", headers.ContentLength))
 
