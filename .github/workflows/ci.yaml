@@ -66,20 +66,8 @@ jobs:
       - name: Verify Docker is available
         run: docker version
 
-      - name: Prepare artifacts dir
-        run: mkdir -p artifacts
-
-      - name: Run unit tests
-        run: |
-          bazel test --config=ci --test_tag_filters=-integration,-manual \
-            --build_event_json_file=artifacts/unit-bep.json \
-            //...
-
-      - name: Run container integration test
-        run: |
-          bazel test --config=ci \
-            --build_event_json_file=artifacts/container-bep.json \
-            //:container_test
+      - name: Run all tests
+        run: bazel test --config=ci //...
 
       - name: Upload test results
         if: failure()
@@ -87,9 +75,7 @@ jobs:
         with:
           name: test-logs
           retention-days: 7
-          path: |
-            artifacts/**
-            bazel-testlogs/**/test.log
+          path: bazel-testlogs/**/test.log
 
       - name: Cleanup BuildBuddy config
         if: always()
