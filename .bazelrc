@@ -77,13 +77,11 @@ test:ci --announce_rc
 # Mark tests with 'no-remote-exec' or 'local' tags to run locally
 common --modify_execution_info=TestRunner.no-remote-exec=+no-remote-exec
 common --modify_execution_info=TestRunner.local=+no-remote-exec
-# Set execution strategy: try remote first, fall back to local
-common --remote_local_fallback
-# Only run tests remotely, keep builds local to avoid platform issues
-common --strategy=TestRunner=remote,local
-common --strategy=GoLink=local
-common --strategy=GoCompile=local
+# Platform-specific actions always run locally
 common --strategy=PackageTar=local
+common --strategy=OCIDescriptor=local
+common --strategy=OCIImage=local
+common --strategy=OCITarballManifest=local
 common --genrule_strategy=local
 
 # Remote cache configuration (optional - requires setup)
