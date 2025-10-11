@@ -56,6 +56,8 @@ jobs:
           common --remote_header=x-buildbuddy-api-key=${BUILDBUDDY_API_KEY}
           common --remote_timeout=60s
           common --remote_upload_local_results=true
+          common  --bes_results_url=https://app.buildbuddy.io/invocation/
+          common --remote_executor=grpcs://remote.buildbuddy.io
           # Optimize remote cache performance
           common --remote_cache_compression
           common --remote_download_toplevel
