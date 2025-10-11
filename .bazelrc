@@ -63,6 +63,10 @@ build:ci --color=yes
 build:ci --announce_rc
 build:ci --local_resources=cpu=HOST_CPUS*0.75
 build:ci --local_resources=memory=HOST_RAM*0.75
+# Speed up analysis phase
+build:ci --loading_phase_threads=HOST_CPUS
+build:ci --experimental_merged_skyframe_analysis_execution
+build:ci --nobuild_event_publish_all_actions
 
 test:ci --test_output=errors
 test:ci --test_summary=detailed
