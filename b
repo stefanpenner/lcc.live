@@ -81,7 +81,7 @@ opt)
 
 deploy)
   echo "🧪 Running tests..."
-  bazel test //.
+  bazel test //...
   echo "🚀 Deploying..."
   bazel run --config=opt //:deploy
   ;;
