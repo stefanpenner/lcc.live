@@ -45,7 +45,7 @@ jobs:
           repository-cache: true
 
       - name: Configure BuildBuddy remote cache
-        if: secrets.BUILDBUDDY_API_KEY != ''
+        if: ${{ secrets.BUILDBUDDY_API_KEY != '' }}
         run: |
           cat > .bazelrc.remote.ci << EOF
           # BuildBuddy remote cache configuration
