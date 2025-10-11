@@ -6,5 +6,7 @@ bazel-*
 
 # Bazel local config files (may contain credentials)
 .bazelrc.remote
+.bazelrc.remote.ci
 .bazelrc.user
 .bazelrc.ci
+.bazelrc.buildbuddy

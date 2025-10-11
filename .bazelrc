@@ -78,5 +78,8 @@ test:ci --announce_rc
 # Example for BuildBuddy: build --remote_cache=grpcs://remote.buildbuddy.io
 try-import %workspace%/.bazelrc.remote
 
+# CI-specific remote cache (created dynamically in CI)
+try-import %workspace%/.bazelrc.remote.ci
+
 # Try to import user-specific .bazelrc
 try-import %workspace%/.bazelrc.user
