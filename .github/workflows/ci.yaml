@@ -47,9 +47,10 @@ jobs:
       - name: Configure BuildBuddy remote cache
         env:
           BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY }}
-        if: env.BUILDBUDDY_API_KEY != ''
         run: |
-          cat > .bazelrc.remote.ci << EOF
+          if [ -n "${BUILDBUDDY_API_KEY}" ]; then
+            echo "✅ BuildBuddy API key is set (length: ${#BUILDBUDDY_API_KEY})"
+            cat > .bazelrc.remote.ci << EOF
           # BuildBuddy remote cache configuration
           common --remote_cache=grpcs://remote.buildbuddy.io
           common --remote_header=x-buildbuddy-api-key=${BUILDBUDDY_API_KEY}
@@ -59,9 +60,12 @@ jobs:
           common --remote_cache_compression
           common --remote_download_toplevel
           EOF
-          
-          echo "✅ BuildBuddy remote cache configured"
-          echo "📊 Monitor builds at: https://app.buildbuddy.io"
+            echo "✅ BuildBuddy remote cache configured"
+            echo "📊 Monitor builds at: https://app.buildbuddy.io"
+          else
+            echo "⚠️  BuildBuddy API key not set - skipping remote cache"
+            echo "To enable: Add BUILDBUDDY_API_KEY to repository secrets"
+          fi
 
       - name: Verify Docker is available
         run: docker version
