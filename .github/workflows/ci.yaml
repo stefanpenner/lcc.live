@@ -67,7 +67,18 @@ jobs:
         run: docker version
 
       - name: Run all tests
-        run: bazel test --config=ci //...
+        run: |
+          echo "🔍 Checking Bazel config..."
+          if [ -f .bazelrc.remote.ci ]; then
+            echo "✅ .bazelrc.remote.ci exists"
+            echo "Remote cache config:"
+            grep "remote_cache" .bazelrc.remote.ci || echo "No remote_cache found"
+          else
+            echo "⚠️  .bazelrc.remote.ci not found"
+          fi
+          echo ""
+          echo "🧪 Running tests..."
+          bazel test --config=ci //...
 
       - name: Upload test results
         if: failure()
