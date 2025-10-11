@@ -128,22 +128,32 @@ class Overlay extends HTMLElement {
   hide() {
     this.style.display = "none";
     this.empty();
-    // Restore scrolling
-    document.body.style.overflow = "";
-    document.body.style.position = "";
-    document.body.style.width = "";
-    document.body.style.height = "";
-    document.body.style.top = "";
-    // Restore scroll position
-    if (this.scrollPosition !== undefined) {
-      window.scrollTo(0, this.scrollPosition);
-      this.scrollPosition = undefined;
-    }
     
-    // Remove touch event listener
+    // Remove touch event listener first
     if (this.preventScrollHandler) {
       document.removeEventListener('touchmove', this.preventScrollHandler);
       this.preventScrollHandler = null;
+    }
+    
+    // Store scroll position before clearing styles
+    const scrollPos = this.scrollPosition || 0;
+    
+    // Clear all body styles that were set
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('position');
+    document.body.style.removeProperty('width');
+    document.body.style.removeProperty('height');
+    document.body.style.removeProperty('top');
+    
+    // Restore scroll position after clearing position:fixed
+    if (this.scrollPosition !== undefined) {
+      // Use requestAnimationFrame to ensure styles are cleared first
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollPos);
+        // Force a reflow to ensure scroll is enabled
+        document.body.offsetHeight;
+      });
+      this.scrollPosition = undefined;
     }
     
     // Restore focus to the camera that was opened
@@ -164,13 +174,14 @@ class Overlay extends HTMLElement {
 
   show() {
     this.style.display = "flex";
+    // Store scroll position first, before any body modifications
+    this.scrollPosition = window.scrollY || window.pageYOffset;
+    
     // Disable scrolling
     document.body.style.overflow = "hidden";
     document.body.style.position = "fixed";
     document.body.style.width = "100%";
     document.body.style.height = "100%";
-    // Store scroll position to restore later
-    this.scrollPosition = window.scrollY || window.pageYOffset;
     document.body.style.top = `-${this.scrollPosition}px`;
     
     // Add touch event listener to prevent scrolling

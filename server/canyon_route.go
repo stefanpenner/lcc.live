@@ -26,18 +26,20 @@ func CanyonRoute(store *store.Store, canyonID string) func(c echo.Context) error
 			c.Response().Header().Set("Content-Type", "text/html; charset=UTF-8")
 		}
 
+		// Include version in ETag so deploys automatically bust cache
 		// Use different ETags for JSON vs HTML to prevent cache confusion
-		// This ensures Cloudflare caches them separately
-		etag := canyon.ETag
+		version := GetVersionString()
+		etag := canyon.ETag + "-" + version
 		if isJSON {
-			etag = canyon.ETag + "-json"
+			etag = etag + "-json"
 		} else {
-			etag = canyon.ETag + "-html"
+			etag = etag + "-html"
 		}
 
-		// Use stale-while-revalidate for smoother UX
-		// Allows serving stale content while fetching fresh in background
-		c.Response().Header().Set("Cache-Control", "public, max-age=10, stale-while-revalidate=30, must-revalidate")
+		// Longer max-age with stale-while-revalidate for better performance
+		// Cloudflare will serve from cache for 30s, then revalidate in background
+		// When version changes, ETag changes automatically, so no manual purge needed
+		c.Response().Header().Set("Cache-Control", "public, max-age=30, stale-while-revalidate=60, must-revalidate")
 		c.Response().Header().Set("ETag", etag)
 
 		// Add Vary header to ensure Cloudflare caches by Content-Type

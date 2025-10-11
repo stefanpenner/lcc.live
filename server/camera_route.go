@@ -66,17 +66,19 @@ func CameraRoute(store *store.Store) func(c echo.Context) error {
 			c.Response().Header().Set("Content-Type", "text/html; charset=UTF-8")
 		}
 
+		// Include version in ETag so deploys automatically bust cache
 		// Use different ETags for JSON vs HTML to prevent cache confusion
-		// This ensures Cloudflare caches them separately
-		etag := entry.Image.ETag
+		version := GetVersionString()
+		etag := entry.Image.ETag + "-" + version
 		if isJSON {
-			etag = entry.Image.ETag + "-json"
+			etag = etag + "-json"
 		} else {
-			etag = entry.Image.ETag + "-html"
+			etag = etag + "-html"
 		}
 
-		// Set cache headers similar to canyon pages
-		c.Response().Header().Set("Cache-Control", "public, no-cache, must-revalidate")
+		// Use max-age with stale-while-revalidate for better performance
+		// When version changes, ETag changes automatically, so no manual purge needed
+		c.Response().Header().Set("Cache-Control", "public, max-age=30, stale-while-revalidate=60, must-revalidate")
 		c.Response().Header().Set("ETag", etag)
 
 		// Add Vary header to ensure Cloudflare caches by Content-Type

@@ -27,8 +27,12 @@ func ImageRoute(store *store.Store) func(c echo.Context) error {
 				headers := entry.HTTPHeaders
 
 				c.Response().Header().Set("Content-Type", headers.ContentType)
-				// Short cache for fast updates, but with stale-while-revalidate for smooth UX
-				c.Response().Header().Set("Cache-Control", "public, max-age=2, stale-while-revalidate=8")
+				// Longer cache with stale-while-revalidate for better CDN efficiency
+				// Images change frequently (~3 seconds), so this provides a good balance:
+				// - Cloudflare caches for 10s (reduces origin load)
+				// - stale-while-revalidate allows serving slightly stale while fetching fresh
+				// - ETag validation ensures clients get new images when they change
+				c.Response().Header().Set("Cache-Control", "public, max-age=10, stale-while-revalidate=20")
 				c.Response().Header().Set("ETag", entry.Image.ETag)
 				c.Response().Header().Set("Content-Length", fmt.Sprintf("%d", headers.ContentLength))
 

@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
+	"net/http"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -95,7 +96,18 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error)
 	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
 		Level: 5,
 	}))
-	e.StaticFS("/s", staticFS)
+
+	// Serve static files with long-term caching
+	// These files (CSS, JS, images) are versioned via their URLs or rarely change
+	e.GET("/s/*", func(c echo.Context) error {
+		// Set aggressive caching for static assets
+		// Long cache time is safe because:
+		// 1. Static files rarely change
+		// 2. HTML pages are already cache-busted via version ETags
+		// 3. When HTML changes, it references new/updated static files
+		c.Response().Header().Set("Cache-Control", "public, max-age=86400, immutable")
+		return echo.WrapHandler(http.StripPrefix("/s", http.FileServer(http.FS(staticFS))))(c)
+	})
 
 	// Custom logger middleware that routes through our UI
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
