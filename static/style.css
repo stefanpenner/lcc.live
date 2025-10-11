@@ -554,7 +554,9 @@ the-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
   height: 100vh;
   cursor: zoom-out;
   min-height: 100vh;
@@ -566,7 +568,11 @@ the-overlay {
   align-items: center;
   justify-content: center;
   padding: 0;
-  animation: fadeIn 0.15s ease;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: none;
 }
 
 the-overlay[style*="display: block"],
@@ -577,24 +583,53 @@ the-overlay[style*="display: flex"] {
 /* Disable scrolling when overlay is visible */
 body:has(the-overlay[style*="display: flex"]) {
   overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
 }
 
 /* iOS-specific fixes for fullscreen */
 @supports (-webkit-touch-callout: none) {
+  /* Target iOS devices specifically */
   the-overlay {
+    position: fixed;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    height: 100vh;
+    min-height: 100vh;
+    max-height: 100vh;
     height: -webkit-fill-available;
     min-height: -webkit-fill-available;
+    max-height: -webkit-fill-available;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
   }
 
   the-overlay camera-feed {
+    height: 100vh;
+    max-height: 100vh;
     height: -webkit-fill-available;
     max-height: -webkit-fill-available;
     cursor: zoom-out;
+    width: 100vw;
   }
 
   the-overlay img,
   the-overlay iframe {
+    max-height: 100vh;
     max-height: -webkit-fill-available;
+    width: 100vw;
+  }
+  
+  /* Prevent iOS Safari from allowing scroll-behind when overlay is open */
+  body:has(the-overlay[style*="display: flex"]) {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
   }
 }
 

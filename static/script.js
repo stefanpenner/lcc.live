@@ -130,6 +130,22 @@ class Overlay extends HTMLElement {
     this.empty();
     // Restore scrolling
     document.body.style.overflow = "";
+    document.body.style.position = "";
+    document.body.style.width = "";
+    document.body.style.height = "";
+    document.body.style.top = "";
+    // Restore scroll position
+    if (this.scrollPosition !== undefined) {
+      window.scrollTo(0, this.scrollPosition);
+      this.scrollPosition = undefined;
+    }
+    
+    // Remove touch event listener
+    if (this.preventScrollHandler) {
+      document.removeEventListener('touchmove', this.preventScrollHandler);
+      this.preventScrollHandler = null;
+    }
+    
     // Restore focus to the camera that was opened
     if (this.currentIndex >= 0 && this.cameras[this.currentIndex]) {
       this.cameras[this.currentIndex].focus();
@@ -150,6 +166,28 @@ class Overlay extends HTMLElement {
     this.style.display = "flex";
     // Disable scrolling
     document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.width = "100%";
+    document.body.style.height = "100%";
+    // Store scroll position to restore later
+    this.scrollPosition = window.scrollY || window.pageYOffset;
+    document.body.style.top = `-${this.scrollPosition}px`;
+    
+    // Add touch event listener to prevent scrolling
+    this.preventScrollHandler = (e) => {
+      // Allow horizontal swipes but prevent vertical scrolling
+      const touch = e.touches[0];
+      if (this.touchStartY !== undefined) {
+        const deltaY = Math.abs(touch.screenY - this.touchStartY);
+        const deltaX = Math.abs(touch.screenX - this.touchStartX);
+        // If vertical movement is greater than horizontal, prevent it
+        if (deltaY > deltaX && deltaY > 10) {
+          e.preventDefault();
+        }
+      }
+    };
+    document.addEventListener('touchmove', this.preventScrollHandler, { passive: false });
+    
     this.reload();
   }
 
@@ -164,10 +202,6 @@ class Overlay extends HTMLElement {
     const cloned = camera.cloneNode(true);
     cloned.removeAttribute("tabindex");
     cloned.setAttribute("role", "img");
-    
-    // Add smooth fade-in
-    cloned.style.opacity = "0";
-    cloned.style.transition = "opacity 0.2s ease";
 
     this.empty();
     this.appendChild(cloned);
@@ -183,11 +217,6 @@ class Overlay extends HTMLElement {
         img.addEventListener("load", () => this.applyImageSizing(img));
       }
     }
-    
-    // Trigger fade-in
-    requestAnimationFrame(() => {
-      cloned.style.opacity = "1";
-    });
   }
 
   applyImageSizing(img) {
@@ -357,15 +386,26 @@ async function reloadImage(img) {
           requestAnimationFrame(() => {
             const oldSrc = img.src;
             
-            // Instant atomic swap - no flicker
-            img.src = newUrl;
+            // Smooth fade transition for image updates
+            img.style.transition = 'opacity 0.2s ease';
+            img.style.opacity = '0.7';
             
-            // Clean up old blob URL after a delay
             setTimeout(() => {
-              if (oldSrc.startsWith('blob:')) {
-                URL.revokeObjectURL(oldSrc);
-              }
-            }, 1000);
+              // Atomic swap while faded
+              img.src = newUrl;
+              
+              // Fade back in
+              requestAnimationFrame(() => {
+                img.style.opacity = '1';
+              });
+              
+              // Clean up old blob URL after a delay
+              setTimeout(() => {
+                if (oldSrc.startsWith('blob:')) {
+                  URL.revokeObjectURL(oldSrc);
+                }
+              }, 1000);
+            }, 100);
           });
         };
         tempImg.onerror = () => {
@@ -398,22 +438,10 @@ const observer = new IntersectionObserver((entries) => {
 
 images.forEach(img => observer.observe(img));
 
-// Subtle page load animations with View Transitions API support
+// Page initialization (no animations)
 function initPageAnimations() {
-  // Subtle fade in for camera feeds (only if user prefers motion)
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  
-  if (!prefersReducedMotion) {
-    const feeds = document.querySelectorAll('camera-feed');
-    feeds.forEach((feed, index) => {
-      feed.style.opacity = '0';
-      feed.style.transition = 'opacity 0.25s ease';
-      
-      setTimeout(() => {
-        feed.style.opacity = '1';
-      }, 30 + (index * 20)); // Quick stagger
-    });
-  }
+  // Initialization function for future use
+  // No fade-in animations on page load
 }
 
 document.addEventListener('DOMContentLoaded', () => {
