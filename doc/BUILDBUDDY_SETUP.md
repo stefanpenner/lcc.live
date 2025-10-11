@@ -55,7 +55,7 @@ echo "bbapi-xxxxxxxxxxxxx" | gh secret set BUILDBUDDY_API_KEY
 
 ## Step 4: Update GitHub Actions Workflow
 
-**Secure approach**: Create a temporary `.bazelrc` file that's never committed.
+**Secure approach**: Inline the secret directly where it's used. GitHub Actions automatically masks `${{ secrets.* }}` in logs.
 
 Update `.github/workflows/ci.yaml`:
 
@@ -64,26 +64,9 @@ jobs:
   test:
     name: Build and Test
     runs-on: ubuntu-latest
-    env:
-      BAZELISK_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # BuildBuddy API key (stored in GitHub Secrets)
-      BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY }}
-    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Mount Bazel cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/bazel
-            ~/.cache/bazelisk
-            ~/.cache/bazel-disk-cache
-            ~/.cache/bazel-repo
-          key: ${{ runner.os }}-bazel-${{ hashFiles('**/BUILD.bazel', 'MODULE.bazel', 'MODULE.bazel.lock', 'go.mod', 'go.sum', '.bazelversion') }}
-          restore-keys: |
-            ${{ runner.os }}-bazel-
 
       - name: Setup Bazel
         uses: bazel-contrib/setup-bazel@0.8.1
@@ -92,65 +75,29 @@ jobs:
           disk-cache: true
           repository-cache: true
 
-      # ✅ SECURE: Create temporary config file (never committed)
+      # ✅ SECURE: Inline secret directly (GitHub masks it in logs)
       - name: Configure BuildBuddy remote cache
-        if: env.BUILDBUDDY_API_KEY != ''
+        if: secrets.BUILDBUDDY_API_KEY != ''
         run: |
-          # Create temporary bazelrc with remote cache config
-          cat > .bazelrc.buildbuddy << EOF
-          # BuildBuddy remote cache configuration
+          cat > .bazelrc.remote.ci << EOF
           build --remote_cache=grpcs://remote.buildbuddy.io
-          build --remote_header=x-buildbuddy-api-key=${BUILDBUDDY_API_KEY}
+          build --remote_header=x-buildbuddy-api-key=${{ secrets.BUILDBUDDY_API_KEY }}
           build --remote_timeout=60s
           build --remote_upload_local_results=true
+          build --experimental_remote_cache_compression
+          build --remote_download_toplevel
           EOF
           
           echo "✅ BuildBuddy remote cache configured"
 
-      - name: Verify Docker is available
-        run: docker version
+      - name: Run tests
+        run: bazel test --config=ci //...
+        # .bazelrc.remote.ci automatically loaded via try-import
 
-      - name: Prepare artifacts dir
-        run: mkdir -p artifacts
-
-      - name: Run unit tests
-        run: |
-          # Import BuildBuddy config if it exists
-          if [ -f .bazelrc.buildbuddy ]; then
-            BAZEL_OPTS="--bazelrc=.bazelrc.buildbuddy"
-          fi
-          
-          bazel test --config=ci $BAZEL_OPTS --test_tag_filters=-integration,-manual \
-            --build_event_json_file=artifacts/unit-bep.json \
-            //...
-
-      - name: Run container integration test
-        run: |
-          # Import BuildBuddy config if it exists
-          if [ -f .bazelrc.buildbuddy ]; then
-            BAZEL_OPTS="--bazelrc=.bazelrc.buildbuddy"
-          fi
-          
-          bazel test --config=ci $BAZEL_OPTS \
-            --build_event_json_file=artifacts/container-bep.json \
-            //:container_test
-
-      # ✅ SECURE: Clean up temporary config (defense in depth)
+      # ✅ SECURE: Clean up (defense in depth)
       - name: Cleanup BuildBuddy config
         if: always()
-        run: |
-          rm -f .bazelrc.buildbuddy
-          echo "✅ Cleaned up temporary config"
-
-      - name: Upload test results
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-logs
-          retention-days: 7
-          path: |
-            artifacts/**
-            bazel-testlogs/**/test.log
+        run: rm -f .bazelrc.remote.ci
 ```
 
 ## Security Best Practices
@@ -162,22 +109,23 @@ jobs:
    - Only accessible to workflows
    - Not visible in logs
 
-2. **Create temporary config file**
+2. **Inline secret directly**
+   - `${{ secrets.BUILDBUDDY_API_KEY }}`
+   - GitHub Actions automatically masks in logs
+   - Simple and clean
+
+3. **Create temporary config file**
    - Never committed to git
    - Created during workflow run
    - Deleted after use
 
-3. **Use environment variables**
-   - Reference as `${BUILDBUDDY_API_KEY}`
-   - GitHub Actions masks these in logs
-
 4. **Check if key exists**
-   - `if: env.BUILDBUDDY_API_KEY != ''`
+   - `if: secrets.BUILDBUDDY_API_KEY != ''`
    - Gracefully degrades if secret not set
 
-5. **Pass via `--bazelrc` flag**
-   - Keeps config isolated
-   - Not in default `.bazelrc`
+5. **Auto-load via try-import**
+   - `.bazelrc` has `try-import .bazelrc.remote.ci`
+   - No manual `--bazelrc` flags needed
 
 ### ❌ What NOT to Do
 
@@ -197,42 +145,34 @@ run: echo "build --remote_header=x-buildbuddy-api-key=${BUILDBUDDY_API_KEY}" >> 
     path: .bazelrc.buildbuddy  # Contains secret!
 ```
 
-## Alternative Approach: Use .bazelrc.remote.ci
+## Why Inlining Secrets Is Safe
 
-If you prefer to keep the BuildBuddy config separate:
+You might wonder: "Isn't putting the secret directly in the YAML risky?"
 
-### Update `.bazelrc`
+**No! It's safe because:**
 
-Add at the bottom:
-```bash
-# CI-specific remote cache (created dynamically in CI)
-try-import %workspace%/.bazelrc.remote.ci
-```
+1. **GitHub masks `${{ secrets.* }}` automatically**
+   - Any output containing the secret value is replaced with `***`
+   - Applies to all logs, even debug output
 
-### Update workflow
+2. **The secret never appears in the YAML source**
+   - `${{ secrets.BUILDBUDDY_API_KEY }}` is just a reference
+   - GitHub Actions substitutes it at runtime
+   - The actual value never exists in git
+
+3. **The temporary file is never committed**
+   - Created during workflow execution
+   - Deleted after completion
+   - Already in `.gitignore` (defense in depth)
+
+### Verification
 
 ```yaml
-- name: Configure BuildBuddy remote cache
-  if: env.BUILDBUDDY_API_KEY != ''
-  run: |
-    cat > .bazelrc.remote.ci << EOF
-    build --remote_cache=grpcs://remote.buildbuddy.io
-    build --remote_header=x-buildbuddy-api-key=${BUILDBUDDY_API_KEY}
-    EOF
+# This is safe:
+build --remote_header=x-buildbuddy-api-key=${{ secrets.BUILDBUDDY_API_KEY }}
 
-- name: Run tests
-  run: bazel test --config=ci //...
-  # Config automatically loaded via try-import
-```
-
-### Update `.gitignore`
-
-Already done! ✅
-```bash
-# Bazel local config files (may contain credentials)
-.bazelrc.remote
-.bazelrc.remote.ci
-.bazelrc.user
+# Output in logs will show:
+build --remote_header=x-buildbuddy-api-key=***
 ```
 
 ## Step 5: Verify It's Working
