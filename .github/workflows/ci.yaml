@@ -77,7 +77,7 @@ jobs:
       - name: Verify Docker is available
         run: docker version
 
-      - name: Run all tests (including container integration)
+      - name: Run all tests
         run: |
           echo "🔍 Checking Bazel config..."
           if [ -f .bazelrc.remote.ci ]; then
