@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
-	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
@@ -15,8 +14,8 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 
+	"github.com/stefanpenner/lcc-live/logger"
 	"github.com/stefanpenner/lcc-live/metrics"
-	"github.com/stefanpenner/lcc-live/style"
 )
 
 const (
@@ -39,6 +38,8 @@ type Store struct {
 	mu                         sync.RWMutex
 	imagesReady                sync.WaitGroup
 	isWaitingOnFirstImageReady atomic.Bool
+	syncCallback               func(duration time.Duration, changed, unchanged, errors int)
+	syncCallbackMu             sync.Mutex
 }
 
 type Entry struct {
@@ -215,8 +216,6 @@ func (s *Store) Canyon(canyon string) *Canyon {
 // 2. provide "camera down" or "camera live" UI
 // 2. provide image updates via push of some sort
 func (s *Store) FetchImages(ctx context.Context) {
-	fmt.Println(style.Info.Render("📸 Starting image fetch for all cameras..."))
-
 	// Start timing for metrics
 	timer := metrics.ImageFetchDuration
 	startTime := time.Now()
@@ -277,8 +276,6 @@ func (s *Store) FetchImages(ctx context.Context) {
 			defer cancel()
 			headReq, err := http.NewRequestWithContext(headCtx, "HEAD", src, nil)
 			if err != nil {
-				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error creating HEAD request for %s: %v",
-					style.URL.Render(src), err)))
 				atomic.AddInt32(&errorCount, 1)
 				metrics.ImageFetchErrorsTotal.WithLabelValues("head_request").Inc()
 				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
@@ -297,8 +294,6 @@ func (s *Store) FetchImages(ctx context.Context) {
 				if ctx.Err() != nil {
 					return
 				}
-				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error making HEAD request for %s (camera: %s, origin: %s): %v",
-					style.URL.Render(src), cameraName, origin, err)))
 				atomic.AddInt32(&errorCount, 1)
 				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
 				metrics.OriginFetchTotal.WithLabelValues(origin, "error").Inc()
@@ -327,8 +322,6 @@ func (s *Store) FetchImages(ctx context.Context) {
 			defer cancel()
 			getReq, err := http.NewRequestWithContext(getCtx, "GET", src, nil)
 			if err != nil {
-				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error creating GET request for %s: %v",
-					style.URL.Render(src), err)))
 				atomic.AddInt32(&errorCount, 1)
 				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
 				metrics.OriginFetchTotal.WithLabelValues(origin, "error").Inc()
@@ -346,8 +339,6 @@ func (s *Store) FetchImages(ctx context.Context) {
 				if ctx.Err() != nil {
 					return
 				}
-				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error fetching image %s (camera: %s, origin: %s): %v",
-					style.URL.Render(src), cameraName, origin, err)))
 				atomic.AddInt32(&errorCount, 1)
 				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
 				metrics.OriginFetchTotal.WithLabelValues(origin, "error").Inc()
@@ -358,19 +349,6 @@ func (s *Store) FetchImages(ctx context.Context) {
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusOK {
-				// Read response body for diagnostic info (limit to 500 bytes)
-				bodySnippet := ""
-				if body, err := io.ReadAll(io.LimitReader(resp.Body, 500)); err == nil && len(body) > 0 {
-					bodySnippet = fmt.Sprintf(", body: %s", string(body))
-				}
-
-				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Bad status code from %s: %d %s (Content-Type: %s, Server: %s%s)",
-					style.URL.Render(src),
-					resp.StatusCode,
-					http.StatusText(resp.StatusCode),
-					resp.Header.Get("Content-Type"),
-					resp.Header.Get("Server"),
-					bodySnippet)))
 				atomic.AddInt32(&errorCount, 1)
 				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
 				metrics.OriginFetchTotal.WithLabelValues(origin, "error").Inc()
@@ -384,8 +362,6 @@ func (s *Store) FetchImages(ctx context.Context) {
 
 			imageBytes, err := io.ReadAll(resp.Body)
 			if err != nil {
-				fmt.Println(style.Error.Render(fmt.Sprintf("❌ Error reading image body from %s (camera: %s, origin: %s, content-length: %d): %v",
-					style.URL.Render(src), cameraName, origin, resp.ContentLength, err)))
 				atomic.AddInt32(&errorCount, 1)
 				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
 				metrics.OriginFetchTotal.WithLabelValues(origin, "error").Inc()
@@ -445,17 +421,29 @@ func (s *Store) FetchImages(ctx context.Context) {
 	// Update memory usage metrics
 	metrics.RecordMemoryUsage()
 
-	summary := fmt.Sprintf("  ✨ Fetch complete in %v\n"+
-		"  ✅ Changed: %d\n"+
-		"  💤 Unchanged: %d\n"+
-		"  ❌ Errors: %d",
-		duration.Round(time.Millisecond), changedCount, unchangedCount, errorCount)
-
-	if errorCount > 0 {
-		fmt.Println(style.Error.Render(summary))
-	} else {
-		fmt.Println(style.Success.Render(summary))
+	// Print summary
+	summary := logger.FetchSummary{
+		Duration:  duration,
+		Changed:   int(changedCount),
+		Unchanged: int(unchangedCount),
+		Errors:    int(errorCount),
+		Total:     int(changedCount + unchangedCount + errorCount),
 	}
+	summary.Print()
+
+	// Call sync callback if set
+	s.syncCallbackMu.Lock()
+	if s.syncCallback != nil {
+		s.syncCallback(duration, int(changedCount), int(unchangedCount), int(errorCount))
+	}
+	s.syncCallbackMu.Unlock()
+}
+
+// SetSyncCallback sets a callback to be called after each sync
+func (s *Store) SetSyncCallback(cb func(duration time.Duration, changed, unchanged, errors int)) {
+	s.syncCallbackMu.Lock()
+	s.syncCallback = cb
+	s.syncCallbackMu.Unlock()
 }
 
 func (s *Store) Get(cameraID string) (EntrySnapshot, bool) {

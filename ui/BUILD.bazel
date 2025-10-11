@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "ui",
+    srcs = ["ui.go"],
+    importpath = "github.com/stefanpenner/lcc-live/ui",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_charmbracelet_bubbles//viewport",
+        "@com_github_charmbracelet_bubbletea//:bubbletea",
+        "@com_github_charmbracelet_lipgloss//:lipgloss",
+        "@com_github_mattn_go_isatty//:go-isatty",
+    ],
+)

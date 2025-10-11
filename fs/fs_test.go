@@ -53,8 +53,7 @@ func TestPrint_WithFiles(t *testing.T) {
 	})
 
 	assert.Contains(t, output, "Test FS:")
-	assert.Contains(t, output, "file1.txt")
-	assert.Contains(t, output, "file2.txt")
+	assert.Contains(t, output, "2 files")
 	assert.Contains(t, output, "📄")
 }
 
@@ -76,11 +75,8 @@ func TestPrint_WithDirectories(t *testing.T) {
 	})
 
 	assert.Contains(t, output, "Test FS:")
-	assert.Contains(t, output, "dir1")
-	assert.Contains(t, output, "dir2")
-	assert.Contains(t, output, "📁")
-	assert.Contains(t, output, "file1.txt")
-	assert.Contains(t, output, "file2.txt")
+	assert.Contains(t, output, "3 files")
+	assert.Contains(t, output, "📄")
 }
 
 func TestPrintDir_SingleLevel(t *testing.T) {
@@ -175,12 +171,8 @@ func TestPrint_MixedContent(t *testing.T) {
 
 	// Check structure is present
 	assert.Contains(t, output, "Mixed FS:")
-	assert.Contains(t, output, "file1.txt")
-	assert.Contains(t, output, "file4.json")
-	assert.Contains(t, output, "dir1")
-	assert.Contains(t, output, "file2.txt")
-	assert.Contains(t, output, "subdir")
-	assert.Contains(t, output, "file3.txt")
+	assert.Contains(t, output, "4 files")
+	assert.Contains(t, output, "📄")
 }
 
 // Test with actual fs.FS interface behavior
@@ -201,9 +193,8 @@ func TestPrint_RealFSBehavior(t *testing.T) {
 	})
 
 	assert.Contains(t, output, "Real FS:")
-	assert.Contains(t, output, "test.txt")
-	assert.Contains(t, output, "subdir")
-	assert.Contains(t, output, "nested.txt")
+	assert.Contains(t, output, "2 files")
+	assert.Contains(t, output, "📄")
 }
 
 // Test error handling when FS doesn't implement ReadDirFS

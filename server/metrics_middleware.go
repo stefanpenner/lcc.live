@@ -23,10 +23,14 @@ func MetricsMiddleware() echo.MiddlewareFunc {
 			err := next(c)
 
 			// Record duration and counts
-			duration := time.Since(start).Seconds()
+			elapsed := time.Since(start)
+			duration := elapsed.Seconds()
 			status := c.Response().Status
 			method := c.Request().Method
 			path := c.Path()
+
+			// Store latency in context for logger to use
+			c.Set("request_latency", elapsed)
 
 			// Normalize paths to avoid high cardinality
 			// Replace :id params with the placeholder
@@ -44,4 +48,3 @@ func MetricsMiddleware() echo.MiddlewareFunc {
 		}
 	}
 }
-
