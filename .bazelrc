@@ -5,9 +5,17 @@ build --incompatible_strict_action_env
 # Performance
 build --experimental_reuse_sandbox_directories
 build --nolegacy_external_runfiles
+build --experimental_inmemory_dotd_files
+build --experimental_inmemory_jdeps_files
 # Shared disk cache for action results across builds
 build --disk_cache=~/.cache/bazel-disk-cache
 build --repository_cache=~/.cache/bazel-repo
+# Optimize build parallelism
+build --local_resources=cpu=HOST_CPUS
+build --local_resources=memory=HOST_RAM*0.8
+build --jobs=auto
+# Faster analysis
+build --nobuild_runfile_links
 
 # Output
 build --show_progress_rate_limit=5
@@ -32,6 +40,9 @@ build --linkopt=-buildmode=pie
 # Test output
 test --test_output=errors
 test --test_summary=detailed
+# Optimize test execution
+test --local_test_jobs=auto
+test --test_verbose_timeout_warnings
 
 # Opt config (no-op since opt is already default, kept for backward compatibility)
 build:opt --compilation_mode=opt
@@ -50,13 +61,18 @@ build:debug --strip=never
 build:ci --curses=no
 build:ci --color=yes
 build:ci --announce_rc
-build:ci --local_cpu_resources=HOST_CPUS*0.75
-build:ci --local_ram_resources=HOST_RAM*0.75
+build:ci --local_resources=cpu=HOST_CPUS*0.75
+build:ci --local_resources=memory=HOST_RAM*0.75
 
 test:ci --test_output=errors
 test:ci --test_summary=detailed
 test:ci --flaky_test_attempts=2
 test:ci --announce_rc
+
+# Remote cache configuration (optional - requires setup)
+# To enable: create .bazelrc.remote with your remote cache settings
+# Example for BuildBuddy: build --remote_cache=grpcs://remote.buildbuddy.io
+try-import %workspace%/.bazelrc.remote
 
 # Try to import user-specific .bazelrc
 try-import %workspace%/.bazelrc.user

@@ -15,12 +15,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
-    name: Bazel and Container Tests
+  test:
+    name: Build and Test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      # Help Bazelisk avoid GitHub API rate limits
       BAZELISK_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout repository
@@ -34,7 +33,7 @@ jobs:
             ~/.cache/bazelisk
             ~/.cache/bazel-disk-cache
             ~/.cache/bazel-repo
-          key: ${{ runner.os }}-bazel-${{ hashFiles('MODULE.bazel', 'MODULE.bazel.lock', 'go.mod', 'go.sum', '.bazelversion') }}
+          key: ${{ runner.os }}-bazel-${{ hashFiles('**/BUILD.bazel', 'MODULE.bazel', 'MODULE.bazel.lock', 'go.mod', 'go.sum', '.bazelversion') }}
           restore-keys: |
             ${{ runner.os }}-bazel-
 
@@ -51,25 +50,24 @@ jobs:
       - name: Prepare artifacts dir
         run: mkdir -p artifacts
 
-      - name: Unit tests (Bazel)
+      - name: Run unit tests
         run: |
-          bazel test --config=ci --test_tag_filters=-integration \
+          bazel test --config=ci --test_tag_filters=-integration,-manual \
             --build_event_json_file=artifacts/unit-bep.json \
             //...
 
-      - name: Container integration test
+      - name: Run container integration test
         run: |
           bazel test --config=ci \
             --build_event_json_file=artifacts/container-bep.json \
             //:container_test
 
-      - name: Upload artifacts on failure
+      - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: bazel-logs
+          name: test-logs
           retention-days: 7
           path: |
             artifacts/**
             bazel-testlogs/**/test.log
-
