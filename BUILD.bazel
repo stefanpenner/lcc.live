@@ -13,6 +13,7 @@ gazelle(name = "gazelle")
 # Test that BUILD files are up to date
 gazelle_test(
     name = "gazelle_test",
+    tags = ["no-remote-exec"],  # Runs platform-specific binary
     workspace = ":BUILD.bazel",
 )
 

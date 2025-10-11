@@ -1,0 +1,21 @@
+# Remote cache configuration example
+# Copy this file to .bazelrc.remote and configure with your settings
+# .bazelrc.remote is git-ignored to keep credentials safe
+
+# BuildBuddy (Free tier: 10GB storage, unlimited users)
+# Sign up at: https://www.buildbuddy.io
+# Get API key from: https://app.buildbuddy.io/settings/
+build --remote_cache=grpcs://remote.buildbuddy.io
+build --remote_header=x-buildbuddy-api-key=YOUR_API_KEY_HERE
+
+# Optional: Only read from cache, don't upload (faster local builds)
+# Uncomment this line for read-only cache:
+# build --remote_upload_local_results=false
+
+# Optional: Remote execution (requires BuildBuddy Enterprise)
+# build --remote_executor=grpcs://remote.buildbuddy.io
+
+# Alternative: Use GitHub Actions cache as remote cache
+# This requires github-actions-cache proxy (not recommended for local dev)
+# build --remote_cache=http://localhost:8080
+

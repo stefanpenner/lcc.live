@@ -15,12 +15,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
-    name: Bazel and Container Tests
+  test:
+    name: Build and Test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      # Help Bazelisk avoid GitHub API rate limits
       BAZELISK_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout repository
@@ -34,7 +33,7 @@ jobs:
             ~/.cache/bazelisk
             ~/.cache/bazel-disk-cache
             ~/.cache/bazel-repo
-          key: ${{ runner.os }}-bazel-${{ hashFiles('MODULE.bazel', 'MODULE.bazel.lock', 'go.mod', 'go.sum', '.bazelversion') }}
+          key: ${{ runner.os }}-bazel-${{ hashFiles('**/BUILD.bazel', 'MODULE.bazel', 'MODULE.bazel.lock', 'go.mod', 'go.sum', '.bazelversion') }}
           restore-keys: |
             ${{ runner.os }}-bazel-
 
@@ -45,31 +44,64 @@ jobs:
           disk-cache: true
           repository-cache: true
 
+      - name: Configure BuildBuddy remote cache
+        env:
+          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY }}
+        run: |
+          if [ -n "${BUILDBUDDY_API_KEY}" ]; then
+            echo "✅ BuildBuddy API key is set (length: ${#BUILDBUDDY_API_KEY})"
+            cat > .bazelrc.remote.ci << EOF
+          # BuildBuddy remote cache and execution configuration for CI
+          common --remote_cache=grpcs://remote.buildbuddy.io
+          common --remote_header=x-buildbuddy-api-key=${BUILDBUDDY_API_KEY}
+          common --remote_timeout=60s
+          common --remote_upload_local_results=true
+          common --bes_results_url=https://app.buildbuddy.io/invocation/
+          common --remote_executor=grpcs://remote.buildbuddy.io
+          # Remote execution strategy: try remote first, fall back to local
+          common --remote_local_fallback
+          common --strategy=TestRunner=remote,local
+          common --strategy=GoLink=remote,local
+          common --strategy=GoCompile=remote,local
+          # Optimize remote cache performance
+          common --remote_cache_compression
+          common --remote_download_toplevel
+          EOF
+            echo "✅ BuildBuddy remote cache configured"
+            echo "📊 Monitor builds at: https://app.buildbuddy.io"
+          else
+            echo "⚠️  BuildBuddy API key not set - skipping remote cache"
+            echo "To enable: Add BUILDBUDDY_API_KEY to repository secrets"
+          fi
+
       - name: Verify Docker is available
         run: docker version
 
-      - name: Prepare artifacts dir
-        run: mkdir -p artifacts
-
-      - name: Unit tests (Bazel)
+      - name: Run all tests
         run: |
-          bazel test --config=ci --test_tag_filters=-integration \
-            --build_event_json_file=artifacts/unit-bep.json \
-            //...
+          echo "🔍 Checking Bazel config..."
+          if [ -f .bazelrc.remote.ci ]; then
+            echo "✅ .bazelrc.remote.ci exists"
+            echo "Remote cache config:"
+            grep "remote_cache" .bazelrc.remote.ci || echo "No remote_cache found"
+          else
+            echo "⚠️  .bazelrc.remote.ci not found"
+          fi
+          echo ""
+          echo "🧪 Running tests..."
+          bazel test --config=ci //...
 
-      - name: Container integration test
-        run: |
-          bazel test --config=ci \
-            --build_event_json_file=artifacts/container-bep.json \
-            //:container_test
-
-      - name: Upload artifacts on failure
+      - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: bazel-logs
+          name: test-logs
           retention-days: 7
-          path: |
-            artifacts/**
-            bazel-testlogs/**/test.log
+          path: bazel-testlogs/**/test.log
 
+      - name: Cleanup BuildBuddy config
+        if: always()
+        run: |
+          # Defense in depth: clean up temporary config file
+          rm -f .bazelrc.remote.ci
+          echo "✅ Cleaned up temporary config"
