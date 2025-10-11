@@ -92,18 +92,18 @@ jobs:
             
             # Update PR description
             gh pr edit ${{ steps.check_pr.outputs.pr_number }} --body "🔄 **Automated dependency update**
-
-This PR updates Go module dependencies to their latest versions.
-
-**Updated on:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
-
-**Changes:**
-\`\`\`diff
-$(git diff HEAD~1 go.mod | head -40)
-\`\`\`
-
----
-🤖 This PR will auto-merge when all checks pass."
+            
+            This PR updates Go module dependencies to their latest versions.
+            
+            **Updated on:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+            
+            **Changes:**
+            \`\`\`diff
+            $(git diff HEAD~1 go.mod | head -40)
+            \`\`\`
+            
+            ---
+            🤖 This PR will auto-merge when all checks pass."
           else
             echo "Creating new PR"
             
