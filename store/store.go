@@ -446,6 +446,13 @@ func (s *Store) SetSyncCallback(cb func(duration time.Duration, changed, unchang
 	s.syncCallbackMu.Unlock()
 }
 
+// IsReady returns true if the store has completed its initial image fetch
+// and is ready to serve requests. This is used by the healthcheck endpoint
+// to ensure the application is fully initialized before accepting traffic.
+func (s *Store) IsReady() bool {
+	return !s.isWaitingOnFirstImageReady.Load()
+}
+
 func (s *Store) Get(cameraID string) (EntrySnapshot, bool) {
 	s.imagesReady.Wait()
 	entry, exists := s.index[cameraID]

@@ -242,7 +242,7 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error)
 	e.GET("/camera/*", CameraRoute(store))
 	e.HEAD("/camera/*", CameraRoute(store))
 
-	e.GET("/healthcheck", HealthCheckRoute())
+	e.GET("/healthcheck", HealthCheckRoute(store))
 
 	// Internal/admin endpoints under /_/
 	// These endpoints should never be cached

@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"github.com/stefanpenner/lcc-live/store"
 	"github.com/stretchr/testify/assert"
@@ -100,6 +101,112 @@ func TestHealthCheckRoute(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(t, "OK", rec.Body.String())
+}
+
+func TestHealthCheckStates(t *testing.T) {
+	tmplFS := fstest.MapFS{
+		"canyon.html.tmpl": &fstest.MapFile{
+			Data: []byte(`<!DOCTYPE html><html><body>{{.Name}}</body></html>`),
+		},
+		"camera.html.tmpl": &fstest.MapFile{
+			Data: []byte(`<!DOCTYPE html><html><body>{{.Camera.Alt}}</body></html>`),
+		},
+	}
+	staticFS := fstest.MapFS{}
+
+	tests := []struct {
+		name           string
+		setupStore     func() *store.Store
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name: "not ready - images not fetched",
+			setupStore: func() *store.Store {
+				imageServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Type", "image/jpeg")
+					w.Header().Set("ETag", "\"test-etag\"")
+					if r.Method == "GET" {
+						w.Write([]byte("test image"))
+					}
+				}))
+				t.Cleanup(imageServer.Close)
+
+				canyons := &store.Canyons{
+					LCC: store.Canyon{
+						Name: "Little Cottonwood Canyon",
+						Cameras: []store.Camera{
+							{Kind: "webcam", Src: imageServer.URL + "/test.jpg", Alt: "Test Camera", Canyon: "LCC"},
+						},
+					},
+					BCC: store.Canyon{Name: "Big Cottonwood Canyon"},
+				}
+				// Don't fetch images - store should not be ready
+				return store.NewStore(canyons)
+			},
+			expectedStatus: http.StatusServiceUnavailable,
+			expectedBody:   "not ready",
+		},
+		{
+			name: "ready - images fetched",
+			setupStore: func() *store.Store {
+				imageServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Type", "image/jpeg")
+					w.Header().Set("ETag", "\"test-etag\"")
+					if r.Method == "GET" {
+						w.Write([]byte("test image"))
+					}
+				}))
+				t.Cleanup(imageServer.Close)
+
+				canyons := &store.Canyons{
+					LCC: store.Canyon{
+						Name: "Little Cottonwood Canyon",
+						Cameras: []store.Camera{
+							{Kind: "webcam", Src: imageServer.URL + "/test.jpg", Alt: "Test Camera", Canyon: "LCC"},
+						},
+					},
+					BCC: store.Canyon{Name: "Big Cottonwood Canyon"},
+				}
+				testStore := store.NewStore(canyons)
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				testStore.FetchImages(ctx)
+				return testStore
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody:   "OK",
+		},
+		{
+			name: "no cameras configured",
+			setupStore: func() *store.Store {
+				canyons := &store.Canyons{
+					LCC: store.Canyon{Name: "Little Cottonwood Canyon"},
+					BCC: store.Canyon{Name: "Big Cottonwood Canyon"},
+				}
+				testStore := store.NewStore(canyons)
+				testStore.FetchImages(context.Background())
+				return testStore
+			},
+			expectedStatus: http.StatusServiceUnavailable,
+			expectedBody:   "No cameras configured",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testStore := tt.setupStore()
+			app, err := Start(testStore, staticFS, tmplFS)
+			require.NoError(t, err)
+
+			req := httptest.NewRequest("GET", "/healthcheck", nil)
+			rec := httptest.NewRecorder()
+			app.ServeHTTP(rec, req)
+
+			assert.Equal(t, tt.expectedStatus, rec.Code)
+			assert.Contains(t, rec.Body.String(), tt.expectedBody)
+		})
+	}
 }
 
 func TestCanyonRoute_GET_LCC(t *testing.T) {
@@ -701,14 +808,127 @@ func TestCanyonRoute_JSON_Extension(t *testing.T) {
 	}
 }
 
-func TestCameraRoute_NotFound(t *testing.T) {
-	srv, _ := setupTestServer(t)
+func TestCameraRoute(t *testing.T) {
+	// Create shared test server and store
+	imageServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.Header().Set("ETag", "\"test-etag\"")
+		if r.Method == "GET" {
+			w.Write([]byte("test image data"))
+		}
+	}))
+	t.Cleanup(imageServer.Close)
 
-	req := httptest.NewRequest("GET", "/camera/nonexistent", nil)
-	rec := httptest.NewRecorder()
+	canyons := &store.Canyons{
+		LCC: store.Canyon{
+			Name: "Little Cottonwood Canyon",
+			Cameras: []store.Camera{
+				{Kind: "webcam", Src: imageServer.URL + "/test.jpg", Alt: "Test Camera", Canyon: "LCC"},
+			},
+		},
+		BCC: store.Canyon{Name: "Big Cottonwood Canyon"},
+	}
 
-	srv.Handler.ServeHTTP(rec, req)
+	testStore := store.NewStore(canyons)
+	testStore.FetchImages(context.Background())
 
-	assert.Equal(t, http.StatusNotFound, rec.Code)
-	assert.Contains(t, rec.Body.String(), "Camera not found")
+	tmplFS := fstest.MapFS{
+		"canyon.html.tmpl": &fstest.MapFile{
+			Data: []byte(`<!DOCTYPE html><html><body>{{.Name}}</body></html>`),
+		},
+		"camera.html.tmpl": &fstest.MapFile{
+			Data: []byte(`<!DOCTYPE html><html><head><title>{{.Camera.Alt}}</title></head><body><h1>{{.Camera.Alt}}</h1><img src="{{.ImageURL}}" /></body></html>`),
+		},
+	}
+	staticFS := fstest.MapFS{}
+
+	app, err := Start(testStore, staticFS, tmplFS)
+	require.NoError(t, err)
+
+	cameraID := testStore.Canyon("LCC").Cameras[0].ID
+
+	tests := []struct {
+		name           string
+		method         string
+		path           string
+		headers        map[string]string
+		expectedStatus int
+		checkResponse  func(t *testing.T, rec *httptest.ResponseRecorder)
+	}{
+		{
+			name:           "GET HTML success",
+			method:         "GET",
+			path:           "/camera/" + cameraID,
+			expectedStatus: http.StatusOK,
+			checkResponse: func(t *testing.T, rec *httptest.ResponseRecorder) {
+				assert.Contains(t, rec.Body.String(), "Test Camera")
+				assert.Contains(t, rec.Body.String(), "/image/"+cameraID)
+			},
+		},
+		{
+			name:           "GET JSON success",
+			method:         "GET",
+			path:           "/camera/" + cameraID + ".json",
+			expectedStatus: http.StatusOK,
+			checkResponse: func(t *testing.T, rec *httptest.ResponseRecorder) {
+				assert.Contains(t, rec.Header().Get("Content-Type"), "application/json")
+				assert.Contains(t, rec.Body.String(), "Test Camera")
+				assert.Contains(t, rec.Body.String(), cameraID)
+			},
+		},
+		{
+			name:           "HEAD request",
+			method:         "HEAD",
+			path:           "/camera/" + cameraID,
+			expectedStatus: http.StatusOK,
+			checkResponse: func(t *testing.T, rec *httptest.ResponseRecorder) {
+				assert.Empty(t, rec.Body.String())
+				assert.NotEmpty(t, rec.Header().Get("ETag"))
+			},
+		},
+		{
+			name:           "not found",
+			method:         "GET",
+			path:           "/camera/nonexistent",
+			expectedStatus: http.StatusNotFound,
+			checkResponse: func(t *testing.T, rec *httptest.ResponseRecorder) {
+				assert.Contains(t, rec.Body.String(), "Camera not found")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.path, nil)
+			for k, v := range tt.headers {
+				req.Header.Set(k, v)
+			}
+			rec := httptest.NewRecorder()
+
+			app.ServeHTTP(rec, req)
+
+			assert.Equal(t, tt.expectedStatus, rec.Code)
+			if tt.checkResponse != nil {
+				tt.checkResponse(t, rec)
+			}
+		})
+	}
+
+	// Test ETag Not Modified separately (requires two requests)
+	t.Run("ETag not modified", func(t *testing.T) {
+		// First request to get ETag
+		req1 := httptest.NewRequest("GET", "/camera/"+cameraID, nil)
+		rec1 := httptest.NewRecorder()
+		app.ServeHTTP(rec1, req1)
+		etag := rec1.Header().Get("ETag")
+
+		// Second request with If-None-Match
+		req2 := httptest.NewRequest("GET", "/camera/"+cameraID, nil)
+		req2.Header.Set("If-None-Match", etag)
+		rec2 := httptest.NewRecorder()
+		app.ServeHTTP(rec2, req2)
+
+		assert.Equal(t, http.StatusNotModified, rec2.Code)
+		assert.Empty(t, rec2.Body.String())
+	})
 }

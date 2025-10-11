@@ -73,6 +73,8 @@ go_test(
     srcs = ["main_test.go"],
     embed = [":lcc-live_lib"],
     deps = [
+        "//server",
+        "//store",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],

@@ -88,8 +88,9 @@ jobs:
             echo "⚠️  .bazelrc.remote.ci not found"
           fi
           echo ""
-          echo "🧪 Running tests..."
-          bazel test --config=ci //...
+          echo "🧪 Running all tests (unit + integration)..."
+          echo "This includes container smoke tests that verify the built image works."
+          bazel test --config=ci --test_output=errors //...
 
       - name: Upload test results
         if: failure()
