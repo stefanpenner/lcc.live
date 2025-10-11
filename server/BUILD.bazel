@@ -17,7 +17,7 @@ go_library(
     deps = [
         "//metrics",
         "//store",
-        "//style",
+        "@com_github_charmbracelet_lipgloss//:lipgloss",
         "@com_github_labstack_echo_v4//:echo",
         "@com_github_labstack_echo_v4//middleware",
         "@com_github_prometheus_client_golang//prometheus/promhttp",

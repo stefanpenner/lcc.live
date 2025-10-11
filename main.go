@@ -12,13 +12,15 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
+	"sync/atomic"
 	"syscall"
 	"time"
 
-	fs_helper "github.com/stefanpenner/lcc-live/fs"
+	"github.com/stefanpenner/lcc-live/logger"
 	"github.com/stefanpenner/lcc-live/server"
 	"github.com/stefanpenner/lcc-live/store"
-	"github.com/stefanpenner/lcc-live/style"
+	"github.com/stefanpenner/lcc-live/ui"
 )
 
 const defaultSyncInterval = 3 * time.Second
@@ -29,19 +31,18 @@ type Config struct {
 }
 
 // keeps the local store in-sync with image origins.
-func keepCamerasInSync(ctx context.Context, store *store.Store, interval time.Duration) error {
+func keepCamerasInSync(ctx context.Context, store *store.Store, interval time.Duration, totalSyncs *int) error {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println(style.Cancel.Render("🛑 Cancelling camera sync"))
 			return ctx.Err()
 		case <-ticker.C:
-			fmt.Println(style.Sync.Render("🔄 Starting camera sync..."))
+			logger.Muted("Syncing cameras...")
+			*totalSyncs++
 			store.FetchImages(ctx)
-			fmt.Printf(style.Sync.Render("💤 Waiting %s before next sync\n"), interval)
 		}
 	}
 }
@@ -90,11 +91,11 @@ func purgeCloudflareCache() error {
 	apiToken := os.Getenv("CLOUDFLARE_API_TOKEN")
 
 	if zoneID == "" || apiToken == "" {
-		fmt.Println("⚠️  Warning: CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN not set. Skipping cache purge.")
+		logger.Warn("CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN not set. Skipping cache purge.")
 		return nil
 	}
 
-	fmt.Printf("🔄 Purging Cloudflare cache for zone: %s\n", zoneID)
+	logger.Info("Purging Cloudflare cache for zone: %s", zoneID)
 
 	// Prepare request body
 	body := bytes.NewBufferString(`{"purge_everything":true}`)
@@ -141,7 +142,7 @@ func purgeCloudflareCache() error {
 	}
 
 	if result.Success {
-		fmt.Println("✅ Cloudflare cache purged successfully")
+		logger.Success("Cloudflare cache purged successfully")
 		return nil
 	}
 
@@ -154,7 +155,7 @@ func main() {
 		switch os.Args[1] {
 		case "purge-cache":
 			if err := purgeCloudflareCache(); err != nil {
-				fmt.Fprintf(os.Stderr, "❌ Error: %v\n", err)
+				logger.Error("%v", err)
 				os.Exit(1)
 			}
 			os.Exit(0)
@@ -168,9 +169,6 @@ func main() {
 			return
 		}
 	}
-
-	fmt.Println(style.Title.Render("🌄 Starting LCC Live Camera Service"))
-	fmt.Println(style.Info.Render("https://lcc.live/\n"))
 
 	// lets do cancellation, man it's nice to see a language that builds this in
 	ctx, cancel := context.WithCancel(context.Background())
@@ -191,11 +189,6 @@ func main() {
 		log.Fatalf("failed to setup template filesystem: %v", err)
 	}
 
-	fmt.Println(style.Section.Render("Embedded File Systems:"))
-	fs_helper.Print("📄 Data", dataFS)
-	fs_helper.Print("🌐 Public", static)
-	fs_helper.Print("📑 Templates", tmpl)
-
 	store, err := store.NewStoreFromFile(dataFS, "data.json")
 	if err != nil {
 		log.Fatalf("failed to create new store from file %s - %v", "data.json", err)
@@ -203,11 +196,87 @@ func main() {
 
 	config := loadConfig()
 
+	// Count cameras
+	cameraCount := len(store.Canyon("LCC").Cameras) + len(store.Canyon("BCC").Cameras)
+	if store.Canyon("LCC").Status.Src != "" {
+		cameraCount++
+	}
+	if store.Canyon("BCC").Status.Src != "" {
+		cameraCount++
+	}
+
+	// Initialize TUI with HUD (do this BEFORE any logging)
+	hasUI := ui.Initialize(server.Version, server.BuildTime, config.Port, config.SyncInterval, cameraCount)
+
+	if hasUI {
+		// Configure logger to use UI
+		logger.SetUIMode(true)
+		logger.Log = ui.AddLog
+
+		// Now log the initialization messages
+		logger.Info("Embedded filesystems: Data (1), Public (4), Templates (2)")
+	} else {
+		// No TTY, print startup info normally
+		logger.PrintBanner(server.Version, server.BuildTime)
+		logger.Section("Embedded File Systems")
+		logger.Info("Data (1), Public (4), Templates (2)")
+	}
+
+	// Track total syncs and requests
+	totalSyncs := 0
+	var requestCount int64
+	var lastRequestCount int64
+	var lastCheckTime = time.Now()
+
+	// Set up store callbacks to update UI stats
+	store.SetSyncCallback(func(duration time.Duration, changed, unchanged, errors int) {
+		if !hasUI {
+			return
+		}
+
+		// Calculate requests/sec
+		currentReqs := atomic.LoadInt64(&requestCount)
+		elapsed := time.Since(lastCheckTime).Seconds()
+		reqPerSec := 0.0
+		if elapsed > 0 {
+			reqPerSec = float64(currentReqs-lastRequestCount) / elapsed
+		}
+		lastRequestCount = currentReqs
+		lastCheckTime = time.Now()
+
+		// Get memory stats
+		var m runtime.MemStats
+		runtime.ReadMemStats(&m)
+		memMB := float64(m.Alloc) / 1024 / 1024
+
+		ui.UpdateStats(ui.Stats{
+			Cameras:         cameraCount,
+			LastSyncTime:    time.Now(),
+			SyncDuration:    duration,
+			Changed:         changed,
+			Unchanged:       unchanged,
+			Errors:          errors,
+			TotalSyncs:      totalSyncs,
+			RequestsTotal:   int(currentReqs),
+			RequestsPerSec:  reqPerSec,
+			MemoryUsageMB:   memMB,
+			CPUUsagePercent: 0, // TODO: Implement CPU tracking
+			GoroutineCount:  runtime.NumGoroutine(),
+		})
+	})
+
 	// Start initial image fetch in background
+	logger.Info("Fetching initial camera images...")
 	go store.FetchImages(ctx)
 
 	// kick-off camera syncing background thread
-	go keepCamerasInSync(ctx, store, config.SyncInterval)
+	go keepCamerasInSync(ctx, store, config.SyncInterval, &totalSyncs)
+
+	// Configure server to use UI logger
+	server.LogWriter = ui.AddLog
+
+	// Set up request counter middleware
+	server.RequestCounter = &requestCount
 
 	app, err := server.Start(store, static, tmpl)
 	if err != nil {
@@ -215,9 +284,17 @@ func main() {
 	}
 
 	// Start server
+	logger.Success("Server listening on http://localhost:%s", config.Port)
+	if hasUI {
+		logger.Info("Press Ctrl+C or 'q' to stop")
+		ui.SetReady()
+	} else {
+		logger.Info("Press Ctrl+C to stop")
+	}
+
 	go func() {
 		if err := app.Start(":" + config.Port); err != nil {
-			log.Printf("server error: %v", err)
+			logger.Error("Server error: %v", err)
 			cancel() // Cancel context on server error
 		}
 	}()
@@ -226,8 +303,17 @@ func main() {
 	<-sigChan
 	cancel() // Cancel root context
 
+	logger.Info("Shutting down gracefully...")
+
 	// Give the server a short grace period to finish requests
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer shutdownCancel()
 	app.Shutdown(shutdownCtx)
+
+	// Shutdown UI
+	ui.Shutdown()
+	time.Sleep(100 * time.Millisecond)
+
+	logger.Success("Goodbye!")
+	fmt.Println()
 }
