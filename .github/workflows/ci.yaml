@@ -56,7 +56,7 @@ jobs:
           build --remote_timeout=60s
           build --remote_upload_local_results=true
           # Optimize remote cache performance
-          build --experimental_remote_cache_compression
+          build --remote_cache_compression
           build --remote_download_toplevel
           EOF
           
