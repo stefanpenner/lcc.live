@@ -44,13 +44,6 @@ jobs:
           disk-cache: true
           repository-cache: true
 
-      - name: Fetch external dependencies
-        run: |
-          # Pre-fetch all external dependencies to speed up analysis
-          # This populates the repository cache
-          bazel fetch //... 2>&1 | head -20 || true
-          echo "External dependencies fetched"
-
       - name: Verify Docker is available
         run: docker version
 
