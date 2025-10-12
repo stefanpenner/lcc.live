@@ -1,4 +1,21 @@
 // ========================================
+// LCC.live Frontend
+// ========================================
+// 
+// Architecture:
+// - No build tools, no frameworks - just modern ES modules
+// - ETag-based image updates with true double buffering
+// - iOS Safari optimized (avoids content-visibility, async decoding)
+// - Scroll-aware (pauses updates during active scrolling)
+// - Network-adaptive (adjusts poll rate based on connection speed)
+//
+// Key Classes:
+// - ImageReloader: Handles automatic image updates
+// - FullscreenViewer: Manages fullscreen image/iframe viewing
+//
+// ========================================
+
+// ========================================
 // ETag-Aware Image Reloading with Double Buffering
 // ========================================
 
