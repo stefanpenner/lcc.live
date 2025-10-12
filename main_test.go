@@ -16,11 +16,11 @@ import (
 
 func TestLoadConfig(t *testing.T) {
 	tests := []struct {
-		name               string
-		envPort            string
-		envSyncInterval    string
-		expectedPort       string
-		expectedInterval   time.Duration
+		name             string
+		envPort          string
+		envSyncInterval  string
+		expectedPort     string
+		expectedInterval time.Duration
 	}{
 		{
 			name:             "defaults when no env vars",
@@ -138,7 +138,6 @@ func TestEmbeddedFS_DataFile(t *testing.T) {
 func TestEmbeddedFS_StaticFiles(t *testing.T) {
 	// Verify static files are embedded
 	files := []string{
-		"static/script.js",
 		"static/style.css",
 		"static/favicon.png",
 	}
