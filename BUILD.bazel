@@ -30,6 +30,7 @@ go_library(
         "data.json",
         "static/favicon.png",
         "static/oops.png",
+        "static/script.mjs",
         "static/style.css",
         "templates/canyon.html.tmpl",
         "templates/camera.html.tmpl",

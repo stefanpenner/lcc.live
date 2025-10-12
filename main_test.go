@@ -138,6 +138,7 @@ func TestEmbeddedFS_DataFile(t *testing.T) {
 func TestEmbeddedFS_StaticFiles(t *testing.T) {
 	// Verify static files are embedded
 	files := []string{
+		"static/script.mjs",
 		"static/style.css",
 		"static/favicon.png",
 	}

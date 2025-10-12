@@ -924,3 +924,39 @@ the-overlay:hover .overlay-hint {
   outline: 2px solid var(--color-accent-focus);
   outline-offset: 2px;
 }
+
+/* No transitions for images - using double buffering for flicker-free updates */
+
+/* Additional iOS fullscreen image and iframe optimization */
+the-overlay > img,
+the-overlay > iframe {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+the-overlay > img {
+  pointer-events: none;
+}
+
+the-overlay > iframe {
+  border: none;
+  width: 90vw;
+  height: 90vh;
+  aspect-ratio: 16 / 9;
+}
+
+@media (max-width: 768px) {
+  the-overlay > img,
+  the-overlay > iframe {
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  
+  the-overlay > iframe {
+    width: 100vw;
+    height: 100vh;
+  }
+}
