@@ -463,7 +463,7 @@ camera-feed iframe {
   border: none;
   cursor: zoom-in;
   background: var(--color-bg-tertiary);
-  transition: opacity 0.2s ease-in-out;
+  /* transition removed - causes iOS Safari flicker on scroll */
 }
 
 /* Loading skeleton animation */

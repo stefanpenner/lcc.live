@@ -7,8 +7,9 @@ class ImageReloader {
     this.interval = interval;
     this.observer = null;
     this.abortControllers = new WeakMap();
+    this.blobUrls = new WeakMap(); // Track blob URLs for cleanup
     this.lastReloadTime = new WeakMap(); // Track when each image was last reloaded
-    this.reloadCooldown = 5000; // Minimum 5 seconds between reloads (was causing flicker at 2s)
+    this.reloadCooldown = 5000; // Minimum 5 seconds between reloads
     this.isScrolling = false;
     this.scrollTimeout = null;
   }
@@ -66,21 +67,40 @@ class ImageReloader {
 
       img.dataset.etag = etag;
 
-      // Don't use blob URLs - iOS Safari has issues with them on scroll
-      // Instead, preload the new image and swap src directly
+      // Fetch the new image
+      const response = await fetch(src, {
+        cache: 'force-cache',
+        credentials: 'same-origin',
+        signal: controller.signal
+      });
+
+      const blob = await response.blob();
+      const newUrl = URL.createObjectURL(blob);
+
+      // True double buffering: preload AND decode before atomic swap
       const tempImg = new Image();
-      tempImg.src = src;
+      tempImg.src = newUrl;
       
       try {
         // Wait for image to load and decode
         await tempImg.decode();
         
-        // Image is now fully decoded - atomic swap
-        // Use timestamp to bust cache if needed
+        // Image is now fully decoded and ready - atomic swap with zero flicker
         requestAnimationFrame(() => {
-          img.src = src;
+          const oldSrc = img.src;
+          
+          // Atomic swap - fully decoded image
+          img.src = newUrl;
+          this.blobUrls.set(img, newUrl);
+          
+          // Cleanup old blob URL after swap
+          if (oldSrc.startsWith('blob:')) {
+            setTimeout(() => URL.revokeObjectURL(oldSrc), 100);
+          }
         });
       } catch (decodeError) {
+        // Decode failed, clean up
+        URL.revokeObjectURL(newUrl);
         console.warn('Failed to decode image:', img.dataset.src, decodeError);
       }
     } catch (error) {
@@ -147,23 +167,18 @@ class ImageReloader {
     this.setupViewportTracking();
     this.setupScrollTracking();
     
-    // DISABLED: Automatic polling causes flicker on iOS Safari during scroll
-    // Only reload when tab becomes visible again
-    // const reload = async () => {
-    //   await this.reloadAll();
-    //   setTimeout(reload, this.getAdaptiveInterval());
-    // };
-    // reload();
+    // Automatic polling with scroll protection
+    const reload = async () => {
+      await this.reloadAll();
+      setTimeout(reload, this.getAdaptiveInterval());
+    };
+    
+    reload();
 
-    // Only reload on visibility change - prevents flicker during scroll
+    // Reload on visibility change
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        // Small delay to let scroll finish
-        setTimeout(() => {
-          if (!this.isScrolling) {
-            this.reloadAll();
-          }
-        }, 200);
+        this.reloadAll();
       }
     });
 
@@ -190,6 +205,14 @@ class ImageReloader {
 
   cleanup() {
     this.observer?.disconnect();
+    
+    // Revoke all blob URLs
+    document.querySelectorAll('img').forEach(img => {
+      const blobUrl = this.blobUrls.get(img);
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    });
   }
 }
 

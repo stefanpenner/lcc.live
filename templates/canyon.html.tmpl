@@ -6,10 +6,7 @@
     <meta name="view-transition" content="same-origin">
     
     <style>
-      /* Prevent flash of unstyled content */
-      camera-feed img {
-        content-visibility: auto;
-      }
+      /* content-visibility: auto removed - causes iOS Safari flicker on scroll */
       
       /* View Transitions for smooth page changes */
       @view-transition {
