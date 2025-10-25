@@ -211,10 +211,10 @@ func (s *Store) Canyon(canyon string) *Canyon {
 	}
 }
 
-// TODO: this should return a more defailt summary of what changed, so that we can:
+// TODO: this should return a more detailed summary of what changed, so that we can:
 // 1. provide a /status endpoint
 // 2. provide "camera down" or "camera live" UI
-// 2. provide image updates via push of some sort
+// 3. provide image updates via push of some sort
 func (s *Store) FetchImages(ctx context.Context) {
 	// Start timing for metrics
 	timer := metrics.ImageFetchDuration

@@ -31,7 +31,7 @@ type Config struct {
 	DevMode      bool
 }
 
-// keeps the local store in-sync with image origins.
+// keepCamerasInSync keeps the local store in-sync with image origins
 func keepCamerasInSync(ctx context.Context, store *store.Store, interval time.Duration, totalSyncs *int) error {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -178,7 +178,7 @@ func purgeCloudflareCache() error {
 }
 
 func main() {
-	// Check for subcommands
+	// Handle subcommands
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
 		case "purge-cache":
@@ -198,7 +198,7 @@ func main() {
 		}
 	}
 
-	// lets do cancellation, man it's nice to see a language that builds this in
+	// Setup graceful shutdown with context
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -238,27 +238,20 @@ func main() {
 		cameraCount++
 	}
 
-	// Initialize TUI with HUD (do this BEFORE any logging)
+	// Initialize TUI with HUD (before any logging)
 	hasUI := ui.Initialize(server.Version, server.BuildTime, config.Port, config.SyncInterval, cameraCount)
-
 	if hasUI {
-		// Configure logger to use UI
 		logger.SetUIMode(true)
 		logger.Log = ui.AddLog
-
-		// Now log the initialization messages
-		if config.DevMode {
-			logger.Info("🔥 DEV MODE: Hot reload enabled - files served from disk")
-		}
-		logger.Info("Serving files from disk")
 	} else {
-		// No TTY, print startup info normally
 		logger.PrintBanner(server.Version, server.BuildTime)
-		if config.DevMode {
-			logger.Info("🔥 DEV MODE: Hot reload enabled - files served from disk")
-		}
-		logger.Section("File Systems")
-		logger.Info("Data, Static, Templates loaded from disk")
+	}
+
+	// Log startup info
+	if config.DevMode {
+		logger.Info("🔥 DEV MODE: Hot reload enabled - files served from disk")
+	} else {
+		logger.Info("Serving from embedded files")
 	}
 
 	// Track total syncs and requests
@@ -304,25 +297,21 @@ func main() {
 		})
 	})
 
-	// Start initial image fetch in background
+	// Fetch initial images and start background sync
 	logger.Info("Fetching initial camera images...")
 	go store.FetchImages(ctx)
-
-	// kick-off camera syncing background thread
 	go keepCamerasInSync(ctx, store, config.SyncInterval, &totalSyncs)
 
 	// Configure server to use UI logger
 	server.LogWriter = ui.AddLog
 
-	// Set up request counter middleware
+	// Start server
 	server.RequestCounter = &requestCount
-
 	app, err := server.Start(store, staticFS, tmplFS, config.DevMode)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Start server
 	logger.Success("Server listening on http://localhost:%s", config.Port)
 	if hasUI {
 		logger.Info("Press Ctrl+C or 'q' to stop")
@@ -331,25 +320,22 @@ func main() {
 		logger.Info("Press Ctrl+C to stop")
 	}
 
+	// Start HTTP server
 	go func() {
 		if err := app.Start(":" + config.Port); err != nil {
 			logger.Error("Server error: %v", err)
-			cancel() // Cancel context on server error
+			cancel()
 		}
 	}()
 
 	// Wait for shutdown signal
 	<-sigChan
-	cancel() // Cancel root context
+	cancel()
 
 	logger.Info("Shutting down gracefully...")
-
-	// Give the server a short grace period to finish requests
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer shutdownCancel()
 	app.Shutdown(shutdownCtx)
-
-	// Shutdown UI
 	ui.Shutdown()
 	time.Sleep(100 * time.Millisecond)
 
