@@ -2,13 +2,65 @@ steps:
   - label: ":bazel: Build & Test"
     timeout_in_minutes: 30
     commands:
-      - "set -euo pipefail"
-      - 'export PATH="$PWD/.buildkite/bin:$PATH"'
-      - 'mkdir -p .buildkite/bin ~/.cache/bazel ~/.cache/bazelisk ~/.cache/bazel-disk-cache ~/.cache/bazel-repo'
-      - 'if ! command -v bazel >/dev/null 2>&1; then if command -v curl >/dev/null 2>&1; then curl -sSL --retry 3 -o .buildkite/bin/bazel https://github.com/bazelbuild/bazelisk/releases/download/v1.26.0/bazelisk-linux-amd64; else wget -q -O .buildkite/bin/bazel https://github.com/bazelbuild/bazelisk/releases/download/v1.26.0/bazelisk-linux-amd64; fi; chmod +x .buildkite/bin/bazel; fi'
-      - 'if [ -n "${BUILDBUDDY_API_KEY:-}" ]; then cat > .bazelrc.remote.ci << EOF\ncommon --remote_cache=grpcs://remote.buildbuddy.io\ncommon --remote_header=x-buildbuddy-api-key=${BUILDBUDDY_API_KEY}\ncommon --remote_timeout=60s\ncommon --remote_upload_local_results=true\ncommon --bes_results_url=https://app.buildbuddy.io/invocation/\ncommon --remote_executor=grpcs://remote.buildbuddy.io\ncommon --remote_local_fallback\ncommon --strategy=TestRunner=remote,local\ncommon --strategy=GoLink=remote,local\ncommon --strategy=GoCompile=remote,local\ncommon --remote_cache_compression\ncommon --remote_download_toplevel\nEOF\necho "Configured BuildBuddy remote cache"; else echo "Skipping BuildBuddy remote cache"; fi'
-      - 'DOCKER_OK=1; command -v docker >/dev/null 2>&1 || DOCKER_OK=0; [ $DOCKER_OK -eq 1 ] && docker info >/dev/null 2>&1 || DOCKER_OK=0; if [ $DOCKER_OK -eq 0 ]; then echo "Docker not available; excluding integration/local tests"; TEST_FILTERS="--test_tag_filters=-integration,-local"; else echo "Docker available"; TEST_FILTERS=""; fi'
-      - 'bazel --version || true'
-      - 'bazel test --config=ci --test_output=errors ${TEST_FILTERS} //...'
+      - set -euo pipefail
+      - export PATH="$PWD/.buildkite/bin:$PATH"
+      - mkdir -p .buildkite/bin ~/.cache/bazel ~/.cache/bazelisk ~/.cache/bazel-disk-cache ~/.cache/bazel-repo
+      
+      # Install Bazelisk (latest from bazel-contrib/setup-bazel)
+      - |
+        if ! command -v bazel >/dev/null 2>&1; then
+          if command -v curl >/dev/null 2>&1; then
+            curl -sSL --retry 3 -o .buildkite/bin/bazelisk https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64
+          else
+            wget -q -O .buildkite/bin/bazelisk https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64
+          fi
+          chmod +x .buildkite/bin/bazelisk
+          ln -s bazelisk .buildkite/bin/bazel
+        fi
+      
+      # Configure BuildBuddy remote cache
+      - |
+        if [ -n "${BUILDBUDDY_API_KEY:-}" ]; then
+          echo "✅ BuildBuddy API key is set"
+          cat > .bazelrc.remote.ci <<EOF
+        common --remote_cache=grpcs://remote.buildbuddy.io
+        common --remote_header=x-buildbuddy-api-key=\${BUILDBUDDY_API_KEY}
+        common --remote_timeout=60s
+        common --remote_upload_local_results=true
+        common --bes_results_url=https://app.buildbuddy.io/invocation/
+        common --remote_executor=grpcs://remote.buildbuddy.io
+        common --remote_local_fallback
+        common --strategy=TestRunner=remote,local
+        common --strategy=GoLink=remote,local
+        common --strategy=GoCompile=remote,local
+        common --remote_cache_compression
+        common --remote_download_toplevel
+        EOF
+          echo "✅ BuildBuddy remote cache configured"
+          echo "📊 Monitor builds at: https://app.buildbuddy.io"
+        else
+          echo "⚠️  BuildBuddy API key not set - skipping remote cache"
+        fi
+      
+      # Verify Docker availability
+      - |
+        if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+          echo "✅ Docker available"
+          docker version
+          TEST_FILTERS=""
+        else
+          echo "⚠️  Docker not available; excluding integration/local tests"
+          TEST_FILTERS="--test_tag_filters=-integration,-local"
+        fi
+      
+      # Run tests
+      - bazel --version || true
+      - |
+        echo "🧪 Running all tests..."
+        bazel test --config=ci --test_output=errors ${TEST_FILTERS} //...
+      
+      # Cleanup
+      - rm -f .bazelrc.remote.ci || true
+    
     artifact_paths:
       - "bazel-testlogs/**/test.log"
