@@ -1,0 +1,8 @@
+filegroup(
+    name = "template_files",
+    srcs = glob([
+        "*.html.tmpl",
+        "*.tmpl",
+    ]),
+    visibility = ["//visibility:public"],
+)

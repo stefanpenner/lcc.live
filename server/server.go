@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"net/http"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -21,11 +22,24 @@ import (
 type TemplateRenderer struct {
 	templates *template.Template
 	fs        fs.FS
+	devMode   bool
+	mu        sync.Mutex // Protects template reloading in dev mode
 }
 
 var templateFuncs = template.FuncMap{}
 
 func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	// In dev mode, reload templates on every request for hot reloading
+	if t.devMode {
+		t.mu.Lock()
+		defer t.mu.Unlock()
+
+		tmpl, err := template.New("").Funcs(templateFuncs).ParseFS(t.fs, "*.html.tmpl")
+		if err != nil {
+			return err
+		}
+		return tmpl.ExecuteTemplate(w, name, data)
+	}
 	return t.templates.ExecuteTemplate(w, name, data)
 }
 
@@ -62,7 +76,7 @@ func (w customLogWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error) {
+func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS, devMode bool) (*echo.Echo, error) {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
@@ -100,12 +114,19 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error)
 	// Serve static files with long-term caching
 	// These files (CSS, JS, images) are versioned via their URLs or rarely change
 	e.GET("/s/*", func(c echo.Context) error {
-		// Set aggressive caching for static assets
-		// Long cache time is safe because:
-		// 1. Static files rarely change
-		// 2. HTML pages are already cache-busted via version ETags
-		// 3. When HTML changes, it references new/updated static files
-		c.Response().Header().Set("Cache-Control", "public, max-age=86400, immutable")
+		// In dev mode, disable caching for static files
+		if devMode {
+			c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			c.Response().Header().Set("Pragma", "no-cache")
+			c.Response().Header().Set("Expires", "0")
+		} else {
+			// Set aggressive caching for static assets
+			// Long cache time is safe because:
+			// 1. Static files rarely change
+			// 2. HTML pages are already cache-busted via version ETags
+			// 3. When HTML changes, it references new/updated static files
+			c.Response().Header().Set("Cache-Control", "public, max-age=86400, immutable")
+		}
 		return echo.WrapHandler(http.StripPrefix("/s", http.FileServer(http.FS(staticFS))))(c)
 	})
 
@@ -223,14 +244,35 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS) (*echo.Echo, error)
 
 	e.Use(middleware.Recover())
 	// Custom Rendering Stuff [
-	tmpl, err := template.New("").Funcs(templateFuncs).ParseFS(tmplFS, "*.tmpl")
+	tmpl, err := template.New("").Funcs(templateFuncs).ParseFS(tmplFS, "*.html.tmpl")
 	if err != nil {
 		return nil, err
 	}
 	renderer := &TemplateRenderer{
 		templates: tmpl,
+		fs:        tmplFS,
+		devMode:   devMode,
 	}
 	e.Renderer = renderer
+
+	// In dev mode, set dev mode flag on context and disable caching for all responses
+	if devMode {
+		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+			return func(c echo.Context) error {
+				// Set dev mode flag on context for routes to check
+				c.Set("_dev_mode", true)
+				
+				// Disable caching for all responses in dev mode (routes may override)
+				c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, private")
+				c.Response().Header().Set("Pragma", "no-cache")
+				c.Response().Header().Set("Expires", "0")
+				// Add Vary header to prevent proxy caching
+				c.Response().Header().Set("Vary", "*")
+				return next(c)
+			}
+		})
+	}
+
 	// handleIndex handles both GET and HEAD requests for the index route
 
 	e.GET("/", CanyonRoute(store, "LCC"))

@@ -26,15 +26,6 @@ nogo(
 go_library(
     name = "lcc-live_lib",
     srcs = ["main.go"],
-    embedsrcs = [
-        "data.json",
-        "static/favicon.png",
-        "static/oops.png",
-        "static/script.mjs",
-        "static/style.css",
-        "templates/canyon.html.tmpl",
-        "templates/camera.html.tmpl",
-    ],
     importpath = "github.com/stefanpenner/lcc-live",
     visibility = ["//visibility:private"],
     deps = [
@@ -45,8 +36,19 @@ go_library(
     ],
 )
 
+# Bundle data files with the binary
+filegroup(
+    name = "runtime_files",
+    srcs = [
+        "data.json",
+        "//static:static_files",
+        "//templates:template_files",
+    ],
+)
+
 go_binary(
     name = "lcc-live",
+    data = [":runtime_files"],
     embed = [":lcc-live_lib"],
     visibility = ["//visibility:public"],
     x_defs = {
@@ -71,6 +73,7 @@ go_binary(
 go_test(
     name = "lcc-live_test",
     srcs = ["main_test.go"],
+    data = [":runtime_files"],
     embed = [":lcc-live_lib"],
     deps = [
         "//server",
@@ -99,6 +102,16 @@ pkg_tar(
     tags = ["manual"],
 )
 
+# Package runtime files (data, static, templates) into a tar layer
+# Files maintain their directory structure (static/, templates/, data.json)
+pkg_tar(
+    name = "runtime_files_layer",
+    srcs = [":runtime_files"],
+    package_dir = "/usr/local/bin",
+    strip_prefix = "/",
+    tags = ["manual"],
+)
+
 # Build OCI image
 oci_image(
     name = "image",
@@ -111,9 +124,11 @@ oci_image(
     tags = ["manual"],
     tars = [
         ":lcc-live_layer",
+        ":runtime_files_layer",
     ],
     # Security: Run as unprivileged user
     user = "nobody",
+    workdir = "/usr/local/bin",
 )
 
 # Load into local Docker daemon

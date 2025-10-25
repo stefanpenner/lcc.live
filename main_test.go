@@ -118,44 +118,47 @@ func TestConfig_Structure(t *testing.T) {
 	assert.Equal(t, 5*time.Second, config.SyncInterval)
 }
 
-// Test embedded FS compilation (compile-time check)
-func TestEmbeddedFS_Exists(t *testing.T) {
-	// These should compile - if embed directives are wrong, compilation fails
-	assert.NotNil(t, dataFS)
-	assert.NotNil(t, staticFS)
-	assert.NotNil(t, tmplFS)
-}
+// Test filesystem loading from disk
+func TestFilesystemLoading(t *testing.T) {
+	// Set up dev mode for testing
+	os.Setenv("DEV_MODE", "1")
+	defer os.Unsetenv("DEV_MODE")
 
-func TestEmbeddedFS_DataFile(t *testing.T) {
-	// Verify data.json is embedded
-	data, err := dataFS.ReadFile("data.json")
-	require.NoError(t, err)
-	assert.NotEmpty(t, data)
-	assert.Contains(t, string(data), "lcc")
-	assert.Contains(t, string(data), "bcc")
-}
+	t.Run("Data file loads", func(t *testing.T) {
+		dataFS, err := loadFilesystem(".")
+		require.NoError(t, err)
+		data, err := fs.ReadFile(dataFS, "data.json")
+		require.NoError(t, err)
+		assert.NotEmpty(t, data)
+		assert.Contains(t, string(data), "lcc")
+		assert.Contains(t, string(data), "bcc")
+	})
 
-func TestEmbeddedFS_StaticFiles(t *testing.T) {
-	// Verify static files are embedded
-	files := []string{
-		"static/script.mjs",
-		"static/style.css",
-		"static/favicon.png",
-	}
+	t.Run("Static files load", func(t *testing.T) {
+		staticFS, err := loadFilesystem("static")
+		require.NoError(t, err)
 
-	for _, file := range files {
-		data, err := staticFS.ReadFile(file)
-		require.NoError(t, err, "File %s should be embedded", file)
-		assert.NotEmpty(t, data, "File %s should not be empty", file)
-	}
-}
+		files := []string{
+			"script.mjs",
+			"style.css",
+			"favicon.png",
+		}
 
-func TestEmbeddedFS_Templates(t *testing.T) {
-	// Verify template is embedded
-	data, err := tmplFS.ReadFile("templates/canyon.html.tmpl")
-	require.NoError(t, err)
-	assert.NotEmpty(t, data)
-	assert.Contains(t, string(data), "<!DOCTYPE")
+		for _, file := range files {
+			data, err := fs.ReadFile(staticFS, file)
+			require.NoError(t, err, "File %s should load", file)
+			assert.NotEmpty(t, data, "File %s should not be empty", file)
+		}
+	})
+
+	t.Run("Templates load", func(t *testing.T) {
+		tmplFS, err := loadFilesystem("templates")
+		require.NoError(t, err)
+		data, err := fs.ReadFile(tmplFS, "canyon.html.tmpl")
+		require.NoError(t, err)
+		assert.NotEmpty(t, data)
+		assert.Contains(t, string(data), "<!DOCTYPE")
+	})
 }
 
 // Benchmark config loading
@@ -175,20 +178,15 @@ func BenchmarkLoadConfig(b *testing.B) {
 
 // Integration test that validates the full application startup sequence
 func TestApplicationStartup(t *testing.T) {
-	// Test that embedded FS files load correctly
-	t.Run("Embedded FS loads", func(t *testing.T) {
-		assert.NotNil(t, dataFS)
-		assert.NotNil(t, staticFS)
-		assert.NotNil(t, tmplFS)
-
-		// Verify data.json is present
-		data, err := dataFS.ReadFile("data.json")
-		require.NoError(t, err)
-		assert.NotEmpty(t, data)
-	})
+	// Set up dev mode for testing
+	os.Setenv("DEV_MODE", "1")
+	defer os.Unsetenv("DEV_MODE")
 
 	// Test that store initializes from data.json
 	t.Run("Store initializes from data.json", func(t *testing.T) {
+		dataFS, err := loadFilesystem(".")
+		require.NoError(t, err)
+
 		testStore, err := store.NewStoreFromFile(dataFS, "data.json")
 		require.NoError(t, err)
 		assert.NotNil(t, testStore)
@@ -203,10 +201,13 @@ func TestApplicationStartup(t *testing.T) {
 	// Test that server starts without errors
 	t.Run("Server starts successfully", func(t *testing.T) {
 		// Setup filesystem
-		static, err := fs.Sub(staticFS, "static")
+		staticFS, err := loadFilesystem("static")
 		require.NoError(t, err)
 
-		tmpl, err := fs.Sub(tmplFS, "templates")
+		tmplFS, err := loadFilesystem("templates")
+		require.NoError(t, err)
+
+		dataFS, err := loadFilesystem(".")
 		require.NoError(t, err)
 
 		// Create store
@@ -214,7 +215,7 @@ func TestApplicationStartup(t *testing.T) {
 		require.NoError(t, err)
 
 		// Start server
-		app, err := server.Start(testStore, static, tmpl)
+		app, err := server.Start(testStore, staticFS, tmplFS, false)
 		require.NoError(t, err)
 		assert.NotNil(t, app)
 	})
@@ -222,10 +223,13 @@ func TestApplicationStartup(t *testing.T) {
 	// Integration test: full startup and basic route
 	t.Run("Full startup and basic route works", func(t *testing.T) {
 		// Setup filesystem
-		static, err := fs.Sub(staticFS, "static")
+		staticFS, err := loadFilesystem("static")
 		require.NoError(t, err)
 
-		tmpl, err := fs.Sub(tmplFS, "templates")
+		tmplFS, err := loadFilesystem("templates")
+		require.NoError(t, err)
+
+		dataFS, err := loadFilesystem(".")
 		require.NoError(t, err)
 
 		// Create and initialize store
@@ -233,7 +237,7 @@ func TestApplicationStartup(t *testing.T) {
 		require.NoError(t, err)
 
 		// Start server
-		app, err := server.Start(testStore, static, tmpl)
+		app, err := server.Start(testStore, staticFS, tmplFS, false)
 		require.NoError(t, err)
 
 		// Test that routes are accessible (even if images not yet fetched)

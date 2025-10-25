@@ -18,7 +18,8 @@ test)
   ;;
 
 run)
-  echo "🚀 Running server..."
+  export DEV_MODE=1
+  echo "🚀 Running server in dev mode (hot reload enabled)..."
   bazel run //:lcc-live
   ;;
 
@@ -111,7 +112,7 @@ Usage: ./b <command>
 Commands:
   build        - Build the binary
   test         - Run all tests
-  run          - Run the server
+  run          - Run server in dev mode (hot reload enabled)
   clean        - Clean build artifacts
   gazelle      - Regenerate BUILD files
   deps         - Update dependencies from go.mod
@@ -127,19 +128,12 @@ Commands:
   help         - Show this help message
 
 Examples:
-  ./b build
-  ./b test
-  ./b run
-  ./b dev             # Development server with live reload
-  ./b dev:stop        # Stop development server
-  ./b deploy:local    # Deploy to local Docker
-  ./b deploy:clean    # Clean up and deploy to local Docker
-  ./b cleanup         # Clean up Docker resources
-  ./b deploy          # Deploy to Fly.io
-  ./b logs            # View Fly.io logs
-  ./b dashboard       # Open Fly.io dashboard
-  ./b Graphana        # Open Graphana
-  ./b console         # Open Grap
+  ./b build        # Build the binary
+  ./b test         # Run all tests
+  ./b run          # Run server in dev mode (hot reload)
+  ./b deploy:local # Deploy to local Docker
+  ./b deploy       # Deploy to Fly.io
+  ./b logs         # View Fly.io logs
 
 For more details, see doc/BAZEL.md
 EOF

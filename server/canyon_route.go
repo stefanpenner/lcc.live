@@ -26,6 +26,9 @@ func CanyonRoute(store *store.Store, canyonID string) func(c echo.Context) error
 			c.Response().Header().Set("Content-Type", "text/html; charset=UTF-8")
 		}
 
+		// Check if dev mode is enabled via environment variable
+		devMode := c.Get("_dev_mode") != nil
+
 		// Include version in ETag so deploys automatically bust cache
 		// Use different ETags for JSON vs HTML to prevent cache confusion
 		version := GetVersionString()
@@ -36,19 +39,29 @@ func CanyonRoute(store *store.Store, canyonID string) func(c echo.Context) error
 			etag = etag + "-html"
 		}
 
-		// Longer max-age with stale-while-revalidate for better performance
-		// Cloudflare will serve from cache for 30s, then revalidate in background
-		// When version changes, ETag changes automatically, so no manual purge needed
-		c.Response().Header().Set("Cache-Control", "public, max-age=30, stale-while-revalidate=60, must-revalidate")
-		c.Response().Header().Set("ETag", etag)
+		// In dev mode, disable caching completely
+		if devMode {
+			c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, private")
+			c.Response().Header().Set("Pragma", "no-cache")
+			c.Response().Header().Set("Expires", "0")
+			c.Response().Header().Set("Vary", "*")
+			// Don't set ETag in dev mode to prevent conditional requests
+		} else {
+			// Longer max-age with stale-while-revalidate for better performance
+			// Cloudflare will serve from cache for 30s, then revalidate in background
+			// When version changes, ETag changes automatically, so no manual purge needed
+			c.Response().Header().Set("Cache-Control", "public, max-age=30, stale-while-revalidate=60, must-revalidate")
+			c.Response().Header().Set("ETag", etag)
+			// Add Vary header to ensure Cloudflare caches by Content-Type
+			c.Response().Header().Set("Vary", "Accept")
+		}
 
-		// Add Vary header to ensure Cloudflare caches by Content-Type
-		c.Response().Header().Set("Vary", "Accept")
-
-		// Check if client has matching ETag
-		if ifNoneMatch := c.Request().Header.Get("If-None-Match"); ifNoneMatch != "" {
-			if ifNoneMatch == etag {
-				return c.NoContent(http.StatusNotModified)
+		// Check if client has matching ETag (skip in dev mode)
+		if !devMode {
+			if ifNoneMatch := c.Request().Header.Get("If-None-Match"); ifNoneMatch != "" {
+				if ifNoneMatch == etag {
+					return c.NoContent(http.StatusNotModified)
+				}
 			}
 		}
 

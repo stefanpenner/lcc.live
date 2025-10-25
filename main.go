@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"sync/atomic"
 	"syscall"
@@ -28,6 +28,7 @@ const defaultSyncInterval = 3 * time.Second
 type Config struct {
 	Port         string
 	SyncInterval time.Duration
+	DevMode      bool
 }
 
 // keeps the local store in-sync with image origins.
@@ -47,24 +48,6 @@ func keepCamerasInSync(ctx context.Context, store *store.Store, interval time.Du
 	}
 }
 
-// All assets are provided as part of the same binary using go:embed
-// to keep stuff organized, we provide 3 seperate embedded file systems
-
-// seed data
-//
-//go:embed data.json
-var dataFS embed.FS
-
-// assets for web serving (css, images etc)
-//
-//go:embed static/**
-var staticFS embed.FS
-
-// templates
-//
-//go:embed templates/**
-var tmplFS embed.FS
-
 func loadConfig() Config {
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -79,10 +62,55 @@ func loadConfig() Config {
 		}
 	}
 
+	// Enable dev mode for hot reloading
+	devMode := os.Getenv("DEV_MODE") == "1" || os.Getenv("DEV_MODE") == "true"
+
 	return Config{
 		Port:         port,
 		SyncInterval: syncInterval,
+		DevMode:      devMode,
 	}
+}
+
+// getBaseDir returns the directory containing the binary or working directory in dev mode
+func getBaseDir() (string, error) {
+	// In dev mode, use working directory
+	if os.Getenv("DEV_MODE") == "1" || os.Getenv("DEV_MODE") == "true" {
+		return os.Getwd()
+	}
+
+	// In production/container, use binary directory
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	exeDir := filepath.Dir(exe)
+
+	// Check if files exist in the binary directory (container deployment)
+	if _, err := os.Stat(filepath.Join(exeDir, "data.json")); err == nil {
+		return exeDir, nil
+	}
+
+	// For Bazel runs, check the runfiles directory
+	// Bazel creates a .runfiles directory next to the binary
+	runfilesDir := filepath.Join(exeDir, filepath.Base(exe)+".runfiles", "_main")
+	if _, err := os.Stat(filepath.Join(runfilesDir, "data.json")); err == nil {
+		return runfilesDir, nil
+	}
+
+	// Fall back to working directory
+	return os.Getwd()
+}
+
+// loadFilesystem loads files from disk (dev mode) or from bundled files (production)
+func loadFilesystem(subdir string) (fs.FS, error) {
+	baseDir, err := getBaseDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get base directory: %w", err)
+	}
+
+	path := filepath.Join(baseDir, subdir)
+	return os.DirFS(path), nil
 }
 
 // purgeCloudflareCache purges the Cloudflare cache for the configured zone
@@ -178,23 +206,28 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	// Setup filesystem
-	static, err := fs.Sub(staticFS, "static")
+	config := loadConfig()
+
+	// Setup filesystem - load from disk instead of embed
+	staticFS, err := loadFilesystem("static")
 	if err != nil {
-		log.Fatalf("failed to setup static filesystem: %v", err)
+		log.Fatalf("failed to load static files: %v", err)
 	}
 
-	tmpl, err := fs.Sub(tmplFS, "templates")
+	tmplFS, err := loadFilesystem("templates")
 	if err != nil {
-		log.Fatalf("failed to setup template filesystem: %v", err)
+		log.Fatalf("failed to load templates: %v", err)
+	}
+
+	dataFS, err := loadFilesystem(".")
+	if err != nil {
+		log.Fatalf("failed to load data directory: %v", err)
 	}
 
 	store, err := store.NewStoreFromFile(dataFS, "data.json")
 	if err != nil {
 		log.Fatalf("failed to create new store from file %s - %v", "data.json", err)
 	}
-
-	config := loadConfig()
 
 	// Count cameras
 	cameraCount := len(store.Canyon("LCC").Cameras) + len(store.Canyon("BCC").Cameras)
@@ -214,12 +247,18 @@ func main() {
 		logger.Log = ui.AddLog
 
 		// Now log the initialization messages
-		logger.Info("Embedded filesystems: Data (1), Public (4), Templates (2)")
+		if config.DevMode {
+			logger.Info("🔥 DEV MODE: Hot reload enabled - files served from disk")
+		}
+		logger.Info("Serving files from disk")
 	} else {
 		// No TTY, print startup info normally
 		logger.PrintBanner(server.Version, server.BuildTime)
-		logger.Section("Embedded File Systems")
-		logger.Info("Data (1), Public (4), Templates (2)")
+		if config.DevMode {
+			logger.Info("🔥 DEV MODE: Hot reload enabled - files served from disk")
+		}
+		logger.Section("File Systems")
+		logger.Info("Data, Static, Templates loaded from disk")
 	}
 
 	// Track total syncs and requests
@@ -278,7 +317,7 @@ func main() {
 	// Set up request counter middleware
 	server.RequestCounter = &requestCount
 
-	app, err := server.Start(store, static, tmpl)
+	app, err := server.Start(store, staticFS, tmplFS, config.DevMode)
 	if err != nil {
 		log.Fatal(err)
 	}
