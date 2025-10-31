@@ -466,6 +466,88 @@ class FullscreenViewer {
 }
 
 // ========================================
+// Share Button Handler
+// ========================================
+
+class ShareButtonHandler {
+  constructor() {
+    this.setupEventListeners();
+  }
+
+  setupEventListeners() {
+    document.body.addEventListener('click', (e) => {
+      const shareButton = e.target.closest('.share-button');
+      if (shareButton) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleShare(shareButton);
+      }
+    });
+  }
+
+  async handleShare(button) {
+    const cameraId = button.dataset.cameraId;
+    const cameraName = button.dataset.cameraName;
+    
+    if (!cameraId) {
+      console.error('Camera ID not found on share button');
+      return;
+    }
+
+    const url = `${window.location.origin}/camera/${cameraId}`;
+    const title = `${cameraName} | Live Camera`;
+    const text = `Check out the live camera feed from ${cameraName}`;
+
+    // Try Web Share API first (mobile devices)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          text: text,
+          url: url
+        });
+      } catch (error) {
+        // User cancelled or error occurred
+        if (error.name !== 'AbortError') {
+          console.warn('Share failed:', error);
+          this.fallbackCopyToClipboard(url, button);
+        }
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      this.fallbackCopyToClipboard(url, button);
+    }
+  }
+
+  async fallbackCopyToClipboard(url, button) {
+    try {
+      await navigator.clipboard.writeText(url);
+      this.showCopiedFeedback(button);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      // Last resort: show prompt with URL
+      this.showUrlPrompt(url);
+    }
+  }
+
+  showCopiedFeedback(button) {
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>';
+    button.style.color = '#10b981'; // green color
+    
+    setTimeout(() => {
+      button.innerHTML = originalHTML;
+      button.style.color = '';
+    }, 2000);
+  }
+
+  showUrlPrompt(url) {
+    // Fallback for browsers that don't support clipboard API
+    prompt('Copy this link:', url);
+  }
+}
+
+// ========================================
 // Initialize
 // ========================================
 
@@ -474,4 +556,6 @@ document.addEventListener('DOMContentLoaded', () => {
   reloader.start();
 
   const viewer = new FullscreenViewer();
+  
+  const shareHandler = new ShareButtonHandler();
 });
