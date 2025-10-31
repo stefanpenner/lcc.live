@@ -1,3 +1,4 @@
+// Package metrics provides helper functions for Prometheus metrics
 package metrics
 
 import (

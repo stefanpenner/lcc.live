@@ -11,7 +11,7 @@ import (
 )
 
 func TestVersionRoute(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	req := httptest.NewRequest("GET", "/_/version", nil)
 	rec := httptest.NewRecorder()
@@ -32,7 +32,7 @@ func TestVersionRoute(t *testing.T) {
 }
 
 func TestVersionHeader(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	tests := []struct {
 		name string

@@ -1,3 +1,4 @@
+// Package logger provides structured logging with styled output
 package logger
 
 import (
@@ -213,6 +214,7 @@ type FetchSummary struct {
 	Total     int
 }
 
+// Print displays a formatted summary of the fetch operation
 func (f FetchSummary) Print() {
 	duration := f.Duration.Round(time.Millisecond)
 	total := f.Changed + f.Unchanged + f.Errors
@@ -220,13 +222,14 @@ func (f FetchSummary) Print() {
 	// Determine overall status with visual indicators
 	var icon string
 	var statusStyle lipgloss.Style
-	if f.Errors == 0 {
+	switch {
+	case f.Errors == 0:
 		icon = "✓"
 		statusStyle = successStyle
-	} else if f.Errors < total/2 {
+	case f.Errors < total/2:
 		icon = "⚠"
 		statusStyle = warnStyle
-	} else {
+	default:
 		icon = "✗"
 		statusStyle = errorStyle
 	}
@@ -255,6 +258,7 @@ type ServerInfo struct {
 	Cameras      int
 }
 
+// Print displays formatted server configuration information
 func (s ServerInfo) Print() {
 	Section("Configuration")
 	// Format with icons and color-coded values

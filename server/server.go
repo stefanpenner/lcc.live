@@ -18,7 +18,7 @@ import (
 	"github.com/stefanpenner/lcc-live/store"
 )
 
-// Template renderer for Echo
+// TemplateRenderer is a template renderer for Echo
 type TemplateRenderer struct {
 	templates *template.Template
 	fs        fs.FS
@@ -28,7 +28,8 @@ type TemplateRenderer struct {
 
 var templateFuncs = template.FuncMap{}
 
-func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+// Render renders a template with the given data
+func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, _ echo.Context) error {
 	// In dev mode, reload templates on every request for hot reloading
 	if t.devMode {
 		t.mu.Lock()
@@ -76,6 +77,7 @@ func (w customLogWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+// Start starts the HTTP server with the given store and filesystem
 func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS, devMode bool) (*echo.Echo, error) {
 	e := echo.New()
 	e.HideBanner = true
@@ -142,7 +144,7 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS, devMode bool) (*ech
 				// Format method with color
 				var methodStyled string
 				switch req.Method {
-				case "GET":
+				case "GET": //nolint:goconst // HTTP method string used for readability
 					methodStyled = methodGET.Render(req.Method)
 				case "POST":
 					methodStyled = methodPOST.Render(req.Method)
@@ -205,13 +207,14 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS, devMode bool) (*ech
 						ms := dur.Milliseconds()
 						// Color code based on latency
 						var durStyle lipgloss.Style
-						if ms < 50 {
+						switch {
+						case ms < 50:
 							durStyle = status2xx // Green - fast
-						} else if ms < 200 {
+						case ms < 200:
 							durStyle = status3xx // Cyan - acceptable
-						} else if ms < 500 {
+						case ms < 500:
 							durStyle = status4xx // Yellow - slow
-						} else {
+						default:
 							durStyle = status5xx // Red - very slow
 						}
 
@@ -261,7 +264,7 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS, devMode bool) (*ech
 			return func(c echo.Context) error {
 				// Set dev mode flag on context for routes to check
 				c.Set("_dev_mode", true)
-				
+
 				// Disable caching for all responses in dev mode (routes may override)
 				c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, private")
 				c.Response().Header().Set("Pragma", "no-cache")

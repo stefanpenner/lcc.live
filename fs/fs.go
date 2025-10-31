@@ -1,3 +1,4 @@
+// Package fs provides utilities for working with and displaying filesystem contents
 package fs
 
 import (
@@ -8,6 +9,7 @@ import (
 	style "github.com/stefanpenner/lcc-live/style"
 )
 
+// Print prints a summary of the filesystem contents
 func Print(name string, f fs.FS) {
 	entries, err := f.(fs.ReadDirFS).ReadDir(".")
 	if err != nil {
@@ -26,9 +28,10 @@ func Print(name string, f fs.FS) {
 	}
 
 	icon := "📄"
-	if name == "Public" {
+	switch name {
+	case "Public":
 		icon = "🌐"
-	} else if name == "Templates" {
+	case "Templates":
 		icon = "📑"
 	}
 
@@ -63,6 +66,7 @@ func pluralize(count int, singular, plural string) string {
 	return plural
 }
 
+// PrintDir prints a directory tree structure with indentation
 func PrintDir(f fs.FS, dir string, indent string) {
 	entries, err := f.(fs.ReadDirFS).ReadDir(dir)
 	if err != nil {

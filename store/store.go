@@ -29,10 +29,10 @@ const (
 	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 
+// Store manages camera images and provides concurrent access
 type Store struct {
 	client                     *http.Client
 	canyons                    *Canyons
-	path                       string
 	index                      map[string]*Entry
 	entries                    []*Entry
 	mu                         sync.RWMutex
@@ -42,6 +42,7 @@ type Store struct {
 	syncCallbackMu             sync.Mutex
 }
 
+// Entry represents a single camera's cached data
 type Entry struct {
 	Camera      *Camera
 	Image       *Image
@@ -50,6 +51,7 @@ type Entry struct {
 	mu          sync.RWMutex
 }
 
+// EntrySnapshot is an immutable snapshot of an Entry's state
 type EntrySnapshot struct {
 	Camera      *Camera
 	Image       *Image
@@ -58,6 +60,7 @@ type EntrySnapshot struct {
 	ETag        string
 }
 
+// ShallowSnapshot returns a shallow snapshot of the entry's current state
 // Concurrency Model Overview:
 //
 // - The Store is immutable after initialization except for its entry values.
@@ -117,6 +120,7 @@ func (s *Store) Write(fn func(*Store)) {
 	fn(s)
 }
 
+// NewStoreFromFile creates a new store by loading canyon data from a file
 func NewStoreFromFile(f fs.FS, filepath string) (*Store, error) {
 	canyons := &Canyons{}
 	err := canyons.Load(f, filepath)
@@ -127,6 +131,7 @@ func NewStoreFromFile(f fs.FS, filepath string) (*Store, error) {
 	return NewStore(canyons), err
 }
 
+// NewStore creates a new store with the given canyons configuration
 func NewStore(canyons *Canyons) *Store {
 	// store initialization doesn't need to be threadsafe, as the store is only
 	// accessed from a single thread during intializations.
@@ -136,7 +141,7 @@ func NewStore(canyons *Canyons) *Store {
 	index := make(map[string]*Entry)
 	entries := []*Entry{}
 
-	createEntry := func(camera *Camera) *Entry {
+	createEntry := func(camera *Camera) {
 		camera.ID = base64.StdEncoding.EncodeToString([]byte(camera.Src))
 		entry := &Entry{
 			Camera:      camera,
@@ -147,26 +152,25 @@ func NewStore(canyons *Canyons) *Store {
 		}
 		index[camera.ID] = entry
 		entries = append(entries, entry)
-		return entry
 	}
 
 	// Process status cameras if present
 	if canyons.LCC.Status.Src != "" {
-		canyons.LCC.Status.Canyon = "LCC"
+		canyons.LCC.Status.Canyon = "LCC" //nolint:goconst // Canyon name used for clarity
 		createEntry(&canyons.LCC.Status)
 	}
 	if canyons.BCC.Status.Src != "" {
-		canyons.BCC.Status.Canyon = "BCC"
+		canyons.BCC.Status.Canyon = "BCC" //nolint:goconst // Canyon name used for clarity
 		createEntry(&canyons.BCC.Status)
 	}
 
 	// Process regular cameras
 	for i := range canyons.LCC.Cameras {
-		canyons.LCC.Cameras[i].Canyon = "LCC"
+		canyons.LCC.Cameras[i].Canyon = "LCC" //nolint:goconst // Canyon name used for clarity
 		createEntry(&canyons.LCC.Cameras[i])
 	}
 	for i := range canyons.BCC.Cameras {
-		canyons.BCC.Cameras[i].Canyon = "BCC"
+		canyons.BCC.Cameras[i].Canyon = "BCC" //nolint:goconst // Canyon name used for clarity
 		createEntry(&canyons.BCC.Cameras[i])
 	}
 
@@ -174,7 +178,7 @@ func NewStore(canyons *Canyons) *Store {
 	// with self-signed or non-standard certificates
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true, // Skip certificate verification for camera servers
+			InsecureSkipVerify: true, //nolint:gosec // G402: Required for external camera servers with self-signed certs
 		},
 	}
 
@@ -200,6 +204,7 @@ func NewStore(canyons *Canyons) *Store {
 	return store
 }
 
+// Canyon returns the canyon with the given name
 func (s *Store) Canyon(canyon string) *Canyon {
 	switch canyon {
 	case "LCC":
@@ -211,6 +216,7 @@ func (s *Store) Canyon(canyon string) *Canyon {
 	}
 }
 
+// FetchImages fetches images for all cameras concurrently
 // TODO: this should return a more detailed summary of what changed, so that we can:
 // 1. provide a /status endpoint
 // 2. provide "camera down" or "camera live" UI
@@ -222,9 +228,9 @@ func (s *Store) FetchImages(ctx context.Context) {
 
 	var wg sync.WaitGroup
 	var (
-		changedCount   int32 = 0
-		errorCount     int32 = 0
-		unchangedCount int32 = 0
+		changedCount   int32
+		errorCount     int32
+		unchangedCount int32
 	)
 
 	for i := range s.entries {
@@ -235,7 +241,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 		}
 		wg.Add(1)
 
-		go func(entry *Entry, client *http.Client) {
+		go func(entry *Entry) {
 			defer wg.Done()
 
 			// Track concurrent fetches
@@ -302,7 +308,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 				return
 			}
 
-			headResp.Body.Close()
+			_ = headResp.Body.Close()
 
 			newETag := headResp.Header.Get("ETag")
 
@@ -346,7 +352,9 @@ func (s *Store) FetchImages(ctx context.Context) {
 				metrics.CameraAvailability.WithLabelValues(cameraName, canyon).Set(0)
 				return
 			}
-			defer resp.Body.Close()
+			defer func() {
+				_ = resp.Body.Close()
+			}()
 
 			if resp.StatusCode != http.StatusOK {
 				atomic.AddInt32(&errorCount, 1)
@@ -400,7 +408,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 			metrics.OriginFetchTotal.WithLabelValues(origin, "success").Inc()
 			metrics.OriginFetchDuration.WithLabelValues(origin).Observe(cameraDuration)
 			metrics.ImageFetchSizeBytes.Observe(imageSize)
-		}(entry, s.client)
+		}(entry)
 	}
 	wg.Wait()
 	if s.isWaitingOnFirstImageReady.Load() {
@@ -453,6 +461,7 @@ func (s *Store) IsReady() bool {
 	return !s.isWaitingOnFirstImageReady.Load()
 }
 
+// Get retrieves a snapshot of the camera entry with the given ID
 func (s *Store) Get(cameraID string) (EntrySnapshot, bool) {
 	s.imagesReady.Wait()
 	entry, exists := s.index[cameraID]
