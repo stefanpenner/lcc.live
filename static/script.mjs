@@ -532,8 +532,10 @@ class ShareButtonHandler {
 
   showCopiedFeedback(button) {
     const originalHTML = button.innerHTML;
-    button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>';
-    button.style.color = '#10b981'; // green color
+    const checkmarkSVG = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>';
+    
+    button.innerHTML = checkmarkSVG;
+    button.style.color = 'var(--color-accent-focus, #3b82f6)';
     
     setTimeout(() => {
       button.innerHTML = originalHTML;
