@@ -245,8 +245,10 @@ class FullscreenViewer {
     this.touchStartX = 0;
     this.touchStartY = 0;
     this.scrollPosition = 0;
+    this.isUpdatingFromPopState = false; // Prevent infinite loops with history API
     this.setupOverlay();
     this.setupEventListeners();
+    this.setupHistoryHandling();
   }
 
   setupOverlay() {
@@ -339,12 +341,47 @@ class FullscreenViewer {
     });
   }
 
+  setupHistoryHandling() {
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', (e) => {
+      this.isUpdatingFromPopState = true;
+      
+      const hash = window.location.hash;
+      if (hash.startsWith('#camera-')) {
+        const index = parseInt(hash.substring(8), 10);
+        if (!isNaN(index) && index >= 0) {
+          this.openByIndex(index);
+        }
+      } else if (this.isOpen()) {
+        // Close if we navigated away from a camera hash
+        this.closeWithoutHistory();
+      }
+      
+      this.isUpdatingFromPopState = false;
+    });
+
+    // Initialize from URL hash on page load
+    const hash = window.location.hash;
+    if (hash.startsWith('#camera-')) {
+      const index = parseInt(hash.substring(8), 10);
+      if (!isNaN(index) && index >= 0) {
+        // Wait for DOM to be ready before opening
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => this.openByIndex(index));
+        } else {
+          // DOM already loaded, open with small delay to ensure rendering
+          requestAnimationFrame(() => this.openByIndex(index));
+        }
+      }
+    }
+  }
+
   isOpen() {
     return this.overlay.style.display === 'flex' || this.overlay.style.display === 'block';
   }
 
-  open(element) {
-    // Get all images and iframes in the page
+  collectItems() {
+    // Get all images and iframes in the page, excluding those in the overlay
     const images = Array.from(document.querySelectorAll('img')).filter(
       i => !i.closest('the-overlay')
     );
@@ -353,15 +390,38 @@ class FullscreenViewer {
     );
     
     // Combine and sort by DOM order
-    this.items = [...images, ...iframes].sort((a, b) => {
+    return [...images, ...iframes].sort((a, b) => {
       return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
     });
-    
+  }
+
+  open(element) {
+    this.items = this.collectItems();
     this.currentIndex = this.items.indexOf(element);
 
     if (this.currentIndex === -1) return;
 
     this.showItem();
+    this.updateURL();
+  }
+
+  openByIndex(index) {
+    this.items = this.collectItems();
+    
+    if (this.items.length === 0) {
+      console.warn('No cameras available to open');
+      return;
+    }
+    
+    if (index < 0 || index >= this.items.length) {
+      console.warn(`Invalid camera index: ${index}. Valid range: 0-${this.items.length - 1}`);
+      return;
+    }
+    
+    this.currentIndex = index;
+    this.showItem();
+    // Note: This method is designed for programmatic opening (e.g., from URL hash or popstate)
+    // and does not update the URL to avoid duplicate history entries
   }
 
   showItem() {
@@ -431,6 +491,11 @@ class FullscreenViewer {
   }
 
   close() {
+    this.closeWithoutHistory();
+    this.updateURL();
+  }
+
+  closeWithoutHistory() {
     this.overlay.style.display = 'none';
     this.overlay.innerHTML = '';
     
@@ -450,10 +515,29 @@ class FullscreenViewer {
     this.currentIndex = -1;
   }
 
+  updateURL() {
+    // Don't update URL if we're responding to a popstate event
+    if (this.isUpdatingFromPopState) return;
+
+    if (this.isOpen() && this.currentIndex >= 0) {
+      // Update URL with camera index
+      const newHash = `#camera-${this.currentIndex}`;
+      if (window.location.hash !== newHash) {
+        history.pushState(null, '', newHash);
+      }
+    } else {
+      // Remove hash when closing
+      if (window.location.hash) {
+        history.pushState(null, '', window.location.pathname + window.location.search);
+      }
+    }
+  }
+
   next() {
     if (this.currentIndex < this.items.length - 1) {
       this.currentIndex++;
       this.showItem();
+      this.updateURL();
     }
   }
 
@@ -461,6 +545,7 @@ class FullscreenViewer {
     if (this.currentIndex > 0) {
       this.currentIndex--;
       this.showItem();
+      this.updateURL();
     }
   }
 }
