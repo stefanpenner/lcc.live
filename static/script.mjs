@@ -375,8 +375,8 @@ class FullscreenViewer {
     return this.overlay.style.display === 'flex' || this.overlay.style.display === 'block';
   }
 
-  open(element) {
-    // Get all images and iframes in the page
+  collectItems() {
+    // Get all images and iframes in the page, excluding those in the overlay
     const images = Array.from(document.querySelectorAll('img')).filter(
       i => !i.closest('the-overlay')
     );
@@ -385,10 +385,13 @@ class FullscreenViewer {
     );
     
     // Combine and sort by DOM order
-    this.items = [...images, ...iframes].sort((a, b) => {
+    return [...images, ...iframes].sort((a, b) => {
       return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
     });
-    
+  }
+
+  open(element) {
+    this.items = this.collectItems();
     this.currentIndex = this.items.indexOf(element);
 
     if (this.currentIndex === -1) return;
@@ -398,20 +401,12 @@ class FullscreenViewer {
   }
 
   openByIndex(index) {
-    // Get all images and iframes in the page
-    const images = Array.from(document.querySelectorAll('img')).filter(
-      i => !i.closest('the-overlay')
-    );
-    const iframes = Array.from(document.querySelectorAll('iframe')).filter(
-      i => !i.closest('the-overlay')
-    );
+    this.items = this.collectItems();
     
-    // Combine and sort by DOM order
-    this.items = [...images, ...iframes].sort((a, b) => {
-      return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
-    });
-    
-    if (index < 0 || index >= this.items.length) return;
+    if (index < 0 || index >= this.items.length) {
+      console.warn(`Invalid camera index: ${index}. Valid range: 0-${this.items.length - 1}`);
+      return;
+    }
     
     this.currentIndex = index;
     this.showItem();
