@@ -365,8 +365,13 @@ class FullscreenViewer {
     if (hash.startsWith('#camera-')) {
       const index = parseInt(hash.substring(8), 10);
       if (!isNaN(index) && index >= 0) {
-        // Delay opening to ensure images/iframes are loaded
-        setTimeout(() => this.openByIndex(index), 100);
+        // Wait for DOM to be ready before opening
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => this.openByIndex(index));
+        } else {
+          // DOM already loaded, open with small delay to ensure rendering
+          requestAnimationFrame(() => this.openByIndex(index));
+        }
       }
     }
   }
@@ -403,6 +408,11 @@ class FullscreenViewer {
   openByIndex(index) {
     this.items = this.collectItems();
     
+    if (this.items.length === 0) {
+      console.warn('No cameras available to open');
+      return;
+    }
+    
     if (index < 0 || index >= this.items.length) {
       console.warn(`Invalid camera index: ${index}. Valid range: 0-${this.items.length - 1}`);
       return;
@@ -410,7 +420,8 @@ class FullscreenViewer {
     
     this.currentIndex = index;
     this.showItem();
-    // Don't update URL when opening by index (already set by popstate or initial load)
+    // Note: This method is designed for programmatic opening (e.g., from URL hash or popstate)
+    // and does not update the URL to avoid duplicate history entries
   }
 
   showItem() {
