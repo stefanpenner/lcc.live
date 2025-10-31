@@ -1,3 +1,4 @@
+// Package store provides data storage and camera management for canyon webcams
 package store
 
 import (
@@ -9,12 +10,14 @@ import (
 	"github.com/mitchellh/hashstructure"
 )
 
+// Image represents a cached camera image with metadata
 type Image struct {
 	Src   string
 	ETag  string
 	Bytes []byte
 }
 
+// HTTPHeaders contains HTTP response metadata for cached images
 type HTTPHeaders struct {
 	ContentType   string
 	ETag          string
@@ -22,6 +25,7 @@ type HTTPHeaders struct {
 	Status        int
 }
 
+// Camera represents a webcam with its configuration
 type Camera struct {
 	ID     string `json:"id"`
 	Kind   string `json:"kind"`
@@ -30,6 +34,7 @@ type Camera struct {
 	Canyon string `json:"canyon"`
 }
 
+// Canyon represents a canyon with its cameras and status
 type Canyon struct {
 	Name    string   `json:"name"`
 	ETag    string   `json:"etag"`
@@ -37,11 +42,13 @@ type Canyon struct {
 	Cameras []Camera `json:"cameras"`
 }
 
+// Canyons represents the collection of all canyons
 type Canyons struct {
 	LCC Canyon `json:"lcc"`
 	BCC Canyon `json:"bcc"`
 }
 
+// Load loads canyon data from a JSON file
 func (c *Canyons) Load(f fs.FS, filepath string) error {
 	data, err := f.(fs.ReadFileFS).ReadFile(filepath)
 	if err != nil {

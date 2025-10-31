@@ -247,7 +247,7 @@ func TestStore_FetchImages_ETagCaching(t *testing.T) {
 
 func TestStore_FetchImages_ErrorHandling(t *testing.T) {
 	// Server that returns errors
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer server.Close()

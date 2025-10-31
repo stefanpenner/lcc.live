@@ -1,3 +1,4 @@
+// Package main is the entry point for the LCC Live webcam server application
 package main
 
 import (
@@ -151,7 +152,9 @@ func purgeCloudflareCache() error {
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Read response
 	responseBody, err := io.ReadAll(resp.Body)
@@ -211,7 +214,7 @@ func main() {
 	// Setup filesystem - load from disk instead of embed
 	staticFS, err := loadFilesystem("static")
 	if err != nil {
-		log.Fatalf("failed to load static files: %v", err)
+		log.Fatalf("failed to load static files: %v", err) //nolint:gocritic // exitAfterDefer is intentional
 	}
 
 	tmplFS, err := loadFilesystem("templates")
@@ -300,7 +303,9 @@ func main() {
 	// Fetch initial images and start background sync
 	logger.Info("Fetching initial camera images...")
 	go store.FetchImages(ctx)
-	go keepCamerasInSync(ctx, store, config.SyncInterval, &totalSyncs)
+	go func() {
+		_ = keepCamerasInSync(ctx, store, config.SyncInterval, &totalSyncs)
+	}()
 
 	// Configure server to use UI logger
 	server.LogWriter = ui.AddLog
@@ -335,7 +340,9 @@ func main() {
 	logger.Info("Shutting down gracefully...")
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer shutdownCancel()
-	app.Shutdown(shutdownCtx)
+	if err := app.Shutdown(shutdownCtx); err != nil {
+		logger.Error("error during shutdown: %v", err)
+	}
 	ui.Shutdown()
 	time.Sleep(100 * time.Millisecond)
 

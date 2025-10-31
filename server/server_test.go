@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestServer(t *testing.T) (*http.Server, *store.Store) {
+func setupTestServer(t *testing.T) *http.Server {
 	// Create a test HTTP server that serves mock images
 	imageServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/jpeg")
@@ -88,11 +88,11 @@ func setupTestServer(t *testing.T) (*http.Server, *store.Store) {
 	app, err := Start(testStore, staticFS, tmplFS, false)
 	require.NoError(t, err)
 
-	return &http.Server{Handler: app}, testStore
+	return &http.Server{Handler: app}
 }
 
 func TestHealthCheckRoute(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	req := httptest.NewRequest("GET", "/healthcheck", nil)
 	rec := httptest.NewRecorder()
@@ -210,7 +210,7 @@ func TestHealthCheckStates(t *testing.T) {
 }
 
 func TestCanyonRoute_GET_LCC(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	req := httptest.NewRequest("GET", "/", nil)
 	rec := httptest.NewRecorder()
@@ -227,7 +227,7 @@ func TestCanyonRoute_GET_LCC(t *testing.T) {
 }
 
 func TestCanyonRoute_HEAD_LCC(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	req := httptest.NewRequest("HEAD", "/", nil)
 	rec := httptest.NewRecorder()
@@ -244,7 +244,7 @@ func TestCanyonRoute_HEAD_LCC(t *testing.T) {
 }
 
 func TestCanyonRoute_GET_BCC(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	req := httptest.NewRequest("GET", "/bcc", nil)
 	rec := httptest.NewRecorder()
@@ -260,7 +260,7 @@ func TestCanyonRoute_GET_BCC(t *testing.T) {
 }
 
 func TestCanyonRoute_HEAD_BCC(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	req := httptest.NewRequest("HEAD", "/bcc", nil)
 	rec := httptest.NewRecorder()
@@ -276,7 +276,7 @@ func TestCanyonRoute_HEAD_BCC(t *testing.T) {
 }
 
 func TestImageRoute_NotFound(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	req := httptest.NewRequest("GET", "/image/nonexistent", nil)
 	rec := httptest.NewRecorder()
@@ -459,7 +459,7 @@ func TestImageRoute_NotModified(t *testing.T) {
 }
 
 func TestStaticFiles(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	req := httptest.NewRequest("GET", "/s/test.css", nil)
 	rec := httptest.NewRecorder()
@@ -590,7 +590,7 @@ func TestImageRoute_CacheHeaders(t *testing.T) {
 }
 
 func TestCanyonRoute_CacheHeaders(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	req := httptest.NewRequest("GET", "/", nil)
 	rec := httptest.NewRecorder()
@@ -606,7 +606,7 @@ func TestCanyonRoute_CacheHeaders(t *testing.T) {
 }
 
 func TestCanyonRoute_ETag_NotModified(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	// First request to get the ETag
 	req1 := httptest.NewRequest("GET", "/", nil)
@@ -628,7 +628,7 @@ func TestCanyonRoute_ETag_NotModified(t *testing.T) {
 }
 
 func TestCanyonRoute_ETag_Modified(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	// Request with wrong ETag should return full content
 	req := httptest.NewRequest("GET", "/", nil)
@@ -693,7 +693,7 @@ func TestImageRoute_WrongETag(t *testing.T) {
 }
 
 func TestMetricsEndpoint(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	req := httptest.NewRequest("GET", "/_/metrics", nil)
 	rec := httptest.NewRecorder()
@@ -713,7 +713,7 @@ func TestMetricsEndpoint(t *testing.T) {
 }
 
 func TestInternalEndpointsCacheHeaders(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	tests := []struct {
 		name string
@@ -742,7 +742,7 @@ func TestInternalEndpointsCacheHeaders(t *testing.T) {
 // JSON Response Tests
 
 func TestCanyonRoute_GET_JSON_LCC(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	req := httptest.NewRequest("GET", "/.json", nil)
 	rec := httptest.NewRecorder()
@@ -764,7 +764,7 @@ func TestCanyonRoute_GET_JSON_LCC(t *testing.T) {
 }
 
 func TestCanyonRoute_GET_JSON_BCC(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	req := httptest.NewRequest("GET", "/bcc.json", nil)
 	rec := httptest.NewRecorder()
@@ -784,7 +784,7 @@ func TestCanyonRoute_GET_JSON_BCC(t *testing.T) {
 }
 
 func TestCanyonRoute_JSON_ETag_NotModified(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	// First request to get the ETag
 	req1 := httptest.NewRequest("GET", "/.json", nil)
@@ -807,7 +807,7 @@ func TestCanyonRoute_JSON_ETag_NotModified(t *testing.T) {
 }
 
 func TestCanyonRoute_JSON_Extension(t *testing.T) {
-	srv, _ := setupTestServer(t)
+	srv := setupTestServer(t)
 
 	testCases := []struct {
 		name       string

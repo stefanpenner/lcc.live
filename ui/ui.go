@@ -1,3 +1,4 @@
+// Package ui provides a terminal UI for monitoring the application
 package ui
 
 import (
@@ -40,6 +41,7 @@ var (
 	helpStyle    = lipgloss.NewStyle().Foreground(gray).Italic(true).PaddingLeft(1)
 )
 
+// Stats holds application statistics for display in the UI
 type Stats struct {
 	Cameras         int
 	LastSyncTime    time.Time
@@ -87,7 +89,7 @@ func IsTTY() bool {
 }
 
 // Initialize starts the TUI (only if TTY is available)
-func Initialize(version, buildTime, port string, syncInterval time.Duration, cameras int) bool {
+func Initialize(version, _ /* buildTime */, port string, _ /* syncInterval */ time.Duration, cameras int) bool {
 	if !IsTTY() {
 		return false
 	}
@@ -105,7 +107,9 @@ func Initialize(version, buildTime, port string, syncInterval time.Duration, cam
 
 	program = tea.NewProgram(globalModel, tea.WithAltScreen())
 
-	go func() { program.Run() }()
+	go func() {
+		_, _ = program.Run()
+	}()
 
 	time.Sleep(100 * time.Millisecond)
 	go startMetricsUpdater(shutdownCtx)
