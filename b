@@ -5,6 +5,14 @@ set -euo pipefail
 
 COMMAND="${1:-help}"
 
+# Check if Doppler is available, exit with error if not found
+require_doppler() {
+  if ! command -v doppler &> /dev/null; then
+    echo "⚠️  Doppler not found. Install: https://docs.doppler.com/docs/install-cli" >&2
+    exit 1
+  fi
+}
+
 case "$COMMAND" in
 build)
   echo "🔨 Building binary..."
@@ -20,7 +28,10 @@ test)
 run)
   export DEV_MODE=1
   echo "🚀 Running server in dev mode (hot reload enabled)..."
-  bazel run //:lcc-live
+  require_doppler
+  echo "🔐 Using Doppler to inject secrets..."
+  # Explicitly specify project and config to avoid parent directory interference
+  doppler run --project lcc-live --config dev -- bazel run //:lcc-live
   ;;
 
 clean)
@@ -103,6 +114,40 @@ dashboard)
   fly dashboard
   ;;
 
+secrets)
+  echo "🔐 Showing Doppler secrets..."
+  require_doppler
+  echo ""
+  echo "All secrets (including Doppler metadata):"
+  doppler secrets --project lcc-live --config dev
+  echo ""
+  echo "Application secrets only (excluding Doppler metadata):"
+  doppler secrets --project lcc-live --config dev --only-names | grep -v "^DOPPLER_" || doppler secrets --project lcc-live --config dev --only-names
+  ;;
+
+psql)
+  echo "🗄️  Connecting to Neon database..."
+  if ! command -v psql &> /dev/null; then
+    echo "⚠️  psql not found. Install PostgreSQL client tools."
+    exit 1
+  fi
+  require_doppler
+  doppler run --project lcc-live --config dev -- bash -c 'psql "$NEON_DATABASE_URL" '"$(printf '%q ' "${@:2}")"
+  ;;
+
+sh)
+  echo "🐚 Starting shell with Doppler environment variables..."
+  require_doppler
+  # Start a shell with Doppler secrets injected
+  doppler run --project lcc-live --config dev -- "${SHELL:-/bin/bash}" "${@:2}"
+  ;;
+
+seed)
+  echo "🌱 Seeding Neon database..."
+  require_doppler
+  doppler run --project lcc-live --config dev -- go run ./cmd/seed-neon --data ./seed.json
+  ;;
+
 help | *)
   cat <<EOF
 Bazel helper script for lcc.live
@@ -125,6 +170,10 @@ Commands:
   logs         - View Fly.io logs
   metrics      - Open metrics endpoint
   dashboard    - Open Fly.io dashboard
+  secrets      - Show Doppler secrets
+  psql         - Connect to Neon database using psql
+  sh           - Start shell with Doppler environment variables
+  seed         - Seed Neon database from seed.json
   help         - Show this help message
 
 Examples:

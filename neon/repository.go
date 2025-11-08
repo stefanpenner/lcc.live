@@ -5,7 +5,61 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/stefanpenner/lcc-live/store"
 )
+
+// StoreAdapter provides an interface-compatible wrapper for store.NeonRepository.
+// It converts neon.Canyon to the format expected by the store package.
+type StoreAdapter struct {
+	repo *Repository
+}
+
+// NewStoreAdapter creates a new adapter for the store package.
+func NewStoreAdapter(repo *Repository) *StoreAdapter {
+	return &StoreAdapter{repo: repo}
+}
+
+// ListCanyons returns canyon data in a format compatible with store.NeonRepository.
+func (a *StoreAdapter) ListCanyons(ctx context.Context) ([]store.NeonCanyon, error) {
+	canyons, err := a.repo.ListCanyons(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]store.NeonCanyon, len(canyons))
+	for i, canyon := range canyons {
+		neonCanyon := store.NeonCanyon{
+			ID:   canyon.ID,
+			Name: canyon.Name,
+		}
+
+		// Convert status if present
+		if canyon.Status != nil {
+			neonCanyon.Status = &store.NeonCanyonStatus{
+				Src:  canyon.Status.Src,
+				Alt:  canyon.Status.Alt,
+				Kind: canyon.Status.Kind,
+			}
+		}
+
+		// Convert cameras
+		neonCanyon.Cameras = make([]store.NeonCamera, len(canyon.Cameras))
+		for j, camera := range canyon.Cameras {
+			neonCanyon.Cameras[j] = store.NeonCamera{
+				ID:       camera.ID,
+				CanyonID: camera.CanyonID,
+				Src:      camera.Src,
+				Alt:      camera.Alt,
+				Kind:     camera.Kind,
+				Position: camera.Position,
+			}
+		}
+
+		result[i] = neonCanyon
+	}
+
+	return result, nil
+}
 
 // Repository exposes helpers for reading canyon and camera metadata from Neon.
 type Repository struct {
@@ -34,6 +88,7 @@ type Camera struct {
 	Src      string `json:"src"`
 	Alt      string `json:"alt,omitempty"`
 	Kind     string `json:"kind,omitempty"`
+	Position int    `json:"position"`
 }
 
 // NewRepository returns a Repository backed by the provided pool.
@@ -98,9 +153,9 @@ order by id`)
 	}
 
 	cameraRows, err := r.pool.Query(ctx, `
-select id, canyon_id, src, alt, kind
+select id, canyon_id, src, alt, kind, position
 from cameras
-order by canyon_id, alt nulls last, id`)
+order by canyon_id, position, id`)
 	if err != nil {
 		return nil, fmt.Errorf("query cameras: %w", err)
 	}
@@ -108,7 +163,7 @@ order by canyon_id, alt nulls last, id`)
 
 	for cameraRows.Next() {
 		var row Camera
-		if err := cameraRows.Scan(&row.ID, &row.CanyonID, &row.Src, &row.Alt, &row.Kind); err != nil {
+		if err := cameraRows.Scan(&row.ID, &row.CanyonID, &row.Src, &row.Alt, &row.Kind, &row.Position); err != nil {
 			return nil, fmt.Errorf("scan camera: %w", err)
 		}
 		if canyon, ok := canyonMap[row.CanyonID]; ok {

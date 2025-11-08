@@ -24,12 +24,16 @@ import (
 	"github.com/stefanpenner/lcc-live/ui"
 )
 
-const defaultSyncInterval = 3 * time.Second
+const (
+	defaultSyncInterval         = 3 * time.Second
+	defaultMetadataSyncInterval = 30 * time.Second
+)
 
 type Config struct {
-	Port         string
-	SyncInterval time.Duration
-	DevMode      bool
+	Port                 string
+	SyncInterval         time.Duration
+	MetadataSyncInterval time.Duration
+	DevMode              bool
 }
 
 // keepCamerasInSync keeps the local store in-sync with image origins
@@ -49,6 +53,28 @@ func keepCamerasInSync(ctx context.Context, store *store.Store, interval time.Du
 	}
 }
 
+// keepMetadataInSync periodically reloads canyon/camera metadata from Neon
+func keepMetadataInSync(ctx context.Context, storeInstance *store.Store, repo store.NeonRepository, interval time.Duration) error {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			logger.Muted("Reloading metadata from Neon...")
+			canyons, err := store.NewStoreFromNeon(ctx, repo)
+			if err != nil {
+				logger.Error("Failed to reload metadata from Neon: %v", err)
+				continue
+			}
+			storeInstance.Reload(canyons)
+			logger.Info("Metadata reloaded from Neon")
+		}
+	}
+}
+
 func loadConfig() Config {
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -63,13 +89,22 @@ func loadConfig() Config {
 		}
 	}
 
+	metadataSyncIntervalStr := os.Getenv("METADATA_SYNC_INTERVAL")
+	metadataSyncInterval := defaultMetadataSyncInterval
+	if metadataSyncIntervalStr != "" {
+		if d, err := time.ParseDuration(metadataSyncIntervalStr); err == nil {
+			metadataSyncInterval = d
+		}
+	}
+
 	// Enable dev mode for hot reloading
 	devMode := os.Getenv("DEV_MODE") == "1" || os.Getenv("DEV_MODE") == "true"
 
 	return Config{
-		Port:         port,
-		SyncInterval: syncInterval,
-		DevMode:      devMode,
+		Port:                 port,
+		SyncInterval:         syncInterval,
+		MetadataSyncInterval: metadataSyncInterval,
+		DevMode:              devMode,
 	}
 }
 
@@ -87,16 +122,16 @@ func getBaseDir() (string, error) {
 	}
 	exeDir := filepath.Dir(exe)
 
-	// Check if files exist in the binary directory (container deployment)
-	if _, err := os.Stat(filepath.Join(exeDir, "data.json")); err == nil {
-		return exeDir, nil
-	}
-
 	// For Bazel runs, check the runfiles directory
 	// Bazel creates a .runfiles directory next to the binary
 	runfilesDir := filepath.Join(exeDir, filepath.Base(exe)+".runfiles", "_main")
-	if _, err := os.Stat(filepath.Join(runfilesDir, "data.json")); err == nil {
+	if info, err := os.Stat(runfilesDir); err == nil && info.IsDir() {
 		return runfilesDir, nil
+	}
+
+	// Check if we're in a container deployment
+	if info, err := os.Stat(exeDir); err == nil && info.IsDir() {
+		return exeDir, nil
 	}
 
 	// Fall back to working directory
@@ -220,39 +255,40 @@ func main() {
 		log.Fatalf("failed to load templates: %v", err)
 	}
 
-	dataFS, err := loadFilesystem(".")
-	if err != nil {
-		log.Fatalf("failed to load data directory: %v", err)
-	}
-
-	store, err := store.NewStoreFromFile(dataFS, "data.json")
-	if err != nil {
-		log.Fatalf("failed to create new store from file %s - %v", "data.json", err)
-	}
-
-	var adminRepo *neon.Repository
+	// Connect to Neon (required)
 	if os.Getenv("NEON_DATABASE_URL") == "" {
-		logger.Warn("NEON_DATABASE_URL not set; admin endpoints disabled")
-	} else {
-		neonConfig, err := neon.FromEnv()
-		if err != nil {
-			log.Fatalf("invalid Neon configuration: %v", err)
-		}
-		neonPool, err := neon.NewPool(ctx, neonConfig)
-		if err != nil {
-			log.Fatalf("failed to connect to Neon: %v", err)
-		}
-		defer neonPool.Close()
-		adminRepo = neon.NewRepository(neonPool)
-		logger.Info("Neon connection ready for admin endpoints")
+		log.Fatal("NEON_DATABASE_URL is required but not set")
 	}
+
+	neonConfig, err := neon.FromEnv()
+	if err != nil {
+		log.Fatalf("invalid Neon configuration: %v", err)
+	}
+	neonPool, err := neon.NewPool(ctx, neonConfig)
+	if err != nil {
+		log.Fatalf("failed to connect to Neon: %v", err)
+	}
+	defer neonPool.Close()
+
+	neonRepo := neon.NewRepository(neonPool)
+	neonAdapter := neon.NewStoreAdapter(neonRepo)
+	logger.Info("Connected to Neon database")
+
+	// Load initial canyon/camera metadata from Neon
+	canyons, err := store.NewStoreFromNeon(ctx, neonAdapter)
+	if err != nil {
+		log.Fatalf("failed to load data from Neon: %v", err)
+	}
+
+	storeInstance := store.NewStore(canyons)
+	logger.Info("Loaded canyon and camera metadata from Neon")
 
 	// Count cameras
-	cameraCount := len(store.Canyon("LCC").Cameras) + len(store.Canyon("BCC").Cameras)
-	if store.Canyon("LCC").Status.Src != "" {
+	cameraCount := len(storeInstance.Canyon("LCC").Cameras) + len(storeInstance.Canyon("BCC").Cameras)
+	if storeInstance.Canyon("LCC").Status.Src != "" {
 		cameraCount++
 	}
-	if store.Canyon("BCC").Status.Src != "" {
+	if storeInstance.Canyon("BCC").Status.Src != "" {
 		cameraCount++
 	}
 
@@ -279,7 +315,7 @@ func main() {
 	var lastCheckTime = time.Now()
 
 	// Set up store callbacks to update UI stats
-	store.SetSyncCallback(func(duration time.Duration, changed, unchanged, errors int) {
+	storeInstance.SetSyncCallback(func(duration time.Duration, changed, unchanged, errors int) {
 		if !hasUI {
 			return
 		}
@@ -315,17 +351,18 @@ func main() {
 		})
 	})
 
-	// Fetch initial images and start background sync
+	// Fetch initial images and start background syncs
 	logger.Info("Fetching initial camera images...")
-	go store.FetchImages(ctx)
-	go keepCamerasInSync(ctx, store, config.SyncInterval, &totalSyncs)
+	go storeInstance.FetchImages(ctx)
+	go keepCamerasInSync(ctx, storeInstance, config.SyncInterval, &totalSyncs)
+	go keepMetadataInSync(ctx, storeInstance, neonAdapter, config.MetadataSyncInterval)
 
 	// Configure server to use UI logger
 	server.LogWriter = ui.AddLog
 
 	// Start server
 	server.RequestCounter = &requestCount
-	app, err := server.Start(store, staticFS, tmplFS, config.DevMode, adminRepo)
+	app, err := server.Start(storeInstance, staticFS, tmplFS, config.DevMode, neonRepo)
 	if err != nil {
 		log.Fatal(err)
 	}

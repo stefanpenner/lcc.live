@@ -36,13 +36,14 @@ create table if not exists cameras (
     kind text default 'image',
     width integer,
     height integer,
+    position integer not null default 0,
     created_at timestamptz default now(),
     updated_at timestamptz default now()
 );`
 )
 
 func main() {
-	dataPath := flag.String("data", "./data.json", "Path to data.json used for seeding")
+	dataPath := flag.String("data", "./seed.json", "Path to seed.json used for seeding")
 	noTruncate := flag.Bool("no-truncate", false, "Do not truncate existing data before seeding")
 	flag.Parse()
 
@@ -132,7 +133,15 @@ func seed(ctx context.Context, pool *pgxpool.Pool, s *store.Store, truncate bool
 			if camera.ID == "" {
 				return fmt.Errorf("camera %s missing ID (src=%s)", camera.Alt, camera.Src)
 			}
-			if err := upsertCamera(ctx, tx, camera.ID, canyonID, &camera); err != nil {
+			// Use position from JSON if set, otherwise fall back to array index
+			position := camera.Position
+			if position == 0 && i != 0 {
+				// If position is 0 and we're not at index 0, it likely wasn't set in JSON
+				// Use array index as fallback for backward compatibility
+				position = i
+			}
+			// Position 0 at index 0 is valid, and non-zero positions from JSON are used as-is
+			if err := upsertCamera(ctx, tx, camera.ID, canyonID, position, &camera); err != nil {
 				return err
 			}
 		}
@@ -162,7 +171,7 @@ do update set
 	return err
 }
 
-func upsertCamera(ctx context.Context, tx pgx.Tx, id string, canyonID string, camera *store.Camera) error {
+func upsertCamera(ctx context.Context, tx pgx.Tx, id string, canyonID string, position int, camera *store.Camera) error {
 	if camera.Src == "" {
 		return errors.New("camera src is required")
 	}
@@ -172,8 +181,8 @@ func upsertCamera(ctx context.Context, tx pgx.Tx, id string, canyonID string, ca
 	}
 
 	_, err := tx.Exec(ctx, `
-insert into cameras (id, canyon_id, src, alt, kind, width, height, updated_at)
-values ($1, $2, $3, $4, $5, $6, $7, now())
+insert into cameras (id, canyon_id, src, alt, kind, width, height, position, updated_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, now())
 on conflict (id)
 do update set
     canyon_id = excluded.canyon_id,
@@ -182,6 +191,7 @@ do update set
     kind = excluded.kind,
     width = excluded.width,
     height = excluded.height,
+    position = excluded.position,
     updated_at = now();`,
 		id,
 		canyonID,
@@ -190,6 +200,7 @@ do update set
 		kind,
 		nil,
 		nil,
+		position,
 	)
 	return err
 }

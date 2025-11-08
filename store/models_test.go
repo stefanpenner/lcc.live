@@ -1,6 +1,8 @@
 package store
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -198,4 +200,160 @@ func TestCanyons_LoadFromRealFile(t *testing.T) {
 	assert.Equal(t, "Big Cottonwood Canyon", canyons.BCC.Name)
 	assert.NotEmpty(t, canyons.LCC.ETag)
 	assert.NotEmpty(t, canyons.BCC.ETag)
+}
+
+// mockNeonRepo is a mock implementation of NeonRepository for testing
+type mockNeonRepo struct {
+	canyons []NeonCanyon
+	err     error
+}
+
+func (m *mockNeonRepo) ListCanyons(ctx context.Context) ([]NeonCanyon, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.canyons, nil
+}
+
+func TestCanyons_LoadFromNeon(t *testing.T) {
+	tests := []struct {
+		name       string
+		mockData   []NeonCanyon
+		mockErr    error
+		wantErr    bool
+		errContain string
+		validate   func(*testing.T, *Canyons)
+	}{
+		{
+			name: "successful load with status cameras",
+			mockData: []NeonCanyon{
+				{
+					ID:   "LCC",
+					Name: "Little Cottonwood Canyon",
+					Status: &NeonCanyonStatus{
+						Src:  "https://example.com/lcc-status.jpg",
+						Alt:  "LCC Status",
+						Kind: "status",
+					},
+					Cameras: []NeonCamera{
+						{
+							ID:       "lcc-cam1",
+							CanyonID: "LCC",
+							Src:      "https://example.com/lcc-cam1.jpg",
+							Alt:      "LCC Camera 1",
+							Kind:     "image",
+						},
+					},
+				},
+				{
+					ID:   "BCC",
+					Name: "Big Cottonwood Canyon",
+					Status: &NeonCanyonStatus{
+						Src:  "https://example.com/bcc-status.jpg",
+						Alt:  "BCC Status",
+						Kind: "status",
+					},
+					Cameras: []NeonCamera{
+						{
+							ID:       "bcc-cam1",
+							CanyonID: "BCC",
+							Src:      "https://example.com/bcc-cam1.jpg",
+							Alt:      "BCC Camera 1",
+							Kind:     "image",
+						},
+					},
+				},
+			},
+			wantErr: false,
+			validate: func(t *testing.T, c *Canyons) {
+				// Verify LCC
+				assert.Equal(t, "Little Cottonwood Canyon", c.LCC.Name)
+				assert.Equal(t, "https://example.com/lcc-status.jpg", c.LCC.Status.Src)
+				assert.Len(t, c.LCC.Cameras, 1)
+				assert.Equal(t, "lcc-cam1", c.LCC.Cameras[0].ID)
+				assert.NotEmpty(t, c.LCC.ETag)
+
+				// Verify BCC
+				assert.Equal(t, "Big Cottonwood Canyon", c.BCC.Name)
+				assert.Equal(t, "https://example.com/bcc-status.jpg", c.BCC.Status.Src)
+				assert.Len(t, c.BCC.Cameras, 1)
+				assert.Equal(t, "bcc-cam1", c.BCC.Cameras[0].ID)
+				assert.NotEmpty(t, c.BCC.ETag)
+			},
+		},
+		{
+			name: "load without status cameras",
+			mockData: []NeonCanyon{
+				{
+					ID:   "LCC",
+					Name: "Little Cottonwood Canyon",
+					Cameras: []NeonCamera{
+						{
+							ID:       "lcc-cam1",
+							CanyonID: "LCC",
+							Src:      "https://example.com/lcc-cam1.jpg",
+							Alt:      "LCC Camera 1",
+							Kind:     "image",
+						},
+					},
+				},
+				{
+					ID:      "BCC",
+					Name:    "Big Cottonwood Canyon",
+					Cameras: []NeonCamera{},
+				},
+			},
+			wantErr: false,
+			validate: func(t *testing.T, c *Canyons) {
+				assert.Empty(t, c.LCC.Status.Src)
+				assert.Len(t, c.LCC.Cameras, 1)
+				assert.Empty(t, c.BCC.Status.Src)
+				assert.Len(t, c.BCC.Cameras, 0)
+			},
+		},
+		{
+			name:       "repository error",
+			mockErr:    fmt.Errorf("database connection failed"),
+			wantErr:    true,
+			errContain: "failed to list canyons from Neon",
+		},
+		{
+			name: "unknown canyon ID",
+			mockData: []NeonCanyon{
+				{
+					ID:      "UNKNOWN",
+					Name:    "Unknown Canyon",
+					Cameras: []NeonCamera{},
+				},
+			},
+			wantErr:    true,
+			errContain: "unknown canyon ID",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mock := &mockNeonRepo{
+				canyons: tt.mockData,
+				err:     tt.mockErr,
+			}
+
+			canyons, err := NewStoreFromNeon(context.Background(), mock)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				if tt.errContain != "" {
+					assert.Contains(t, err.Error(), tt.errContain)
+				}
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, canyons)
+
+			if tt.validate != nil {
+				tt.validate(t, canyons)
+			}
+		})
+	}
 }

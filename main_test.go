@@ -127,7 +127,7 @@ func TestFilesystemLoading(t *testing.T) {
 	t.Run("Data file loads", func(t *testing.T) {
 		dataFS, err := loadFilesystem(".")
 		require.NoError(t, err)
-		data, err := fs.ReadFile(dataFS, "data.json")
+		data, err := fs.ReadFile(dataFS, "seed.json")
 		require.NoError(t, err)
 		assert.NotEmpty(t, data)
 		assert.Contains(t, string(data), "lcc")
@@ -182,12 +182,12 @@ func TestApplicationStartup(t *testing.T) {
 	os.Setenv("DEV_MODE", "1")
 	defer os.Unsetenv("DEV_MODE")
 
-	// Test that store initializes from data.json
-	t.Run("Store initializes from data.json", func(t *testing.T) {
+	// Test that store initializes from seed.json
+	t.Run("Store initializes from seed.json", func(t *testing.T) {
 		dataFS, err := loadFilesystem(".")
 		require.NoError(t, err)
 
-		testStore, err := store.NewStoreFromFile(dataFS, "data.json")
+		testStore, err := store.NewStoreFromFile(dataFS, "seed.json")
 		require.NoError(t, err)
 		assert.NotNil(t, testStore)
 
@@ -211,7 +211,7 @@ func TestApplicationStartup(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create store
-		testStore, err := store.NewStoreFromFile(dataFS, "data.json")
+		testStore, err := store.NewStoreFromFile(dataFS, "seed.json")
 		require.NoError(t, err)
 
 		// Start server
@@ -233,7 +233,7 @@ func TestApplicationStartup(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create and initialize store
-		testStore, err := store.NewStoreFromFile(dataFS, "data.json")
+		testStore, err := store.NewStoreFromFile(dataFS, "seed.json")
 		require.NoError(t, err)
 
 		// Start server

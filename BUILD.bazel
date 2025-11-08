@@ -30,6 +30,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//logger",
+        "//neon",
         "//server",
         "//store",
         "//ui",
@@ -40,7 +41,7 @@ go_library(
 filegroup(
     name = "runtime_files",
     srcs = [
-        "data.json",
+        "seed.json",
         "//static:static_files",
         "//templates:template_files",
     ],
@@ -103,7 +104,7 @@ pkg_tar(
 )
 
 # Package runtime files (data, static, templates) into a tar layer
-# Files maintain their directory structure (static/, templates/, data.json)
+# Files maintain their directory structure (static/, templates/, seed.json)
 pkg_tar(
     name = "runtime_files_layer",
     srcs = [":runtime_files"],

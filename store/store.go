@@ -462,3 +462,84 @@ func (s *Store) Get(cameraID string) (EntrySnapshot, bool) {
 	}
 	return EntrySnapshot{}, false
 }
+
+// Reload updates the store with new canyon/camera metadata from Neon.
+// It preserves image caches for cameras that haven't changed (based on src URL).
+// Camera order is preserved from the newCanyons data (which comes from Neon).
+func (s *Store) Reload(newCanyons *Canyons) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Build new entries and index, preserving order from newCanyons
+	newIndex := make(map[string]*Entry)
+	newEntries := []*Entry{}
+
+	createEntry := func(camera *Camera) *Entry {
+		// Generate camera ID based on src URL (same logic as NewStore)
+		cameraID := base64.StdEncoding.EncodeToString([]byte(camera.Src))
+		camera.ID = cameraID
+
+		// Copy the camera struct to ensure we have our own instance
+		cameraCopy := *camera
+
+		// Check if this camera already exists (by ID)
+		if existingEntry, exists := s.index[cameraID]; exists {
+			// Preserve the existing entry with its image cache
+			existingEntry.mu.Lock()
+			// Update camera metadata in case it changed - copy the struct, don't just assign the pointer
+			existingEntry.Camera = &cameraCopy
+			existingEntry.mu.Unlock()
+
+			newIndex[cameraID] = existingEntry
+			newEntries = append(newEntries, existingEntry)
+			return existingEntry
+		}
+
+		// Create new entry for new camera
+		entry := &Entry{
+			Camera:      &cameraCopy,
+			Image:       &Image{},
+			HTTPHeaders: &HTTPHeaders{},
+			ID:          cameraID,
+			mu:          sync.RWMutex{},
+		}
+		newIndex[cameraID] = entry
+		newEntries = append(newEntries, entry)
+		return entry
+	}
+
+	// Process cameras in the exact same order as NewStore:
+	// 1. LCC status camera (if present)
+	// 2. BCC status camera (if present)
+	// 3. LCC regular cameras (in order from newCanyons)
+	// 4. BCC regular cameras (in order from newCanyons)
+
+	if newCanyons.LCC.Status.Src != "" {
+		newCanyons.LCC.Status.Canyon = "LCC"
+		createEntry(&newCanyons.LCC.Status)
+	}
+	if newCanyons.BCC.Status.Src != "" {
+		newCanyons.BCC.Status.Canyon = "BCC"
+		createEntry(&newCanyons.BCC.Status)
+	}
+
+	// Process regular cameras in order from newCanyons
+	for i := range newCanyons.LCC.Cameras {
+		newCanyons.LCC.Cameras[i].Canyon = "LCC"
+		createEntry(&newCanyons.LCC.Cameras[i])
+	}
+	for i := range newCanyons.BCC.Cameras {
+		newCanyons.BCC.Cameras[i].Canyon = "BCC"
+		createEntry(&newCanyons.BCC.Cameras[i])
+	}
+
+	// Update store state
+	s.canyons = newCanyons
+	s.index = newIndex
+	s.entries = newEntries
+
+	// Update metrics
+	metrics.StoreEntriesTotal.Set(float64(len(newEntries)))
+	metrics.CamerasTotal.WithLabelValues("LCC").Set(float64(len(newCanyons.LCC.Cameras)))
+	metrics.CamerasTotal.WithLabelValues("BCC").Set(float64(len(newCanyons.BCC.Cameras)))
+}

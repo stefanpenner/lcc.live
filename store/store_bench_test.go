@@ -240,7 +240,7 @@ func BenchmarkCanyons_Load(b *testing.B) {
 	}`)
 
 	testFS := fstest.MapFS{
-		"data.json": &fstest.MapFile{
+		"seed.json": &fstest.MapFile{
 			Data: jsonData,
 		},
 	}
@@ -248,7 +248,7 @@ func BenchmarkCanyons_Load(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var canyons Canyons
-		if err := canyons.Load(testFS, "data.json"); err != nil {
+		if err := canyons.Load(testFS, "seed.json"); err != nil {
 			b.Fatal(err)
 		}
 	}

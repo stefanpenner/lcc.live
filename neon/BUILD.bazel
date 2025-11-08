@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "neon",
+    srcs = [
+        "neon.go",
+        "repository.go",
+    ],
+    importpath = "github.com/stefanpenner/lcc-live/neon",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//store",
+        "@com_github_jackc_pgx_v5//pgxpool",
+    ],
+)

@@ -313,3 +313,209 @@ func TestStore_FetchImages_SkipsIframes(t *testing.T) {
 	// Image should be empty since we skip iframes
 	assert.Empty(t, entry.Image.Bytes)
 }
+
+func TestStore_Reload_PreservesImageCache(t *testing.T) {
+	// Create initial store with a camera
+	initialCanyons := &Canyons{
+		LCC: Canyon{
+			Name: "LCC",
+			Cameras: []Camera{
+				{Src: "http://example.com/cam1.jpg", Alt: "Camera 1", Canyon: "LCC"},
+				{Src: "http://example.com/cam2.jpg", Alt: "Camera 2", Canyon: "LCC"},
+			},
+		},
+		BCC: Canyon{Name: "BCC"},
+	}
+
+	store := NewStore(initialCanyons)
+
+	// Simulate populating the image cache
+	testImageBytes := []byte("fake image data")
+	testETag := "\"test-etag-123\""
+
+	store.entries[0].Write(func(e *Entry) {
+		e.Image = &Image{
+			Bytes: testImageBytes,
+			ETag:  testETag,
+			Src:   e.Camera.Src,
+		}
+		e.HTTPHeaders = &HTTPHeaders{
+			Status:        200,
+			ContentType:   "image/jpeg",
+			ContentLength: int64(len(testImageBytes)),
+			ETag:          testETag,
+		}
+	})
+
+	// Reload with the same cameras
+	reloadedCanyons := &Canyons{
+		LCC: Canyon{
+			Name: "LCC",
+			Cameras: []Camera{
+				{Src: "http://example.com/cam1.jpg", Alt: "Camera 1 Updated", Canyon: "LCC"},
+				{Src: "http://example.com/cam2.jpg", Alt: "Camera 2", Canyon: "LCC"},
+			},
+		},
+		BCC: Canyon{Name: "BCC"},
+	}
+
+	// Mark store as ready so Get() doesn't wait
+	if store.isWaitingOnFirstImageReady.Load() {
+		store.isWaitingOnFirstImageReady.Store(false)
+		store.imagesReady.Done()
+	}
+
+	store.Reload(reloadedCanyons)
+
+	// Verify image cache was preserved for cam1
+	cam1ID := store.entries[0].ID
+	entry, exists := store.Get(cam1ID)
+	require.True(t, exists)
+	assert.Equal(t, testImageBytes, entry.Image.Bytes)
+	assert.Equal(t, testETag, entry.Image.ETag)
+	assert.Equal(t, "Camera 1 Updated", entry.Camera.Alt) // Metadata was updated
+}
+
+func TestStore_Reload_HandlesChanges(t *testing.T) {
+	// Start with 3 cameras: cam1, cam2, cam3
+	initialCanyons := &Canyons{
+		LCC: Canyon{
+			Name: "LCC",
+			Cameras: []Camera{
+				{Src: "http://example.com/cam1.jpg", Alt: "Camera 1", Canyon: "LCC"},
+				{Src: "http://example.com/cam2.jpg", Alt: "Camera 2", Canyon: "LCC"},
+				{Src: "http://example.com/cam3.jpg", Alt: "Camera 3", Canyon: "LCC"},
+			},
+		},
+		BCC: Canyon{Name: "BCC"},
+	}
+
+	store := NewStore(initialCanyons)
+	assert.Len(t, store.entries, 3)
+
+	// Mark store as ready
+	if store.isWaitingOnFirstImageReady.Load() {
+		store.isWaitingOnFirstImageReady.Store(false)
+		store.imagesReady.Done()
+	}
+
+	// Populate image cache for cam1
+	testImageBytes := []byte("cam1 image data")
+	store.entries[0].Write(func(e *Entry) {
+		e.Image = &Image{Bytes: testImageBytes, ETag: "\"etag1\""}
+	})
+
+	// Reload with changes:
+	// - cam1 stays (should preserve cache)
+	// - cam2 modified src (treated as removed + added)
+	// - cam3 removed
+	// - cam4, cam5 added
+	reloadedCanyons := &Canyons{
+		LCC: Canyon{
+			Name: "LCC Updated",
+			Cameras: []Camera{
+				{Src: "http://example.com/cam1.jpg", Alt: "Camera 1", Canyon: "LCC"},
+				{Src: "http://example.com/cam4.jpg", Alt: "Camera 4", Canyon: "LCC"},
+				{Src: "http://example.com/cam5.jpg", Alt: "Camera 5", Canyon: "LCC"},
+			},
+		},
+		BCC: Canyon{Name: "BCC"},
+	}
+
+	store.Reload(reloadedCanyons)
+
+	// Verify counts
+	assert.Len(t, store.entries, 3)
+	assert.Equal(t, "LCC Updated", store.canyons.LCC.Name)
+
+	// Verify cam1 cache was preserved
+	cam1Entry := store.entries[0]
+	cam1Entry.Read(func(e *Entry) {
+		assert.Equal(t, testImageBytes, e.Image.Bytes)
+	})
+
+	// Verify new cameras exist
+	foundCam4 := false
+	foundCam5 := false
+	for _, entry := range store.entries {
+		if entry.Camera.Alt == "Camera 4" {
+			foundCam4 = true
+		}
+		if entry.Camera.Alt == "Camera 5" {
+			foundCam5 = true
+		}
+	}
+	assert.True(t, foundCam4, "Camera 4 should exist")
+	assert.True(t, foundCam5, "Camera 5 should exist")
+}
+
+func TestStore_Reload_ThreadSafety(t *testing.T) {
+	initialCanyons := &Canyons{
+		LCC: Canyon{
+			Name: "LCC",
+			Cameras: []Camera{
+				{Src: "http://example.com/cam1.jpg", Alt: "Camera 1", Canyon: "LCC"},
+			},
+		},
+		BCC: Canyon{Name: "BCC"},
+	}
+
+	store := NewStore(initialCanyons)
+
+	// Populate image cache
+	store.entries[0].Write(func(e *Entry) {
+		e.Image = &Image{Bytes: []byte("test data"), ETag: "\"etag\""}
+	})
+
+	// Mark as ready
+	if store.isWaitingOnFirstImageReady.Load() {
+		store.isWaitingOnFirstImageReady.Store(false)
+		store.imagesReady.Done()
+	}
+
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	// Start concurrent Get calls
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					// Continuously call Get
+					cam1ID := store.entries[0].ID
+					_, exists := store.Get(cam1ID)
+					assert.True(t, exists)
+					time.Sleep(1 * time.Millisecond)
+				}
+			}
+		}()
+	}
+
+	// Perform reloads while Gets are happening
+	for i := 0; i < 5; i++ {
+		reloadedCanyons := &Canyons{
+			LCC: Canyon{
+				Name: "LCC",
+				Cameras: []Camera{
+					{Src: "http://example.com/cam1.jpg", Alt: "Camera 1", Canyon: "LCC"},
+					{Src: "http://example.com/cam2.jpg", Alt: "Camera 2", Canyon: "LCC"},
+				},
+			},
+			BCC: Canyon{Name: "BCC"},
+		}
+		store.Reload(reloadedCanyons)
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	cancel()
+	wg.Wait()
+
+	// Verify final state is consistent
+	assert.Len(t, store.entries, 2)
+}

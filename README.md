@@ -20,13 +20,18 @@ bazel run //:lcc-live -- --help
 ## Development
 
 ```bash
-# Run locally
+# Run locally (uses Doppler for secrets injection)
+./b run
+
+# Or run directly with Bazel (requires NEON_DATABASE_URL env var)
 bazel run //:lcc-live
 
-# Add camera: edit data.json
+# Add camera: edit seed.json (then run seed-neon to update database)
 # Modify UI: edit templates/ or static/
 # Backend: edit server/ or store/
 ```
+
+**Note**: The `./b run` command automatically uses Doppler to inject secrets (including `NEON_DATABASE_URL`). Make sure you've run `doppler setup --project lcc-live --config dev` first.
 
 ## Configuration
 
