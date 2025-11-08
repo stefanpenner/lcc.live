@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LCC Live · Admin</title>
+    <link rel="stylesheet" href="/s/admin.css">
+  </head>
+  <body>
+    <header class="layout-header">
+      <div class="brand">
+        <span class="pill">Admin</span>
+        <h1>LCC Live Control</h1>
+      </div>
+      <div class="actions">
+        <button type="button" data-refresh aria-live="polite">Refresh</button>
+      </div>
+    </header>
+
+    <main class="layout-content">
+      <section class="stats">
+        <article class="stat">
+          <span class="label">Canyons</span>
+          <span class="value" data-canyon-count>--</span>
+        </article>
+        <article class="stat">
+          <span class="label">Cameras</span>
+          <span class="value" data-camera-count>--</span>
+        </article>
+        <article class="stat">
+          <span class="label">Last Sync</span>
+          <span class="value small" data-updated-at>Waiting…</span>
+        </article>
+        <article class="stat">
+          <span class="label">Status</span>
+          <span class="value small" data-status-text>Loading</span>
+        </article>
+      </section>
+
+      <section class="list" data-canyon-list data-state="loading">
+        <div class="placeholder">
+          <div class="spinner"></div>
+          <p>Loading the latest canyon data…</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="layout-footer">
+      <small>Data sourced from Neon · Updates every 15s · Async fetch for low latency.</small>
+    </footer>
+
+    <script type="module" src="/s/admin.js"></script>
+  </body>
+</html>
+

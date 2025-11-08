@@ -85,7 +85,7 @@ func setupTestServer(t *testing.T) (*http.Server, *store.Store) {
 		},
 	}
 
-	app, err := Start(testStore, staticFS, tmplFS, false)
+	app, err := Start(testStore, staticFS, tmplFS, false, nil)
 	require.NoError(t, err)
 
 	return &http.Server{Handler: app}, testStore
@@ -196,7 +196,7 @@ func TestHealthCheckStates(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			testStore := tt.setupStore()
-			app, err := Start(testStore, staticFS, tmplFS, false)
+			app, err := Start(testStore, staticFS, tmplFS, false, nil)
 			require.NoError(t, err)
 
 			req := httptest.NewRequest("GET", "/healthcheck", nil)
@@ -328,7 +328,7 @@ func TestImageRoute_GET_Success(t *testing.T) {
 	}
 	staticFS := fstest.MapFS{}
 
-	app, err := Start(testStore, staticFS, tmplFS, false)
+	app, err := Start(testStore, staticFS, tmplFS, false, nil)
 	require.NoError(t, err)
 	srv := &http.Server{Handler: app}
 
@@ -384,7 +384,7 @@ func TestImageRoute_HEAD_Success(t *testing.T) {
 	}
 	staticFS := fstest.MapFS{}
 
-	app, err := Start(testStore, staticFS, tmplFS, false)
+	app, err := Start(testStore, staticFS, tmplFS, false, nil)
 	require.NoError(t, err)
 	srv := &http.Server{Handler: app}
 
@@ -438,7 +438,7 @@ func TestImageRoute_NotModified(t *testing.T) {
 	}
 	staticFS := fstest.MapFS{}
 
-	app, err := Start(testStore, staticFS, tmplFS, false)
+	app, err := Start(testStore, staticFS, tmplFS, false, nil)
 	require.NoError(t, err)
 	srv := &http.Server{Handler: app}
 
@@ -511,7 +511,7 @@ func TestImageRoute_ETagCaching(t *testing.T) {
 	}
 	staticFS := fstest.MapFS{}
 
-	app, err := Start(testStore, staticFS, tmplFS, false)
+	app, err := Start(testStore, staticFS, tmplFS, false, nil)
 	require.NoError(t, err)
 	srv := &http.Server{Handler: app}
 
@@ -572,7 +572,7 @@ func TestImageRoute_CacheHeaders(t *testing.T) {
 	}
 	staticFS := fstest.MapFS{}
 
-	app, err := Start(testStore, staticFS, tmplFS, false)
+	app, err := Start(testStore, staticFS, tmplFS, false, nil)
 	require.NoError(t, err)
 	srv := &http.Server{Handler: app}
 
@@ -676,7 +676,7 @@ func TestImageRoute_WrongETag(t *testing.T) {
 	}
 	staticFS := fstest.MapFS{}
 
-	app, err := Start(testStore, staticFS, tmplFS, false)
+	app, err := Start(testStore, staticFS, tmplFS, false, nil)
 	require.NoError(t, err)
 	srv := &http.Server{Handler: app}
 
@@ -872,7 +872,7 @@ func TestCameraRoute(t *testing.T) {
 	}
 	staticFS := fstest.MapFS{}
 
-	app, err := Start(testStore, staticFS, tmplFS, false)
+	app, err := Start(testStore, staticFS, tmplFS, false, nil)
 	require.NoError(t, err)
 
 	cameraID := testStore.Canyon("LCC").Cameras[0].ID

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/stefanpenner/lcc-live/logger"
+	"github.com/stefanpenner/lcc-live/neon"
 	"github.com/stefanpenner/lcc-live/server"
 	"github.com/stefanpenner/lcc-live/store"
 	"github.com/stefanpenner/lcc-live/ui"
@@ -229,6 +230,23 @@ func main() {
 		log.Fatalf("failed to create new store from file %s - %v", "data.json", err)
 	}
 
+	var adminRepo *neon.Repository
+	if os.Getenv("NEON_DATABASE_URL") == "" {
+		logger.Warn("NEON_DATABASE_URL not set; admin endpoints disabled")
+	} else {
+		neonConfig, err := neon.FromEnv()
+		if err != nil {
+			log.Fatalf("invalid Neon configuration: %v", err)
+		}
+		neonPool, err := neon.NewPool(ctx, neonConfig)
+		if err != nil {
+			log.Fatalf("failed to connect to Neon: %v", err)
+		}
+		defer neonPool.Close()
+		adminRepo = neon.NewRepository(neonPool)
+		logger.Info("Neon connection ready for admin endpoints")
+	}
+
 	// Count cameras
 	cameraCount := len(store.Canyon("LCC").Cameras) + len(store.Canyon("BCC").Cameras)
 	if store.Canyon("LCC").Status.Src != "" {
@@ -307,7 +325,7 @@ func main() {
 
 	// Start server
 	server.RequestCounter = &requestCount
-	app, err := server.Start(store, staticFS, tmplFS, config.DevMode)
+	app, err := server.Start(store, staticFS, tmplFS, config.DevMode, adminRepo)
 	if err != nil {
 		log.Fatal(err)
 	}

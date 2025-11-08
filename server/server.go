@@ -15,6 +15,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/stefanpenner/lcc-live/neon"
 	"github.com/stefanpenner/lcc-live/store"
 )
 
@@ -76,7 +77,7 @@ func (w customLogWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS, devMode bool) (*echo.Echo, error) {
+func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS, devMode bool, adminRepo *neon.Repository) (*echo.Echo, error) {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
@@ -261,7 +262,7 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS, devMode bool) (*ech
 			return func(c echo.Context) error {
 				// Set dev mode flag on context for routes to check
 				c.Set("_dev_mode", true)
-				
+
 				// Disable caching for all responses in dev mode (routes may override)
 				c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, private")
 				c.Response().Header().Set("Pragma", "no-cache")
@@ -312,6 +313,15 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS, devMode bool) (*ech
 	})
 	internal.GET("/version", VersionRoute())
 	internal.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
+
+	adminGroup := internal.Group("/admin")
+	adminGroup.GET("", AdminPageRoute())
+	adminGroup.GET("/", AdminPageRoute())
+	if adminRepo != nil {
+		adminGroup.GET("/api/canyons", AdminCanyonsRoute(adminRepo))
+	} else {
+		adminGroup.GET("/api/canyons", AdminUnavailableRoute)
+	}
 
 	return e, nil
 }
