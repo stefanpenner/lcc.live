@@ -174,11 +174,6 @@
         },
         {
           "kind": "iframe",
-          "src": "https://www.youtube.com/embed/ta-4QZbfMXc?autoplay=1&mute=1&controls=0",
-          "alt": "Moonbeam Parking Lot"
-        },
-        {
-          "kind": "iframe",
           "src": "https://www.youtube.com/embed/aJiGvGcfLwI?autoplay=1&mute=1&controls=0",
           "alt": "Summit express Lift Line"
         },
@@ -196,32 +191,6 @@
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/FBDyQVnJaRQ?autoplay=1&mute=1&controls=0",
           "alt": "Link Lift Line"
-        },
-        {
-          "kind": "iframe",
-          "src": "https://www.youtube.com/embed/YDyBL3bXOwA?autoplay=1&mute=1&controls=0",
-          "alt": "Great Western"
-        },
-        {
-          "kind": "iframe",
-          "src": "https://www.youtube.com/embed/s1i1Si4heiU?autoplay=1&mute=1&controls=0",
-          "alt": "Milly Express"
-        },
-        {
-          "kind": "iframe",
-          "src": "https://www.youtube.com/embed/XLzKPufaAts?autoplay=1&mute=1&controls=0",
-          "alt": "Majestic"
-        },
-        {
-          "kind": "iframe",
-          "src": "https://www.youtube.com/embed/iq-CT8UQzgo?autoplay=1&mute=1&controls=0",
-          "alt": "Parking Lot"
-        },
-
-        {
-          "kind": "iframe",
-          "src": "https://www.youtube.com/embed/Yiwkqi8AxsI?autoplay=1&mute=1&controls=0",
-          "alt": "Molly Greens"
         }
       ]
     }
