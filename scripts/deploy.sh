@@ -111,24 +111,11 @@ cleanup_existing() {
 load_image() {
     log_info "Loading image into Docker..."
     
-    # Check if image already exists and is recent
+    # Always remove old image to ensure we get the latest from Bazel
+    # This prevents stale images when Bazel cache says "up-to-date" but Docker has old content
     if docker image inspect "${IMAGE_NAME}" &> /dev/null; then
-        local image_created=$(docker image inspect "${IMAGE_NAME}" --format '{{.Created}}' 2>/dev/null)
-        if [ -n "$image_created" ]; then
-            # Parse the ISO 8601 timestamp and convert to Unix timestamp
-            local image_timestamp=$(date -j -f "%Y-%m-%dT%H:%M:%S" "${image_created%.*}" +%s 2>/dev/null || echo "0")
-            local current_time=$(date +%s)
-            local age_hours=$(( (current_time - image_timestamp) / 3600 ))
-            
-            if [ $age_hours -lt 1 ]; then
-                log_success "Image ${IMAGE_NAME} is recent (${age_hours}h old), skipping reload"
-                return 0
-            else
-                log_info "Image ${IMAGE_NAME} is ${age_hours}h old, reloading..."
-            fi
-        else
-            log_info "Image ${IMAGE_NAME} exists but timestamp parsing failed, reloading..."
-        fi
+        log_info "Removing existing image ${IMAGE_NAME} to ensure fresh load..."
+        docker rmi "${IMAGE_NAME}" 2>/dev/null || true
     fi
     
     # Load image with timeout
