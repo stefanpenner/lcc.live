@@ -186,6 +186,26 @@
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/M7Fz4WZaWVs?autoplay=1&mute=1&controls=0",
           "alt": "Link Lift Line"
+        },
+        {
+          "kind": "iframe",
+          "src": "https://www.youtube.com/embed/XLzKPufaAts?autoplay=1&mute=1&controls=0",
+          "alt": "Bottom of Majestic Lift"
+        },
+        {
+          "kind": "iframe",
+          "src": "https://www.youtube.com/embed/4a-3iEM7bHk?autoplay=1&mute=1&controls=0",
+          "alt": "Brighton Lot"
+        },
+        {
+          "kind": "iframe",
+          "src": "https://www.youtube.com/embed/HD1S-bdI1AA?si=yEP5SmsaZuxCUj6g&autoplay=1&mute=1&controls=0",
+          "alt": "Molly Greens"
+        },
+        {
+          "kind": "iframe",
+          "src": "https://www.youtube.com/embed/Zv8HYwaXjBg?autoplay=1&mute=1&controls=0",
+          "alt": "Crest 6"
         }
       ]
     }
