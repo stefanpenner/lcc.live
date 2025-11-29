@@ -138,6 +138,7 @@ oci_load(
     image = ":image",
     repo_tags = ["lcc.live:latest"],
     tags = ["manual"],
+    visibility = ["//visibility:public"],
 )
 
 # Push to registry (for Fly.io deployment)
@@ -148,19 +149,14 @@ oci_push(
     tags = ["manual"],
 )
 
-# Deployment script
-sh_binary(
-    name = "deploy",
-    srcs = ["//scripts:deploy.sh"],
-    args = [
-        "$(location :image_load)",
-    ],
-    data = [
-        "fly.toml",
-        ":image_load",
-    ],
-    tags = ["manual"],
+# Export fly.toml for use in scripts
+exports_files(
+    ["fly.toml"],
+    visibility = ["//visibility:public"],
 )
+
+# Deployment script (defined in //scripts:deploy)
+# Use: bazel run //scripts:deploy
 
 # Container integration test
 # Tests that the built OCI image actually works

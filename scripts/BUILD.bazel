@@ -8,3 +8,18 @@ sh_binary(
     visibility = ["//visibility:public"],
     deps = ["@bazel_tools//tools/bash/runfiles"],
 )
+
+sh_binary(
+    name = "deploy",
+    srcs = ["deploy.sh"],
+    args = [
+        "$(location //:image_load)",
+    ],
+    data = [
+        "//:fly.toml",
+        "//:image_load",
+    ],
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
+)

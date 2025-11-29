@@ -51,19 +51,19 @@ deploy)
   echo "🧪 Running tests..."
   bazel test //...
   echo "🚀 Deploying..."
-  bazel run --config=opt //:deploy
+  bazel run --config=opt //scripts:deploy
   ;;
 
 deploy:local)
   echo "🚀 Deploying... locally"
-  bazel run --config=opt //:deploy -- local
+  bazel run --config=opt //scripts:deploy -- local
   ;;
 
 deploy:clean)
   echo "🧹 Cleaning up before deployment..."
   ./scripts/cleanup.sh
   echo "🚀 Deploying... locally"
-  bazel run --config=opt //:deploy -- local
+  bazel run --config=opt //scripts:deploy -- local
   ;;
 
 cleanup)
