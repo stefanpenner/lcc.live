@@ -109,42 +109,52 @@
       "cameras": [
         {
           "kind": "img",
-          "src": "https://udottraffic.utah.gov/1_devices/aux14605.jpeg",
+          "src": "https://udottraffic.utah.gov/map/Cctv/84748?t=1764448200",
+          "alt": "6200 @ 3000 E"
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/86285?t=1764448123",
           "alt": "Wasatch Blvd @ BCC"
         },
         {
           "kind": "img",
-          "src": "https://udottraffic.utah.gov/1_devices/aux16212.jpeg",
+          "src": "https://udottraffic.utah.gov/map/Cctv/85755?t=1764448123",
           "alt": "Dogwood"
         },
         {
           "kind": "img",
-          "src": "https://udottraffic.utah.gov/1_devices/aux16213.jpeg",
+          "src": "https://udottraffic.utah.gov/map/Cctv/85732?t=1764448123",
           "alt": "S Curves"
         },
         {
           "kind": "img",
-          "src": "https://udottraffic.utah.gov/1_devices/aux16215.jpeg",
-          "alt": "Cardiff Fork"
+          "src": "https://udottraffic.utah.gov/map/Cctv/85248?t=1764448140",
+          "alt": "Butler"
         },
         {
           "kind": "img",
-          "src": "https://udottraffic.utah.gov/1_devices/aux16216.jpeg",
-          "alt": "Silver Fork"
+          "src": "https://udottraffic.utah.gov/map/Cctv/85111?t=1764448140",
+          "alt": "Solitude"
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/84218?t=1764448140",
+          "alt": "Brighton"
         },
         {
           "kind": "iframe",
-          "src": "https://www.youtube.com/embed/d8hFWghj84k?autoplay=1&mute=1&controls=0",
+          "src": "https://www.youtube.com/embed/Jl7RmcLqtYM?si=HfQSiGj9IbcRQjqN?autoplay=1&mute=1&controls=0",
           "alt": "Honeycomb canyon"
         },
         {
           "kind": "iframe",
-          "src": "https://www.youtube.com/embed/WGo1Fy5mYaA?autoplay=1&mute=1&controls=0",
+          "src": "https://www.youtube.com/embed/WGo1Fy5mYaA?si=Vf8kD6baH9FgeGmk?autoplay=1&mute=1&controls=0",
           "alt": "Powderhorn"
         },
         {
           "kind": "iframe",
-          "src": "https://www.youtube.com/embed/Lnznapxh2xM?autoplay=1&mute=1&controls=0",
+          "src": "https://www.youtube.com/embed/Lnznapxh2xM?si=kpcdzdYz9xsjg_3x?autoplay=1&mute=1&controls=0",
           "alt": "Sunshine Bowl"
         },
         {
@@ -159,18 +169,13 @@
         },
         {
           "kind": "iframe",
+          "src": "https://www.youtube.com/embed/NSiItCGabfo?autoplay=1&mute=1&controls=0",
+          "alt": "Moonbeam Express"
+        },
+        {
+          "kind": "iframe",
           "src": "https://www.youtube.com/embed/l2X9DlRzX54?autoplay=1&mute=1&controls=0",
           "alt": "Apex Express and Sunrise Lift Lines"
-        },
-        {
-          "kind": "iframe",
-          "src": "https://www.youtube.com/embed/4Rt8Fx9VE_w?autoplay=1&mute=1&controls=0",
-          "alt": "Eagle Express Lift Line"
-        },
-        {
-          "kind": "iframe",
-          "src": "https://www.youtube.com/embed/aJiGvGcfLwI?autoplay=1&mute=1&controls=0",
-          "alt": "Summit express Lift Line"
         },
         {
           "kind": "iframe",
@@ -179,12 +184,7 @@
         },
         {
           "kind": "iframe",
-          "src": "https://www.youtube.com/embed/utxeACX43GE?autoplay=1&mute=1&controls=0",
-          "alt": "Honeycomb Return Lift Line"
-        },
-        {
-          "kind": "iframe",
-          "src": "https://www.youtube.com/embed/FBDyQVnJaRQ?autoplay=1&mute=1&controls=0",
+          "src": "https://www.youtube.com/embed/M7Fz4WZaWVs?autoplay=1&mute=1&controls=0",
           "alt": "Link Lift Line"
         }
       ]
