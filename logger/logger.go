@@ -193,10 +193,105 @@ func Warn(format string, args ...interface{}) {
 	logOrPrint(warnStyle.Render("  ⚠ " + msg))
 }
 
-// Error prints an error message
-func Error(format string, args ...interface{}) {
-	msg := fmt.Sprintf(format, args...)
+// Error logs an error message. If the first argument is an error, it will be sent to Sentry.
+// Usage:
+//   logger.Error("something went wrong")
+//   logger.Error(err)  // logs error and sends to Sentry
+//   logger.Error(err, "failed to load: %v", err)  // logs formatted message and sends to Sentry
+func Error(args ...interface{}) {
+	var err error
+	var msg string
+
+	// Check if first argument is an error
+	if len(args) > 0 {
+		if e, ok := args[0].(error); ok {
+			err = e
+			// If there are more args, use them as format string
+			if len(args) > 1 {
+				format, ok := args[1].(string)
+				if ok {
+					msg = fmt.Sprintf(format, args[2:]...)
+				} else {
+					msg = fmt.Sprintf("%v", err)
+				}
+			} else {
+				msg = fmt.Sprintf("%v", err)
+			}
+		} else {
+			// First arg is not an error, treat all as format string
+			format, ok := args[0].(string)
+			if ok && len(args) > 1 {
+				msg = fmt.Sprintf(format, args[1:]...)
+			} else {
+				msg = fmt.Sprintf("%v", args[0])
+			}
+		}
+	}
+
+	// Log the error nicely
 	logOrPrint(errorStyle.Render("  ✗ " + msg))
+
+	// Send to Sentry if error was provided and Sentry is configured
+	if err != nil && captureException != nil {
+		captureException(err)
+	}
+}
+
+// Fatal logs an error message and exits the program. If an error is provided, it will be sent to Sentry.
+// Usage:
+//   logger.Fatal("critical error occurred")
+//   logger.Fatal(err)  // logs error, sends to Sentry, and exits
+//   logger.Fatal(err, "failed to start: %v", err)  // logs formatted message, sends to Sentry, and exits
+func Fatal(args ...interface{}) {
+	var err error
+	var msg string
+
+	// Check if first argument is an error
+	if len(args) > 0 {
+		if e, ok := args[0].(error); ok {
+			err = e
+			// If there are more args, use them as format string
+			if len(args) > 1 {
+				format, ok := args[1].(string)
+				if ok {
+					msg = fmt.Sprintf(format, args[2:]...)
+				} else {
+					msg = fmt.Sprintf("%v", err)
+				}
+			} else {
+				msg = fmt.Sprintf("%v", err)
+			}
+		} else {
+			// First arg is not an error, treat all as format string
+			format, ok := args[0].(string)
+			if ok && len(args) > 1 {
+				msg = fmt.Sprintf(format, args[1:]...)
+			} else {
+				msg = fmt.Sprintf("%v", args[0])
+			}
+		}
+	}
+
+	// Log the error nicely
+	logOrPrint(errorStyle.Render("  ✗ " + msg))
+
+	// Send to Sentry if error was provided and Sentry is configured
+	if err != nil && captureException != nil {
+		captureException(err)
+	}
+
+	// Exit the program
+	os.Exit(1)
+}
+
+// captureException is a function pointer that can be set to capture exceptions
+// This allows us to avoid importing sentry-go in the logger package
+// The function signature matches sentry.CaptureException which returns *sentry.EventID
+var captureException func(error) interface{}
+
+// SetSentryCaptureException sets the function to use for capturing exceptions to Sentry
+func SetSentryCaptureException(fn func(error) interface{}) {
+	captureException = fn
 }
 
 // Muted prints a muted/debug message

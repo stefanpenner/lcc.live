@@ -8,6 +8,8 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/log v0.4.2
+	github.com/getsentry/sentry-go v0.40.0
+	github.com/getsentry/sentry-go/echo v0.40.0
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/hashstructure v1.1.0

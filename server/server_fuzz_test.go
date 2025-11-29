@@ -63,7 +63,13 @@ func FuzzImageRoute(f *testing.F) {
 	}
 	staticFS := fstest.MapFS{}
 
-	app, err := Start(testStore, staticFS, tmplFS, false)
+	app, err := Start(ServerConfig{
+		Store:         testStore,
+		StaticFS:      staticFS,
+		TemplateFS:    tmplFS,
+		DevMode:       false,
+		SentryEnabled: false,
+	})
 	if err != nil {
 		f.Fatal(err)
 	}
@@ -181,7 +187,13 @@ func FuzzCanyonRoute(f *testing.F) {
 		},
 	}
 
-	app, err := Start(testStore, staticFS, tmplFS, false)
+	app, err := Start(ServerConfig{
+		Store:         testStore,
+		StaticFS:      staticFS,
+		TemplateFS:    tmplFS,
+		DevMode:       false,
+		SentryEnabled: false,
+	})
 	if err != nil {
 		f.Fatal(err)
 	}
@@ -272,7 +284,13 @@ func FuzzHTTPHeaders(f *testing.F) {
 	}
 	staticFS := fstest.MapFS{}
 
-	app, err := Start(testStore, staticFS, tmplFS, false)
+	app, err := Start(ServerConfig{
+		Store:         testStore,
+		StaticFS:      staticFS,
+		TemplateFS:    tmplFS,
+		DevMode:       false,
+		SentryEnabled: false,
+	})
 	if err != nil {
 		f.Fatal(err)
 	}
@@ -362,7 +380,13 @@ func FuzzStaticFiles(f *testing.F) {
 		},
 	}
 
-	app, err := Start(testStore, staticFS, tmplFS, false)
+	app, err := Start(ServerConfig{
+		Store:         testStore,
+		StaticFS:      staticFS,
+		TemplateFS:    tmplFS,
+		DevMode:       false,
+		SentryEnabled: false,
+	})
 	if err != nil {
 		f.Fatal(err)
 	}

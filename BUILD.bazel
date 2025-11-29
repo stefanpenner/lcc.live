@@ -33,6 +33,7 @@ go_library(
         "//server",
         "//store",
         "//ui",
+        "@com_github_getsentry_sentry_go//:sentry-go",
     ],
 )
 

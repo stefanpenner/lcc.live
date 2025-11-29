@@ -18,6 +18,7 @@ go_library(
         "//metrics",
         "//store",
         "@com_github_charmbracelet_lipgloss//:lipgloss",
+        "@com_github_getsentry_sentry_go_echo//:echo",
         "@com_github_labstack_echo_v4//:echo",
         "@com_github_labstack_echo_v4//middleware",
         "@com_github_prometheus_client_golang//prometheus/promhttp",

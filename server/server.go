@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -77,8 +78,17 @@ func (w customLogWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-// Start starts the HTTP server with the given store and filesystem
-func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS, devMode bool) (*echo.Echo, error) {
+// ServerConfig holds configuration for starting the HTTP server
+type ServerConfig struct {
+	Store         *store.Store
+	StaticFS      fs.FS
+	TemplateFS    fs.FS
+	DevMode       bool
+	SentryEnabled bool
+}
+
+// Start starts the HTTP server with the given configuration
+func Start(cfg ServerConfig) (*echo.Echo, error) {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
@@ -86,6 +96,13 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS, devMode bool) (*ech
 	// Use our custom log writer if available
 	if LogWriter != nil {
 		e.Logger.SetOutput(customLogWriter{})
+	}
+
+	// Add Sentry middleware to capture panics and errors (only if Sentry is enabled)
+	if cfg.SentryEnabled {
+		e.Use(sentryecho.New(sentryecho.Options{
+			Repanic: true,
+		}))
 	}
 
 	// Add version header to all responses
@@ -117,7 +134,7 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS, devMode bool) (*ech
 	// These files (CSS, JS, images) are versioned via their URLs or rarely change
 	e.GET("/s/*", func(c echo.Context) error {
 		// In dev mode, disable caching for static files
-		if devMode {
+		if cfg.DevMode {
 			c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 			c.Response().Header().Set("Pragma", "no-cache")
 			c.Response().Header().Set("Expires", "0")
@@ -129,7 +146,7 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS, devMode bool) (*ech
 			// 3. When HTML changes, it references new/updated static files
 			c.Response().Header().Set("Cache-Control", "public, max-age=86400, immutable")
 		}
-		return echo.WrapHandler(http.StripPrefix("/s", http.FileServer(http.FS(staticFS))))(c)
+		return echo.WrapHandler(http.StripPrefix("/s", http.FileServer(http.FS(cfg.StaticFS))))(c)
 	})
 
 	// Custom logger middleware that routes through our UI
@@ -245,21 +262,29 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS, devMode bool) (*ech
 		}
 	})
 
-	e.Use(middleware.Recover())
+	// Recover middleware (only needed if Sentry is disabled, as Sentry middleware handles panics)
+	if !cfg.SentryEnabled {
+		e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
+			DisableStackAll:   false,
+			DisablePrintStack: false,
+			StackSize:         4 << 10, // 4 KB
+			LogLevel:          0,       // Log all panics
+		}))
+	}
 	// Custom Rendering Stuff [
-	tmpl, err := template.New("").Funcs(templateFuncs).ParseFS(tmplFS, "*.html.tmpl")
+	tmpl, err := template.New("").Funcs(templateFuncs).ParseFS(cfg.TemplateFS, "*.html.tmpl")
 	if err != nil {
 		return nil, err
 	}
 	renderer := &TemplateRenderer{
 		templates: tmpl,
-		fs:        tmplFS,
-		devMode:   devMode,
+		fs:        cfg.TemplateFS,
+		devMode:   cfg.DevMode,
 	}
 	e.Renderer = renderer
 
 	// In dev mode, set dev mode flag on context and disable caching for all responses
-	if devMode {
+	if cfg.DevMode {
 		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 			return func(c echo.Context) error {
 				// Set dev mode flag on context for routes to check
@@ -278,28 +303,28 @@ func Start(store *store.Store, staticFS fs.FS, tmplFS fs.FS, devMode bool) (*ech
 
 	// handleIndex handles both GET and HEAD requests for the index route
 
-	e.GET("/", CanyonRoute(store, "LCC"))
-	e.HEAD("/", CanyonRoute(store, "LCC"))
-	e.GET("/.json", CanyonRoute(store, "LCC"))
-	e.HEAD("/.json", CanyonRoute(store, "LCC"))
+	e.GET("/", CanyonRoute(cfg.Store, "LCC"))
+	e.HEAD("/", CanyonRoute(cfg.Store, "LCC"))
+	e.GET("/.json", CanyonRoute(cfg.Store, "LCC"))
+	e.HEAD("/.json", CanyonRoute(cfg.Store, "LCC"))
 
-	e.GET("/lcc", CanyonRoute(store, "LCC"))
-	e.HEAD("/lcc", CanyonRoute(store, "LCC"))
-	e.GET("/lcc.json", CanyonRoute(store, "LCC"))
-	e.HEAD("/lcc.json", CanyonRoute(store, "LCC"))
+	e.GET("/lcc", CanyonRoute(cfg.Store, "LCC"))
+	e.HEAD("/lcc", CanyonRoute(cfg.Store, "LCC"))
+	e.GET("/lcc.json", CanyonRoute(cfg.Store, "LCC"))
+	e.HEAD("/lcc.json", CanyonRoute(cfg.Store, "LCC"))
 
-	e.GET("/bcc", CanyonRoute(store, "BCC"))
-	e.HEAD("/bcc", CanyonRoute(store, "BCC"))
-	e.GET("/bcc.json", CanyonRoute(store, "BCC"))
-	e.HEAD("/bcc.json", CanyonRoute(store, "BCC"))
+	e.GET("/bcc", CanyonRoute(cfg.Store, "BCC"))
+	e.HEAD("/bcc", CanyonRoute(cfg.Store, "BCC"))
+	e.GET("/bcc.json", CanyonRoute(cfg.Store, "BCC"))
+	e.HEAD("/bcc.json", CanyonRoute(cfg.Store, "BCC"))
 
-	e.GET("/image/:id", ImageRoute(store))
-	e.HEAD("/image/:id", ImageRoute(store))
+	e.GET("/image/:id", ImageRoute(cfg.Store))
+	e.HEAD("/image/:id", ImageRoute(cfg.Store))
 
-	e.GET("/camera/*", CameraRoute(store))
-	e.HEAD("/camera/*", CameraRoute(store))
+	e.GET("/camera/*", CameraRoute(cfg.Store))
+	e.HEAD("/camera/*", CameraRoute(cfg.Store))
 
-	e.GET("/healthcheck", HealthCheckRoute(store))
+	e.GET("/healthcheck", HealthCheckRoute(cfg.Store))
 
 	// Internal/admin endpoints under /_/
 	// These endpoints should never be cached

@@ -18,6 +18,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/stefanpenner/lcc-live/logger"
 	"github.com/stefanpenner/lcc-live/server"
 	"github.com/stefanpenner/lcc-live/store"
@@ -180,14 +181,52 @@ func purgeCloudflareCache() error {
 	return fmt.Errorf("cache purge failed: %v", result.Errors)
 }
 
+// initSentry initializes Sentry if DSN is provided and not in dev mode
+// Returns true if Sentry was initialized
+func initSentry(devMode bool) bool {
+	dsn := os.Getenv("SENTRY_DSN")
+	if dsn == "" || devMode {
+		return false
+	}
+
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn:         dsn,
+		Environment: "production",
+		Release:     server.Version,
+		// Enable performance monitoring
+		EnableTracing: true,
+		// Set sample rate for performance monitoring
+		TracesSampleRate: 1.0,
+		// Capture panics
+		AttachStacktrace: true,
+	})
+	if err != nil {
+		log.Fatalf("sentry.Init: %s", err)
+	}
+	// Ensure buffered events are sent before the program exits
+	defer sentry.Flush(2 * time.Second)
+
+	// Configure logger to send errors to Sentry
+	logger.SetSentryCaptureException(func(err error) interface{} {
+		return sentry.CaptureException(err)
+	})
+
+	return true
+}
+
 func main() {
+	// Check dev mode early
+	devMode := os.Getenv("DEV_MODE") == "1" || os.Getenv("DEV_MODE") == "true"
+
+	// Initialize Sentry early, before any other operations
+	sentryEnabled := initSentry(devMode)
+
 	// Handle subcommands
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
 		case "purge-cache":
 			if err := purgeCloudflareCache(); err != nil {
-				logger.Error("%v", err)
-				os.Exit(1)
+				logger.Fatal(err)
 			}
 			os.Exit(0)
 		case "help", "--help", "-h":
@@ -214,22 +253,22 @@ func main() {
 	// Setup filesystem - load from disk instead of embed
 	staticFS, err := loadFilesystem("static")
 	if err != nil {
-		log.Fatalf("failed to load static files: %v", err) //nolint:gocritic // exitAfterDefer is intentional
+		logger.Fatal(err, "failed to load static files: %v", err)
 	}
 
 	tmplFS, err := loadFilesystem("templates")
 	if err != nil {
-		log.Fatalf("failed to load templates: %v", err)
+		logger.Fatal(err, "failed to load templates: %v", err)
 	}
 
 	dataFS, err := loadFilesystem(".")
 	if err != nil {
-		log.Fatalf("failed to load data directory: %v", err)
+		logger.Fatal(err, "failed to load data directory: %v", err)
 	}
 
 	store, err := store.NewStoreFromFile(dataFS, "data.json")
 	if err != nil {
-		log.Fatalf("failed to create new store from file %s - %v", "data.json", err)
+		logger.Fatal(err, "failed to create new store from file %s - %v", "data.json", err)
 	}
 
 	// Count cameras
@@ -312,9 +351,15 @@ func main() {
 
 	// Start server
 	server.RequestCounter = &requestCount
-	app, err := server.Start(store, staticFS, tmplFS, config.DevMode)
+	app, err := server.Start(server.ServerConfig{
+		Store:         store,
+		StaticFS:      staticFS,
+		TemplateFS:    tmplFS,
+		DevMode:       config.DevMode,
+		SentryEnabled: sentryEnabled,
+	})
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	logger.Success("Server listening on http://localhost:%s", config.Port)
@@ -327,8 +372,8 @@ func main() {
 
 	// Start HTTP server
 	go func() {
-		if err := app.Start(":" + config.Port); err != nil {
-			logger.Error("Server error: %v", err)
+		if err := app.Start(":" + config.Port); err != nil && err != http.ErrServerClosed {
+			logger.Error(err, "Server error: %v", err)
 			cancel()
 		}
 	}()
@@ -341,10 +386,13 @@ func main() {
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer shutdownCancel()
 	if err := app.Shutdown(shutdownCtx); err != nil {
-		logger.Error("error during shutdown: %v", err)
+		logger.Error(err, "error during shutdown: %v", err)
 	}
 	ui.Shutdown()
 	time.Sleep(100 * time.Millisecond)
+
+	// Flush Sentry before exiting
+	sentry.Flush(2 * time.Second)
 
 	logger.Success("Goodbye!")
 	fmt.Println()

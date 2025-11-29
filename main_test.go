@@ -215,7 +215,13 @@ func TestApplicationStartup(t *testing.T) {
 		require.NoError(t, err)
 
 		// Start server
-		app, err := server.Start(testStore, staticFS, tmplFS, false)
+		app, err := server.Start(server.ServerConfig{
+			Store:         testStore,
+			StaticFS:      staticFS,
+			TemplateFS:    tmplFS,
+			DevMode:       false,
+			SentryEnabled: false,
+		})
 		require.NoError(t, err)
 		assert.NotNil(t, app)
 	})
@@ -237,7 +243,13 @@ func TestApplicationStartup(t *testing.T) {
 		require.NoError(t, err)
 
 		// Start server
-		app, err := server.Start(testStore, staticFS, tmplFS, false)
+		app, err := server.Start(server.ServerConfig{
+			Store:         testStore,
+			StaticFS:      staticFS,
+			TemplateFS:    tmplFS,
+			DevMode:       false,
+			SentryEnabled: false,
+		})
 		require.NoError(t, err)
 
 		// Test that routes are accessible (even if images not yet fetched)
