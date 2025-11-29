@@ -1,0 +1,5 @@
+filegroup(
+    name = "favicon_svg",
+    srcs = ["favicon.svg"],
+    visibility = ["//visibility:public"],
+)

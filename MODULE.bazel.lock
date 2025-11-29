@@ -185,6 +185,32 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
+    "//tools:host_tools.bzl%host_tools_ext": {
+      "general": {
+        "bzlTransitiveDigest": "NYrNV5Gew7xSV4kC9HV7zQqUsNmIXT8sdfkMV1NOKDw=",
+        "usagesDigest": "ueCvRJL5HWg13rswuf+JScjKZIVTRG3Z/4B0g8zo/pw=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "host_tools": {
+            "repoRuleId": "@@//tools:host_tools.bzl%_host_tools_repo",
+            "attributes": {
+              "tools": [
+                "rsvg-convert",
+                "magick"
+              ],
+              "default_paths": [
+                "/opt/homebrew/bin",
+                "/usr/local/bin",
+                "/usr/bin"
+              ]
+            }
+          }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
     "@@pybind11_bazel+//:python_configure.bzl%extension": {
       "general": {
         "bzlTransitiveDigest": "4rSUGWibZDYLhHR+8eMwTNwAwdIv+xjVrtQ+gHtWHq4=",

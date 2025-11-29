@@ -1,8 +1,30 @@
+# Generate favicon.png from SVG using the script
+genrule(
+    name = "favicon",
+    srcs = [
+        "//assets:favicon_svg",
+    ],
+    outs = ["favicon.png"],
+    cmd = """
+        $(execpath //scripts:generate-favicon) \
+            $(location //assets:favicon_svg) \
+            $(location :favicon.png)
+    """,
+    tags = [
+        "local",
+        "no-remote",
+    ],  # Requires local tools, don't run remotely
+    tools = ["//scripts:generate-favicon"],
+    visibility = ["//visibility:public"],
+)
+
 filegroup(
     name = "static_files",
     srcs = glob(
         ["**/*"],
-        exclude = ["BUILD.bazel"],
-    ),
+        exclude = [
+            "BUILD.bazel",
+        ],
+    ) + [":favicon"],
     visibility = ["//visibility:public"],
 )

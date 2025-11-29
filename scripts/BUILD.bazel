@@ -1,0 +1,10 @@
+sh_binary(
+    name = "generate-favicon",
+    srcs = ["generate-favicon.sh"],
+    data = [
+        "@host_tools//:magick",
+        "@host_tools//:rsvg_convert",
+    ],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
+    visibility = ["//visibility:public"],
+)

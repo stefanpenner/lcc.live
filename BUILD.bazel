@@ -151,7 +151,7 @@ oci_push(
 # Deployment script
 sh_binary(
     name = "deploy",
-    srcs = ["scripts/deploy.sh"],
+    srcs = ["//scripts:deploy.sh"],
     args = [
         "$(location :image_load)",
     ],

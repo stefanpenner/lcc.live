@@ -59,3 +59,19 @@ oci.pull(
     ],
 )
 use_repo(oci, "alpine", "alpine_linux_amd64", "alpine_linux_arm64_v8")
+
+# Host tools for favicon generation
+host_tools_ext = use_extension("//tools:host_tools.bzl", "host_tools_ext")
+host_tools_ext.host_tool(
+    name = "host_tools",
+    default_paths = [
+        "/opt/homebrew/bin",
+        "/usr/local/bin",
+        "/usr/bin",
+    ],
+    tools = [
+        "rsvg-convert",
+        "magick",
+    ],
+)
+use_repo(host_tools_ext, host_tools = "host_tools")
