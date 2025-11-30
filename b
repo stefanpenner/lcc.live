@@ -94,8 +94,13 @@ graphana)
   ;;
 
 console)
-  echo "📊 Opening Graphana dashboard..."
+  echo "🖥️  Opening Fly.io console..."
   fly console
+  ;;
+
+purge-cache)
+  echo "🗑️  Purging Cloudflare cache..."
+  fly ssh console -C "/usr/local/bin/lcc-live purge-cache"
   ;;
 
 dashboard)
@@ -125,6 +130,8 @@ Commands:
   logs         - View Fly.io logs
   metrics      - Open metrics endpoint
   dashboard    - Open Fly.io dashboard
+  console      - Open Fly.io console
+  purge-cache  - Test Cloudflare cache purge
   help         - Show this help message
 
 Examples:

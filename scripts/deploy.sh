@@ -230,6 +230,12 @@ else
   log_info "Deploying to Fly.io..."
   fly deploy --local-only --image "${IMAGE_NAME}" --release-command-timeout=90s
 
-  log_success "Deployment complete!"
-  echo "🔍 Check version at: https://lcc.live/_/version"
+  if [ $? -eq 0 ]; then
+    log_success "Deployment complete!"
+    echo "🔍 Check version at: https://lcc.live/_/version"
+    log_info "Cloudflare cache will be purged automatically via release_command"
+  else
+    log_error "Deployment failed"
+    exit 1
+  fi
 fi
