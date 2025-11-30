@@ -66,3 +66,4 @@ rm -f "$TEMP_FILE"
 
 echo "Share image generated successfully at $OUTPUT_FILE"
 
+
