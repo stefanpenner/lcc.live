@@ -69,6 +69,7 @@ func CameraRoute(store *store.Store) func(c echo.Context) error {
 
 		// Build the data for the template
 		// Use the actual camera ID for image URL, not the path parameter (which might be a slug)
+		// For iframe cameras, ImageURL is not used but we set it anyway for consistency
 		data := CameraPageData{
 			Camera:     *entry.Camera,
 			CanyonName: canyonName,

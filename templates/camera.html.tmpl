@@ -207,10 +207,24 @@
         </a>
         <div class="photo-main">
           <div class="photo-frame">
+            {{- if eq .Camera.Kind "iframe" -}}
+            <!-- Embedded iframe camera -->
+            <iframe 
+              src="{{.Camera.Src}}" 
+              title="{{.Camera.Alt}}" 
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" 
+              referrerpolicy="strict-origin-when-cross-origin"
+              aria-label="{{.Camera.Alt}}"
+              style="width: 100%; aspect-ratio: 16/9; min-height: 400px;">
+            </iframe>
+            {{- else -}}
+            <!-- Standard image camera -->
             <img 
               src="{{.ImageURL}}" 
               alt="{{.Camera.Alt}}"
               loading="eager">
+            {{- end -}}
           </div>
         </div>
       </div>
