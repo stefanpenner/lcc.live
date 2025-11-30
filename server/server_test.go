@@ -929,7 +929,10 @@ func TestCameraRoute(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	cameraID := testStore.Canyon("LCC").Cameras[0].ID
+	camera := testStore.Canyon("LCC").Cameras[0]
+	cameraID := camera.ID
+	// Use slug instead of ID since camera has Alt field (will redirect otherwise)
+	cameraSlug := slugify(camera.Alt)
 
 	tests := []struct {
 		name           string
@@ -942,7 +945,7 @@ func TestCameraRoute(t *testing.T) {
 		{
 			name:           "GET HTML success",
 			method:         "GET",
-			path:           "/camera/" + cameraID,
+			path:           "/camera/" + cameraSlug,
 			expectedStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, rec *httptest.ResponseRecorder) {
 				assert.Contains(t, rec.Body.String(), "Test Camera")
@@ -952,7 +955,7 @@ func TestCameraRoute(t *testing.T) {
 		{
 			name:           "GET JSON success",
 			method:         "GET",
-			path:           "/camera/" + cameraID + ".json",
+			path:           "/camera/" + cameraSlug + ".json",
 			expectedStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, rec *httptest.ResponseRecorder) {
 				assert.Contains(t, rec.Header().Get("Content-Type"), "application/json")
@@ -963,7 +966,7 @@ func TestCameraRoute(t *testing.T) {
 		{
 			name:           "HEAD request",
 			method:         "HEAD",
-			path:           "/camera/" + cameraID,
+			path:           "/camera/" + cameraSlug,
 			expectedStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, rec *httptest.ResponseRecorder) {
 				assert.Empty(t, rec.Body.String())
@@ -1000,14 +1003,14 @@ func TestCameraRoute(t *testing.T) {
 
 	// Test ETag Not Modified separately (requires two requests)
 	t.Run("ETag not modified", func(t *testing.T) {
-		// First request to get ETag
-		req1 := httptest.NewRequest("GET", "/camera/"+cameraID, nil)
+		// First request to get ETag (use slug since camera has Alt field)
+		req1 := httptest.NewRequest("GET", "/camera/"+cameraSlug, nil)
 		rec1 := httptest.NewRecorder()
 		app.ServeHTTP(rec1, req1)
 		etag := rec1.Header().Get("ETag")
 
 		// Second request with If-None-Match
-		req2 := httptest.NewRequest("GET", "/camera/"+cameraID, nil)
+		req2 := httptest.NewRequest("GET", "/camera/"+cameraSlug, nil)
 		req2.Header.Set("If-None-Match", etag)
 		rec2 := httptest.NewRecorder()
 		app.ServeHTTP(rec2, req2)
