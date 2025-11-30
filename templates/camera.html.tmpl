@@ -13,20 +13,41 @@
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
+    <meta property="og:site_name" content="LCC.live">
     <meta property="og:url" content="https://lcc.live/camera/{{if .Camera.Alt}}{{slugify .Camera.Alt}}{{else}}{{.Camera.ID}}{{end}}">
     <meta property="og:title" content="{{.Camera.Alt}} | {{.CanyonName}} Live Camera">
-    <meta property="og:description" content="Live camera view from {{.Camera.Alt}} in {{if eq .CanyonName "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}}.">
+    <meta property="og:description" content="Live camera view from {{.Camera.Alt}} in {{if eq .CanyonName "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}}. Real-time road conditions and weather updates.">
+    <meta property="og:locale" content="en_US">
+    {{- if ne .Camera.Kind "iframe" -}}
     <meta property="og:image" content="https://lcc.live{{.ImageURL}}">
-    <meta property="og:image:alt" content="{{.Camera.Alt}}">
+    <meta property="og:image:secure_url" content="https://lcc.live{{.ImageURL}}">
+    <meta property="og:image:alt" content="{{.Camera.Alt}} - {{.CanyonName}} Live Camera">
+    <meta property="og:image:type" content="image/jpeg">
     <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
+    <meta property="og:image:height" content="800">
+    {{- else -}}
+    <!-- Fallback to site icon for iframe cameras -->
+    <meta property="og:image" content="https://lcc.live/s/og-image.png">
+    <meta property="og:image:secure_url" content="https://lcc.live/s/og-image.png">
+    <meta property="og:image:alt" content="LCC.live - {{.CanyonName}} Live Camera">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="800">
+    {{- end -}}
     
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://lcc.live/camera/{{if .Camera.Alt}}{{slugify .Camera.Alt}}{{else}}{{.Camera.ID}}{{end}}">
     <meta name="twitter:title" content="{{.Camera.Alt}} | {{.CanyonName}} Live Camera">
-    <meta name="twitter:description" content="Live camera view from {{.Camera.Alt}} in {{if eq .CanyonName "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}}.">
+    <meta name="twitter:description" content="Live camera view from {{.Camera.Alt}} in {{if eq .CanyonName "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}}. Real-time road conditions and weather updates.">
+    {{- if ne .Camera.Kind "iframe" -}}
     <meta name="twitter:image" content="https://lcc.live{{.ImageURL}}">
+    <meta name="twitter:image:alt" content="{{.Camera.Alt}} - {{.CanyonName}} Live Camera">
+    {{- else -}}
+    <!-- Fallback to site icon for iframe cameras -->
+    <meta name="twitter:image" content="https://lcc.live/s/og-image.png">
+    <meta name="twitter:image:alt" content="LCC.live - {{.CanyonName}} Live Camera">
+    {{- end -}}
     
     <!-- Mobile Optimization -->
     <meta name="mobile-web-app-capable" content="yes">

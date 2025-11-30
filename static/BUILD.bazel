@@ -18,6 +18,26 @@ genrule(
     visibility = ["//visibility:public"],
 )
 
+# Generate og-image.png from SVG for social media sharing
+genrule(
+    name = "og_image",
+    srcs = [
+        "//assets:favicon_svg",
+    ],
+    outs = ["og-image.png"],
+    cmd = """
+        $(execpath //scripts:generate-share-image) \
+            $(location //assets:favicon_svg) \
+            $(location :og-image.png)
+    """,
+    tags = [
+        "local",
+        "no-remote",
+    ],  # Requires local tools, don't run remotely
+    tools = ["//scripts:generate-share-image"],
+    visibility = ["//visibility:public"],
+)
+
 filegroup(
     name = "static_files",
     srcs = glob(
@@ -25,6 +45,6 @@ filegroup(
         exclude = [
             "BUILD.bazel",
         ],
-    ) + [":favicon"],
+    ) + [":favicon", ":og_image"],
     visibility = ["//visibility:public"],
 )

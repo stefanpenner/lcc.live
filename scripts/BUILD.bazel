@@ -10,6 +10,17 @@ sh_binary(
 )
 
 sh_binary(
+    name = "generate-share-image",
+    srcs = ["generate-share-image.sh"],
+    data = [
+        "@host_tools//:magick",
+        "@host_tools//:rsvg_convert",
+    ],
+    visibility = ["//visibility:public"],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
+)
+
+sh_binary(
     name = "deploy",
     srcs = ["deploy.sh"],
     args = [
