@@ -4,7 +4,7 @@
       "cameras": [
         {
           "kind": "img",
-          "src": "https://b10.hdrelay.com/camera/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4/snapshot",
+          "src": "https://manage.hdrelay.com/snapshot/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4",
           "alt": "Snowbird Snow Stake"
         },
         {
@@ -94,13 +94,13 @@
         },
         {
           "kind": "img",
-          "src": "https://b10.hdrelay.com/camera/5780754f-8da1-4223-ab8a-6755d84cbc10/snapshot",
-          "alt": "Mineral Basin"
+          "src": "https://manage.hdrelay.com/snapshot/db2a69c5-66e9-4c48-a713-919eaf191fc1",
+          "alt": "Little Cloud"
         },
         {
           "kind": "img",
-          "src": "https://b10.hdrelay.com/camera/61b2490be101c00b9c48374f/snapshot",
-          "alt": "Tram Bullpen"
+          "src": "https://manage.hdrelay.com/snapshot/5780754f-8da1-4223-ab8a-6755d84cbc10",
+          "alt": "Mineral Basin"
         }
       ]
     },
