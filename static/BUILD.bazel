@@ -45,6 +45,9 @@ filegroup(
         exclude = [
             "BUILD.bazel",
         ],
-    ) + [":favicon", ":og_image"],
+    ) + [
+        ":favicon",
+        ":og_image",
+    ],
     visibility = ["//visibility:public"],
 )
