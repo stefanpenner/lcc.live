@@ -496,6 +496,12 @@ camera-feed .camera-footer {
   gap: var(--space-sm);
 }
 
+camera-feed .camera-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
 camera-feed h4 {
   flex: 1;
   font-size: var(--text-xs);
@@ -513,7 +519,8 @@ camera-feed:hover h4 {
   opacity: 0.65;
 }
 
-camera-feed .share-button {
+camera-feed .share-button,
+camera-feed .fullscreen-button {
   background: transparent;
   border: none;
   padding: var(--space-xs);
@@ -528,22 +535,26 @@ camera-feed .share-button {
   outline: none;
 }
 
-camera-feed .share-button:hover {
+camera-feed .share-button:hover,
+camera-feed .fullscreen-button:hover {
   opacity: 0.8;
   background: var(--color-bg-tertiary);
   color: var(--color-accent-focus);
 }
 
-camera-feed .share-button:active {
+camera-feed .share-button:active,
+camera-feed .fullscreen-button:active {
   transform: scale(0.95);
 }
 
-camera-feed .share-button:focus-visible {
+camera-feed .share-button:focus-visible,
+camera-feed .fullscreen-button:focus-visible {
   outline: 2px solid var(--color-accent-focus);
   outline-offset: 2px;
 }
 
-camera-feed:hover .share-button {
+camera-feed:hover .share-button,
+camera-feed:hover .fullscreen-button {
   opacity: 0.65;
 }
 
@@ -691,7 +702,8 @@ the-overlay camera-feed:hover {
 }
 
 the-overlay img,
-the-overlay iframe {
+the-overlay iframe,
+the-overlay video {
   cursor: zoom-out;
   border-radius: var(--radius-sm);
   display: block;
@@ -701,6 +713,11 @@ the-overlay iframe {
   height: auto;
   object-fit: contain;
   pointer-events: none;
+}
+
+the-overlay video {
+  pointer-events: auto; /* Allow video controls to work */
+  cursor: default;
 }
 
 /* Navigation hint in fullscreen */
@@ -929,7 +946,8 @@ the-overlay:hover .overlay-hint {
 
 /* Additional iOS fullscreen image and iframe optimization */
 the-overlay > img,
-the-overlay > iframe {
+the-overlay > iframe,
+the-overlay > video {
   max-width: 90vw;
   max-height: 90vh;
   object-fit: contain;
@@ -945,6 +963,11 @@ the-overlay > iframe {
   width: 90vw;
   height: 90vh;
   aspect-ratio: 16 / 9;
+}
+
+the-overlay > video {
+  pointer-events: auto; /* Allow video controls to work */
+  cursor: default;
 }
 
 @media (max-width: 768px) {

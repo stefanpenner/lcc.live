@@ -263,7 +263,17 @@ class FullscreenViewer {
 
     // Close on click
     this.overlay.addEventListener('click', (e) => {
-      if (e.target === this.overlay || e.target.tagName === 'IMG' || e.target.tagName === 'IFRAME') {
+      // Don't close if clicking on video controls or iframe
+      if (e.target.tagName === 'VIDEO') {
+        // Let video controls handle the click - don't close overlay
+        return;
+      }
+      if (e.target.tagName === 'IFRAME') {
+        // Let iframe handle the click - don't close overlay
+        return;
+      }
+      // Close on background or image click
+      if (e.target === this.overlay || e.target.tagName === 'IMG') {
         this.close();
       }
     });
@@ -304,15 +314,32 @@ class FullscreenViewer {
   setupEventListeners() {
     // Click on images or iframes to open fullscreen
     document.body.addEventListener('click', (e) => {
+      // Handle clicks on links containing images (camera-feed images)
+      const link = e.target.closest('a');
+      if (link && !link.closest('the-overlay')) {
+        const img = link.querySelector('img');
+        if (img) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.open(img);
+          return;
+        }
+      }
+      
+      // Handle direct clicks on images, iframes, or videos
       const img = e.target.closest('img');
       const iframe = e.target.closest('iframe');
+      const video = e.target.closest('video');
       
-      if (img && !img.closest('the-overlay')) {
+      if (img && !img.closest('the-overlay') && !img.closest('a')) {
         e.preventDefault();
         this.open(img);
       } else if (iframe && !iframe.closest('the-overlay')) {
         e.preventDefault();
         this.open(iframe);
+      } else if (video && !video.closest('the-overlay')) {
+        e.preventDefault();
+        this.open(video);
       }
     });
 
@@ -344,16 +371,19 @@ class FullscreenViewer {
   }
 
   open(element) {
-    // Get all images and iframes in the page
+    // Get all images, iframes, and videos in the page
     const images = Array.from(document.querySelectorAll('img')).filter(
       i => !i.closest('the-overlay')
     );
     const iframes = Array.from(document.querySelectorAll('iframe')).filter(
       i => !i.closest('the-overlay')
     );
+    const videos = Array.from(document.querySelectorAll('video')).filter(
+      v => !v.closest('the-overlay')
+    );
     
     // Combine and sort by DOM order
-    this.items = [...images, ...iframes].sort((a, b) => {
+    this.items = [...images, ...iframes, ...videos].sort((a, b) => {
       return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
     });
     
@@ -372,7 +402,7 @@ class FullscreenViewer {
     // Clear overlay
     this.overlay.innerHTML = '';
     
-    // Clone and display element (image or iframe)
+    // Clone and display element (image, iframe, or video)
     if (sourceElement.tagName === 'IMG') {
       const img = document.createElement('img');
       img.src = sourceElement.src;
@@ -393,6 +423,57 @@ class FullscreenViewer {
         border-radius: var(--radius-sm);
       `;
       this.overlay.appendChild(iframe);
+    } else if (sourceElement.tagName === 'VIDEO') {
+      const video = document.createElement('video');
+      video.src = sourceElement.src;
+      video.controls = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.style.cssText = `
+        width: 90vw;
+        height: 90vh;
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: var(--radius-sm);
+      `;
+      
+      // Prevent clicks on video from closing overlay (let controls work)
+      video.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+      
+      // Enable native browser fullscreen on double-click
+      video.addEventListener('dblclick', async (e) => {
+        e.stopPropagation(); // Prevent overlay close
+        e.preventDefault();
+        try {
+          if (video.requestFullscreen) {
+            await video.requestFullscreen();
+          } else if (video.webkitRequestFullscreen) {
+            await video.webkitRequestFullscreen();
+          } else if (video.webkitEnterFullscreen) {
+            // iOS Safari
+            video.webkitEnterFullscreen();
+          } else if (video.mozRequestFullScreen) {
+            await video.mozRequestFullScreen();
+          } else if (video.msRequestFullscreen) {
+            await video.msRequestFullscreen();
+          }
+        } catch (error) {
+          console.warn('Fullscreen request failed:', error);
+        }
+      });
+      
+      // Also handle fullscreen button click in video controls
+      video.addEventListener('webkitbeginfullscreen', () => {
+        // iOS Safari fullscreen started
+      });
+      
+      video.addEventListener('webkitendfullscreen', () => {
+        // iOS Safari fullscreen ended
+      });
+      
+      this.overlay.appendChild(video);
     }
     
     this.overlay.style.display = 'flex';
@@ -466,6 +547,120 @@ class FullscreenViewer {
 }
 
 // ========================================
+// Share Functionality
+// ========================================
+
+class ShareHandler {
+  constructor() {
+    this.setupShareButtons();
+  }
+
+  setupShareButtons() {
+    document.body.addEventListener('click', async (e) => {
+      const shareButton = e.target.closest('.share-button');
+      if (!shareButton) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const cameraId = shareButton.dataset.cameraId;
+      const cameraName = shareButton.dataset.cameraName || 'Camera';
+      
+      // Get the current page URL or camera-specific URL
+      let url = window.location.href;
+      let title = document.title;
+      
+      // If we have a camera ID, construct the camera URL
+      if (cameraId) {
+        // Check if we're on the canyon page or camera detail page
+        const currentPath = window.location.pathname;
+        if (currentPath.startsWith('/camera/')) {
+          // Already on camera page, use current URL
+          url = window.location.href;
+        } else {
+          // On canyon page, link to camera detail page
+          url = `${window.location.origin}/camera/${cameraId}`;
+          title = `${cameraName} | ${document.title.split('|')[1] || 'Live Camera'}`;
+        }
+      }
+
+      // Try Web Share API first
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            url: url,
+          });
+          return; // Successfully shared
+        } catch (error) {
+          // User cancelled or share failed, fall back to clipboard
+          if (error.name !== 'AbortError') {
+            console.warn('Web Share API failed:', error);
+          } else {
+            return; // User cancelled, don't fall back
+          }
+        }
+      }
+
+      // Fallback: Copy URL to clipboard
+      try {
+        // Copy just the URL (not text) to clipboard for easy pasting
+        await navigator.clipboard.writeText(url);
+        // Show visual feedback
+        const originalTitle = shareButton.getAttribute('title');
+        shareButton.setAttribute('title', 'Copied!');
+        shareButton.style.opacity = '1';
+        setTimeout(() => {
+          shareButton.setAttribute('title', originalTitle || 'Share this camera');
+          shareButton.style.opacity = '';
+        }, 2000);
+      } catch (error) {
+        console.error('Failed to copy URL:', error);
+        // Last resort: show URL in alert
+        alert(`Share this camera:\n${url}`);
+      }
+    });
+  }
+}
+
+// ========================================
+// Fullscreen Button Handler
+// ========================================
+
+class FullscreenButtonHandler {
+  constructor(viewer) {
+    this.viewer = viewer;
+    this.setupFullscreenButtons();
+  }
+
+  setupFullscreenButtons() {
+    document.body.addEventListener('click', (e) => {
+      const fullscreenButton = e.target.closest('.fullscreen-button');
+      if (!fullscreenButton) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const cameraId = fullscreenButton.dataset.cameraId;
+      
+      // Find the camera feed element
+      const cameraFeed = fullscreenButton.closest('camera-feed');
+      if (!cameraFeed) return;
+
+      // Find the image or iframe inside the camera feed
+      const img = cameraFeed.querySelector('img');
+      const iframe = cameraFeed.querySelector('iframe');
+      const video = cameraFeed.querySelector('video');
+      
+      const element = img || iframe || video;
+      if (element) {
+        // Open in overlay viewer
+        this.viewer.open(element);
+      }
+    });
+  }
+}
+
+// ========================================
 // Initialize
 // ========================================
 
@@ -474,4 +669,6 @@ document.addEventListener('DOMContentLoaded', () => {
   reloader.start();
 
   const viewer = new FullscreenViewer();
+  const shareHandler = new ShareHandler();
+  const fullscreenHandler = new FullscreenButtonHandler(viewer);
 });
