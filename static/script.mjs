@@ -565,66 +565,163 @@ class ShareHandler {
 
       const cameraId = shareButton.dataset.cameraId;
       const cameraName = shareButton.dataset.cameraName || 'Camera';
+      const cameraKind = shareButton.dataset.cameraKind || '';
+      const isVideo = cameraKind === 'iframe';
       
-      // Get the current page URL or camera-specific URL
-      let url = window.location.href;
-      let title = document.title;
+      // For videos/iframes, share the camera page URL
+      if (isVideo) {
+        await this.shareCameraPage(cameraId, cameraName, shareButton);
+        return;
+      }
       
-      // If we have a camera ID, construct the camera URL
-      if (cameraId) {
-        // Check if we're on the canyon page or camera detail page
-        const currentPath = window.location.pathname;
-        if (currentPath.startsWith('/camera/')) {
-          // Already on camera page, use current URL
-          url = window.location.href;
+      // For images, share the image file itself
+      await this.shareImage(cameraId, cameraName, shareButton);
+    });
+  }
+
+  async shareCameraPage(cameraId, cameraName, shareButton) {
+    // Get the current page URL or camera-specific URL
+    let url = window.location.href;
+    let title = document.title;
+    
+    // If we have a camera ID, construct the camera URL
+    if (cameraId) {
+      // Check if we're on the canyon page or camera detail page
+      const currentPath = window.location.pathname;
+      if (currentPath.startsWith('/camera/')) {
+        // Already on camera page, use current URL
+        url = window.location.href;
+      } else {
+        // On canyon page, link to camera detail page using slug
+        // Generate slug from camera name
+        const slug = cameraName.toLowerCase()
+          .replace(/[\s_]+/g, '-')
+          .replace(/[^a-z0-9-]/g, '')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+        url = `${window.location.origin}/camera/${slug}`;
+        title = `${cameraName} | ${document.title.split('|')[1] || 'Live Camera'}`;
+      }
+    }
+
+    // Try Web Share API first
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          url: url,
+          title: title,
+        });
+        return; // Successfully shared
+      } catch (error) {
+        // User cancelled or share failed, fall back to clipboard
+        if (error.name !== 'AbortError') {
+          console.warn('Web Share API failed:', error);
         } else {
-          // On canyon page, link to camera detail page using slug
-          // Generate slug from camera name
-          const slug = cameraName.toLowerCase()
-            .replace(/[\s_]+/g, '-')
-            .replace(/[^a-z0-9-]/g, '')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '');
-          url = `${window.location.origin}/camera/${slug}`;
-          title = `${cameraName} | ${document.title.split('|')[1] || 'Live Camera'}`;
+          return; // User cancelled, don't fall back
         }
       }
+    }
 
-      // Try Web Share API first
-      if (navigator.share) {
+    // Fallback: Copy URL to clipboard
+    await this.fallbackCopyUrl(url, shareButton, 'Share this camera');
+  }
+
+  async shareImage(cameraId, cameraName, shareButton) {
+    if (!cameraId) {
+      console.error('Cannot share image: camera ID missing');
+      return;
+    }
+
+    const imageUrl = `/image/${cameraId}`;
+    
+    try {
+      // Fetch the image as a blob
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      
+      // Determine file extension from content type or default to jpg
+      let extension = 'jpg';
+      const contentType = response.headers.get('content-type');
+      if (contentType) {
+        if (contentType.includes('png')) extension = 'png';
+        else if (contentType.includes('gif')) extension = 'gif';
+        else if (contentType.includes('webp')) extension = 'webp';
+      }
+      
+      // Create a File object with a meaningful name
+      const fileName = `${cameraName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${extension}`;
+      const file = new File([blob], fileName, { type: blob.type });
+      
+      // Try Web Share API with file
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
-            url: url,
+            files: [file],
+            title: cameraName,
           });
           return; // Successfully shared
         } catch (error) {
-          // User cancelled or share failed, fall back to clipboard
+          // User cancelled or share failed, fall back to URL sharing
           if (error.name !== 'AbortError') {
-            console.warn('Web Share API failed:', error);
+            console.warn('Web Share API with file failed:', error);
           } else {
             return; // User cancelled, don't fall back
           }
         }
       }
-
-      // Fallback: Copy URL to clipboard
-      try {
-        // Copy just the URL (not text) to clipboard for easy pasting
-        await navigator.clipboard.writeText(url);
-        // Show visual feedback
-        const originalTitle = shareButton.getAttribute('title');
-        shareButton.setAttribute('title', 'Copied!');
-        shareButton.style.opacity = '1';
-        setTimeout(() => {
-          shareButton.setAttribute('title', originalTitle || 'Share this camera');
-          shareButton.style.opacity = '';
-        }, 2000);
-      } catch (error) {
-        console.error('Failed to copy URL:', error);
-        // Last resort: show URL in alert
-        alert(`Share this camera:\n${url}`);
+      
+      // Fallback: Share image URL instead
+      const imageFullUrl = `${window.location.origin}${imageUrl}`;
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            url: imageFullUrl,
+            title: cameraName,
+          });
+          return;
+        } catch (error) {
+          if (error.name !== 'AbortError') {
+            console.warn('Web Share API with URL failed:', error);
+          } else {
+            return;
+          }
+        }
       }
-    });
+      
+      // Final fallback: Copy image URL to clipboard
+      await this.fallbackCopyUrl(imageFullUrl, shareButton, 'Share this image');
+    } catch (error) {
+      console.error('Failed to share image:', error);
+      // Last resort: show error message
+      const originalTitle = shareButton.getAttribute('title');
+      shareButton.setAttribute('title', 'Failed to share');
+      setTimeout(() => {
+        shareButton.setAttribute('title', originalTitle || 'Share this image');
+      }, 2000);
+    }
+  }
+
+  async fallbackCopyUrl(url, shareButton, defaultTitle) {
+    try {
+      // Copy just the URL (not text) to clipboard for easy pasting
+      await navigator.clipboard.writeText(url);
+      // Show visual feedback
+      const originalTitle = shareButton.getAttribute('title');
+      shareButton.setAttribute('title', 'Copied!');
+      shareButton.style.opacity = '1';
+      setTimeout(() => {
+        shareButton.setAttribute('title', originalTitle || defaultTitle);
+        shareButton.style.opacity = '';
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy URL:', error);
+      // Last resort: show URL in alert
+      alert(`Share this:\n${url}`);
+    }
   }
 }
 
