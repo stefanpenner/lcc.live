@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-    <meta name="view-transition" content="same-origin">
+    {{template "head_common" .}}
     
     <style>
       /* content-visibility: auto removed - causes iOS Safari flicker on scroll */
@@ -96,16 +94,8 @@
     {{- end -}}
     {{- end -}}
     
-    <!-- Mobile Optimization -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- Mobile Optimization (page-specific) -->
     <meta name="apple-mobile-web-app-title" content="{{.Name}} Live">
-    <meta name="theme-color" content="#667eea">
-    
-    <!-- Resources -->
-    <link rel="stylesheet" href="/s/style.css">
-    <link rel="icon" type="image/png" href="/s/favicon.png">
     
     <!-- Prefetch -->
     {{- if eq .Name "LCC" -}}
@@ -113,9 +103,6 @@
     {{- else -}}
     <link rel="prefetch" href="/" as="document">
     {{- end -}}
-    
-    <!-- Preconnect for analytics -->
-    <link rel="preconnect" href="https://www.googletagmanager.com">
   </head>
   
   <body>
@@ -235,6 +222,6 @@
     </the-overlay>
 
     <script type="module" src="/s/script.mjs"></script>
-    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "36e125d458324b7c9e08c47d2460f6a0"}'></script><!-- End Cloudflare Web Analytics -->
+    {{template "analytics" .}}
   </body>
 </html>
