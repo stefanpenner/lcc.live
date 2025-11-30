@@ -228,12 +228,17 @@ if [ "$TARGET" = "local" ]; then
   fi
 else
   log_info "Deploying to Fly.io..."
-  fly deploy --local-only --image "${IMAGE_NAME}" --release-command-timeout=90s
+  fly deploy --local-only --image "${IMAGE_NAME}"
 
   if [ $? -eq 0 ]; then
     log_success "Deployment complete!"
     echo "🔍 Check version at: https://lcc.live/_/version"
-    log_info "Cloudflare cache will be purged automatically via release_command"
+    
+    # Purge Cloudflare cache after successful deployment
+    log_info "Purging Cloudflare cache..."
+    fly ssh console -C "/usr/local/bin/lcc-live purge-cache"
+    
+    log_success "Deployment and cache purge complete!"
   else
     log_error "Deployment failed"
     exit 1

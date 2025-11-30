@@ -16,8 +16,6 @@ kill_timeout = '5s'
 
 [deploy]
   strategy = "bluegreen"
-  release_command = "/usr/local/bin/lcc-live purge-cache"
-  release_command_timeout = "30s"
 
 [metrics]
   port = 3000
