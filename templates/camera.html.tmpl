@@ -13,7 +13,7 @@
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://lcc.live/camera/{{.Camera.ID}}">
+    <meta property="og:url" content="https://lcc.live/camera/{{if .Camera.Alt}}{{slugify .Camera.Alt}}{{else}}{{.Camera.ID}}{{end}}">
     <meta property="og:title" content="{{.Camera.Alt}} | {{.CanyonName}} Live Camera">
     <meta property="og:description" content="Live camera view from {{.Camera.Alt}} in {{if eq .CanyonName "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}}.">
     <meta property="og:image" content="https://lcc.live{{.ImageURL}}">
@@ -23,7 +23,7 @@
     
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://lcc.live/camera/{{.Camera.ID}}">
+    <meta name="twitter:url" content="https://lcc.live/camera/{{if .Camera.Alt}}{{slugify .Camera.Alt}}{{else}}{{.Camera.ID}}{{end}}">
     <meta name="twitter:title" content="{{.Camera.Alt}} | {{.CanyonName}} Live Camera">
     <meta name="twitter:description" content="Live camera view from {{.Camera.Alt}} in {{if eq .CanyonName "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}}.">
     <meta name="twitter:image" content="https://lcc.live{{.ImageURL}}">

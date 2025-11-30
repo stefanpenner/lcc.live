@@ -4,10 +4,13 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -33,7 +36,8 @@ const (
 type Store struct {
 	client                     *http.Client
 	canyons                    *Canyons
-	index                      map[string]*Entry
+	index                      map[string]*Entry // Maps camera ID -> Entry
+	nameIndex                  map[string]*Entry // Maps camera slug -> Entry
 	entries                    []*Entry
 	mu                         sync.RWMutex
 	imagesReady                sync.WaitGroup
@@ -139,6 +143,7 @@ func NewStore(canyons *Canyons) *Store {
 	// Only subsequent access must be
 	//
 	index := make(map[string]*Entry)
+	nameIndex := make(map[string]*Entry)
 	entries := []*Entry{}
 
 	createEntry := func(camera *Camera) {
@@ -151,6 +156,33 @@ func NewStore(canyons *Canyons) *Store {
 			mu:          sync.RWMutex{},
 		}
 		index[camera.ID] = entry
+
+		// Also index by slug if camera has a name
+		if camera.Alt != "" {
+			slug := slugify(camera.Alt)
+			if slug == "" {
+				// Empty slug is invalid - camera name slugifies to nothing
+				panic(fmt.Sprintf("camera '%s' (ID: %s) has name that produces empty slug", camera.Alt, camera.ID))
+			}
+
+			// Check for slug collisions
+			if existingEntry, exists := nameIndex[slug]; exists {
+				// Slug collision detected
+				existingCamera := existingEntry.Camera
+				panic(fmt.Sprintf("slug collision: cameras '%s' (ID: %s) and '%s' (ID: %s) both slugify to '%s'",
+					existingCamera.Alt, existingCamera.ID, camera.Alt, camera.ID, slug))
+			}
+
+			// Check if slug collides with any other camera's ID
+			if existingEntry, idCollision := index[slug]; idCollision && existingEntry != entry {
+				existingCamera := existingEntry.Camera
+				panic(fmt.Sprintf("slug collision: camera '%s' (ID: %s) has slug '%s' that matches another camera's ID (camera '%s', ID: %s)",
+					camera.Alt, camera.ID, slug, existingCamera.Alt, existingCamera.ID))
+			}
+
+			nameIndex[slug] = entry
+		}
+
 		entries = append(entries, entry)
 	}
 
@@ -183,9 +215,10 @@ func NewStore(canyons *Canyons) *Store {
 	}
 
 	store := &Store{
-		entries: entries,
-		index:   index,
-		canyons: canyons,
+		entries:   entries,
+		index:     index,
+		nameIndex: nameIndex,
+		canyons:   canyons,
 		client: &http.Client{
 			Timeout:   httpClientTimeout,
 			Transport: transport,
@@ -462,12 +495,35 @@ func (s *Store) IsReady() bool {
 }
 
 // Get retrieves a snapshot of the camera entry with the given ID
+// slugify converts a camera name to a URL-safe slug
+func slugify(name string) string {
+	// Convert to lowercase
+	slug := strings.ToLower(name)
+	// Replace spaces and common separators with hyphens
+	slug = regexp.MustCompile(`[\s_]+`).ReplaceAllString(slug, "-")
+	// Remove all non-alphanumeric characters except hyphens
+	slug = regexp.MustCompile(`[^a-z0-9-]`).ReplaceAllString(slug, "")
+	// Replace multiple consecutive hyphens with a single hyphen
+	slug = regexp.MustCompile(`-+`).ReplaceAllString(slug, "-")
+	// Remove leading and trailing hyphens
+	slug = strings.Trim(slug, "-")
+	return slug
+}
+
 func (s *Store) Get(cameraID string) (EntrySnapshot, bool) {
 	s.imagesReady.Wait()
-	entry, exists := s.index[cameraID]
 
+	// First try direct ID lookup
+	entry, exists := s.index[cameraID]
 	if exists {
 		return entry.ShallowSnapshot(), true
 	}
+
+	// Then try slug-based lookup
+	entry, exists = s.nameIndex[cameraID]
+	if exists {
+		return entry.ShallowSnapshot(), true
+	}
+
 	return EntrySnapshot{}, false
 }

@@ -578,8 +578,14 @@ class ShareHandler {
           // Already on camera page, use current URL
           url = window.location.href;
         } else {
-          // On canyon page, link to camera detail page
-          url = `${window.location.origin}/camera/${cameraId}`;
+          // On canyon page, link to camera detail page using slug
+          // Generate slug from camera name
+          const slug = cameraName.toLowerCase()
+            .replace(/[\s_]+/g, '-')
+            .replace(/[^a-z0-9-]/g, '')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+          url = `${window.location.origin}/camera/${slug}`;
           title = `${cameraName} | ${document.title.split('|')[1] || 'Live Camera'}`;
         }
       }

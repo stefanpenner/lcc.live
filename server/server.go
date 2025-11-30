@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -27,7 +28,27 @@ type TemplateRenderer struct {
 	mu        sync.Mutex // Protects template reloading in dev mode
 }
 
-var templateFuncs = template.FuncMap{}
+// slugify converts a camera name to a URL-safe slug
+func slugify(name string) string {
+	if name == "" {
+		return ""
+	}
+	// Convert to lowercase
+	slug := strings.ToLower(name)
+	// Replace spaces and common separators with hyphens
+	slug = regexp.MustCompile(`[\s_]+`).ReplaceAllString(slug, "-")
+	// Remove all non-alphanumeric characters except hyphens
+	slug = regexp.MustCompile(`[^a-z0-9-]`).ReplaceAllString(slug, "")
+	// Replace multiple consecutive hyphens with a single hyphen
+	slug = regexp.MustCompile(`-+`).ReplaceAllString(slug, "-")
+	// Remove leading and trailing hyphens
+	slug = strings.Trim(slug, "-")
+	return slug
+}
+
+var templateFuncs = template.FuncMap{
+	"slugify": slugify,
+}
 
 // Render renders a template with the given data
 func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, _ echo.Context) error {

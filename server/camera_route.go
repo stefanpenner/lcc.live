@@ -21,9 +21,10 @@ func CameraRoute(store *store.Store) func(c echo.Context) error {
 		// Get the wildcard parameter (everything after /camera/)
 		path := c.Param("*")
 		// Remove .json suffix if present
-		id := strings.TrimSuffix(path, ".json")
+		slugOrID := strings.TrimSuffix(path, ".json")
+		isJSON := strings.HasSuffix(c.Request().URL.Path, ".json")
 
-		entry, exists := store.Get(id)
+		entry, exists := store.Get(slugOrID)
 
 		if !exists {
 			return c.String(http.StatusNotFound, "Camera not found")
@@ -32,6 +33,24 @@ func CameraRoute(store *store.Store) func(c echo.Context) error {
 		// Check if Camera is nil (defensive programming)
 		if entry.Camera == nil {
 			return c.String(http.StatusInternalServerError, "Camera data is invalid")
+		}
+
+		// If accessed via ID, redirect to slug-based URL for canonical URLs
+		// Check if this was accessed via ID (not slug) and redirect to slug if available
+		if entry.Camera.Alt != "" {
+			expectedSlug := slugify(entry.Camera.Alt)
+			// Only redirect if:
+			// 1. The path doesn't match the expected slug (i.e., it's an ID or wrong slug)
+			// 2. The path matches this camera's ID (confirming it was accessed via ID)
+			// 3. The expected slug is not empty
+			if expectedSlug != "" && slugOrID != expectedSlug && slugOrID == entry.Camera.ID {
+				// Redirect ID-based URLs to slug-based URLs
+				redirectPath := "/camera/" + expectedSlug
+				if isJSON {
+					redirectPath += ".json"
+				}
+				return c.Redirect(http.StatusMovedPermanently, redirectPath)
+			}
 		}
 
 		// Track camera page view
@@ -49,15 +68,16 @@ func CameraRoute(store *store.Store) func(c echo.Context) error {
 		}
 
 		// Build the data for the template
+		// Use the actual camera ID for image URL, not the path parameter (which might be a slug)
 		data := CameraPageData{
 			Camera:     *entry.Camera,
 			CanyonName: canyonName,
 			CanyonPath: canyonPath,
-			ImageURL:   "/image/" + id,
+			ImageURL:   "/image/" + entry.Camera.ID,
 		}
 
 		// Determine response format and set appropriate headers BEFORE caching headers
-		isJSON := strings.HasSuffix(c.Request().URL.Path, ".json")
+		// (isJSON already determined above)
 
 		// Set Content-Type early so Cloudflare knows what we're caching
 		if isJSON {

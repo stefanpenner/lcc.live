@@ -182,7 +182,7 @@
           </iframe>
           {{- else -}}
           <!-- Standard image camera with link to camera detail page -->
-          <a href="/camera/{{$c.ID}}" aria-label="View {{$c.Alt}} full page">
+          <a href="/camera/{{if $c.Alt}}{{slugify $c.Alt}}{{else}}{{$c.ID}}{{end}}" aria-label="View {{$c.Alt}} full page">
           {{- if le $index 1 -}}
           <img 
             src="/image/{{$c.ID}}" 
