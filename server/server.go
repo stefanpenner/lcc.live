@@ -82,6 +82,7 @@ var templateFuncs = template.FuncMap{
 	"slugify":        slugify,
 	"formatUnixTime": formatUnixTime,
 	"formatTimeAgo":  formatTimeAgo,
+	"version":        GetVersionString,
 }
 
 // Render renders a template with the given data

@@ -42,7 +42,9 @@ func GetVersionInfo() VersionInfo {
 // GetVersionString returns a short version string for headers
 func GetVersionString() string {
 	if Version == "dev" {
-		return fmt.Sprintf("%s (%s)", Version, GoVersion)
+		// In dev mode, use server start time for cache busting
+		// This ensures CSS cache busting works in dev mode, changing on each server restart
+		return fmt.Sprintf("dev-%d", startTime.Unix())
 	}
 	return Version
 }
