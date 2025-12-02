@@ -10,10 +10,10 @@ import (
 )
 
 type CameraPageData struct {
-	Camera        store.Camera
-	CanyonName    string
-	CanyonPath    string
-	ImageURL      string
+	Camera         store.Camera
+	CanyonName     string
+	CanyonPath     string
+	ImageURL       string
 	WeatherStation *store.WeatherStation
 }
 

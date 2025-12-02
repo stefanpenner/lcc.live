@@ -32,7 +32,7 @@ type Camera struct {
 	Src       string   `json:"src"`
 	Alt       string   `json:"alt"`
 	Canyon    string   `json:"canyon"`
-	SourceId  string   `json:"sourceId,omitempty"` // Optional: for matching with weather stations
+	SourceId  string   `json:"sourceId,omitempty"`  // Optional: for matching with weather stations
 	Latitude  *float64 `json:"latitude,omitempty"`  // Optional: camera latitude for weather station matching
 	Longitude *float64 `json:"longitude,omitempty"` // Optional: camera longitude for weather station matching
 }
