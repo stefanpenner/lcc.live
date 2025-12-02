@@ -1,0 +1,60 @@
+{
+  "_comment": "macOS URLs need to be configured with valid Homebrew bottle URLs from ghcr.io or other sources",
+  "tools": {
+    "rsvg-convert": {
+      "binary_name": "rsvg-convert",
+      "urls": {
+        "linux": {
+          "amd64": [
+            "http://archive.ubuntu.com/ubuntu/pool/main/libr/librsvg/librsvg2-bin_2.52.5+dfsg-3ubuntu0.1_amd64.deb"
+          ],
+          "arm64": [
+            "http://ports.ubuntu.com/ubuntu-ports/pool/main/libr/librsvg/librsvg2-bin_2.52.5+dfsg-3ubuntu0.1_arm64.deb"
+          ]
+        },
+        "macos": {
+          "amd64": [],
+          "arm64": []
+        }
+      },
+      "sha256": {
+        "linux": {
+          "amd64": null,
+          "arm64": null
+        },
+        "macos": {
+          "amd64": null,
+          "arm64": null
+        }
+      }
+    },
+    "magick": {
+      "binary_name": "magick",
+      "urls": {
+        "linux": {
+          "amd64": [
+            "http://archive.ubuntu.com/ubuntu/pool/universe/i/imagemagick/imagemagick_8%3A6.9.11.60+dfsg-1ubuntu3_amd64.deb"
+          ],
+          "arm64": [
+            "http://ports.ubuntu.com/ubuntu-ports/pool/universe/i/imagemagick/imagemagick_8%3A6.9.11.60+dfsg-1ubuntu3_arm64.deb"
+          ]
+        },
+        "macos": {
+          "amd64": [],
+          "arm64": []
+        }
+      },
+      "sha256": {
+        "linux": {
+          "amd64": null,
+          "arm64": null
+        },
+        "macos": {
+          "amd64": null,
+          "arm64": null
+        }
+      }
+    }
+  }
+}
+

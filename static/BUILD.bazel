@@ -1,41 +1,38 @@
-# Generate favicon.png from SVG using the script
-genrule(
-    name = "favicon",
-    srcs = [
-        "//assets:favicon_svg",
+load("//tools:binary_dir.bzl", "binary_dir")
+load(":image_gen.bzl", "image_from_svg")
+
+# Create a directory containing all image processing tools
+# This creates: image_tools, image_tools_magick, image_tools_rsvg-convert
+binary_dir(
+    name = "image_tools",
+    binaries = [
+        "@tools_magick//:magick",
+        "@tools_rsvg_convert//:rsvg-convert",
     ],
-    outs = ["favicon.png"],
-    cmd = """
-        $(execpath //scripts:generate-favicon) \
-            $(location //assets:favicon_svg) \
-            $(location :favicon.png)
-    """,
-    tags = [
-        "local",
-        "no-remote",
-    ],  # Requires local tools, don't run remotely
-    tools = ["//scripts:generate-favicon"],
-    visibility = ["//visibility:public"],
+)
+
+# Generate favicon.png from SVG
+image_from_svg(
+    name = "favicon",
+    output = "favicon.png",
+    script = "//scripts:generate-favicon",
+    svg_src = "//assets:favicon_svg",
 )
 
 # Generate og-image.png from SVG for social media sharing
-genrule(
+image_from_svg(
     name = "og_image",
-    srcs = [
-        "//assets:favicon_svg",
-    ],
-    outs = ["og-image.png"],
-    cmd = """
-        $(execpath //scripts:generate-share-image) \
-            $(location //assets:favicon_svg) \
-            $(location :og-image.png)
-    """,
-    tags = [
-        "local",
-        "no-remote",
-    ],  # Requires local tools, don't run remotely
-    tools = ["//scripts:generate-share-image"],
-    visibility = ["//visibility:public"],
+    output = "og-image.png",
+    script = "//scripts:generate-share-image",
+    svg_src = "//assets:favicon_svg",
+)
+
+# Generate apple-touch-icon.png from image.svg for iOS homescreen
+image_from_svg(
+    name = "apple_touch_icon",
+    output = "apple-touch-icon.png",
+    script = "//scripts:generate-apple-touch-icon",
+    svg_src = "//assets:image_svg",
 )
 
 filegroup(
@@ -46,6 +43,7 @@ filegroup(
             "BUILD.bazel",
         ],
     ) + [
+        ":apple_touch_icon",
         ":favicon",
         ":og_image",
     ],

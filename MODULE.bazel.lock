@@ -185,26 +185,28 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
-    "//tools:host_tools.bzl%host_tools_ext": {
+    "//tools:http_binary.bzl%http_binaries_ext": {
       "general": {
-        "bzlTransitiveDigest": "NYrNV5Gew7xSV4kC9HV7zQqUsNmIXT8sdfkMV1NOKDw=",
-        "usagesDigest": "ueCvRJL5HWg13rswuf+JScjKZIVTRG3Z/4B0g8zo/pw=",
-        "recordedFileInputs": {},
+        "bzlTransitiveDigest": "K+ZaxCTN2Qgze8R9N/reufLLGOtJfEaFFzTKuT3tk3w=",
+        "usagesDigest": "6vmYFL7RuBy4xbIQI1h/cVXP0ieMfajXn4nxfnoQKKo=",
+        "recordedFileInputs": {
+          "@@//tools/external_repos.json": "d4d64acfb8a6a476cc021b3f1fb29e1f80701ca177e59e54a70db100c7e0c03a"
+        },
         "recordedDirentsInputs": {},
         "envVariables": {},
         "generatedRepoSpecs": {
-          "host_tools": {
-            "repoRuleId": "@@//tools:host_tools.bzl%_host_tools_repo",
+          "tools_rsvg_convert": {
+            "repoRuleId": "@@//tools:http_binary.bzl%http_binary",
             "attributes": {
-              "tools": [
-                "rsvg-convert",
-                "magick"
-              ],
-              "default_paths": [
-                "/opt/homebrew/bin",
-                "/usr/local/bin",
-                "/usr/bin"
-              ]
+              "config_file": "@@//tools:external_repos.json",
+              "tool_name": "rsvg-convert"
+            }
+          },
+          "tools_magick": {
+            "repoRuleId": "@@//tools:http_binary.bzl%http_binary",
+            "attributes": {
+              "config_file": "@@//tools:external_repos.json",
+              "tool_name": "magick"
             }
           }
         },

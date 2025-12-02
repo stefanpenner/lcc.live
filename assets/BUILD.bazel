@@ -3,3 +3,9 @@ filegroup(
     srcs = ["favicon.svg"],
     visibility = ["//visibility:public"],
 )
+
+filegroup(
+    name = "image_svg",
+    srcs = ["image.svg"],
+    visibility = ["//visibility:public"],
+)
