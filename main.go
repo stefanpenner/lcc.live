@@ -22,15 +22,21 @@ import (
 	"github.com/stefanpenner/lcc-live/logger"
 	"github.com/stefanpenner/lcc-live/server"
 	"github.com/stefanpenner/lcc-live/store"
+	"github.com/stefanpenner/lcc-live/udot"
 	"github.com/stefanpenner/lcc-live/ui"
 )
 
-const defaultSyncInterval = 3 * time.Second
+const (
+	defaultSyncInterval      = 3 * time.Second
+	defaultUDOTFetchInterval = 75 * time.Second
+)
 
 type Config struct {
 	Port         string
 	SyncInterval time.Duration
 	DevMode      bool
+	UDOTAPIKey   string
+	UDOTInterval time.Duration
 }
 
 // keepCamerasInSync keeps the local store in-sync with image origins
@@ -64,13 +70,26 @@ func loadConfig() Config {
 		}
 	}
 
+	udotIntervalStr := os.Getenv("UDOT_FETCH_INTERVAL")
+	udotInterval := defaultUDOTFetchInterval
+	if udotIntervalStr != "" {
+		if d, err := time.ParseDuration(udotIntervalStr); err == nil {
+			udotInterval = d
+		}
+	}
+
 	// Enable dev mode for hot reloading
 	devMode := os.Getenv("DEV_MODE") == "1" || os.Getenv("DEV_MODE") == "true"
+
+	// Get UDOT API key from environment only
+	udotAPIKey := os.Getenv("UDOT_API_KEY")
 
 	return Config{
 		Port:         port,
 		SyncInterval: syncInterval,
 		DevMode:      devMode,
+		UDOTAPIKey:   udotAPIKey,
+		UDOTInterval: udotInterval,
 	}
 }
 
@@ -344,6 +363,22 @@ func main() {
 	go store.FetchImages(ctx)
 	go func() {
 		_ = keepCamerasInSync(ctx, store, config.SyncInterval, &totalSyncs)
+	}()
+
+	// Start UDOT API fetchers
+	udotClient := udot.NewClient(config.UDOTAPIKey)
+	udotPoller := udot.NewPoller(udotClient, store, config.UDOTInterval)
+	go func() {
+		_ = udotPoller.StartRoadConditions(ctx)
+	}()
+	go func() {
+		_ = udotPoller.StartWeatherStations(ctx)
+	}()
+	go func() {
+		_ = udotPoller.StartEvents(ctx)
+	}()
+	go func() {
+		_ = udotPoller.StartCameraCoordinates(ctx)
 	}()
 
 	// Configure server to use UI logger

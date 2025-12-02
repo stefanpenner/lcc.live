@@ -32,6 +32,7 @@ go_library(
         "//logger",
         "//server",
         "//store",
+        "//udot",
         "//ui",
         "@com_github_getsentry_sentry_go//:sentry-go",
     ],
@@ -79,6 +80,7 @@ go_test(
     deps = [
         "//server",
         "//store",
+        "//udot",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],

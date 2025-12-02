@@ -764,6 +764,232 @@ class FullscreenButtonHandler {
 }
 
 // ========================================
+// UDOT Data Poller
+// ========================================
+
+class UDOTPoller {
+  constructor(canyonName, interval = 60000) {
+    this.canyonName = canyonName;
+    this.interval = interval;
+    this.pollTimer = null;
+    this.retryDelay = 60000; // Start with 60s retry delay
+    this.maxRetryDelay = 300000; // Max 5 minutes
+  }
+
+  start() {
+    // Start polling
+    this.poll();
+  }
+
+  async poll() {
+    try {
+      const response = await fetch(`/api/canyon/${this.canyonName}/udot`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Reset retry delay on success
+      this.retryDelay = 60000;
+
+      // Update road conditions (always call to handle empty arrays)
+      if (data.roadConditions && Array.isArray(data.roadConditions)) {
+        this.updateRoadConditions(data.roadConditions);
+      }
+
+      // Schedule next poll
+      this.pollTimer = setTimeout(() => this.poll(), this.interval);
+    } catch (error) {
+      console.warn('UDOT poll failed:', error);
+      // Exponential backoff on errors
+      const delay = Math.min(this.retryDelay, this.maxRetryDelay);
+      this.retryDelay = Math.min(this.retryDelay * 1.5, this.maxRetryDelay);
+      this.pollTimer = setTimeout(() => this.poll(), delay);
+    }
+  }
+
+  updateRoadConditions(conditions) {
+    const banner = document.querySelector('.road-conditions-banner');
+    if (!banner) return;
+
+    // Server already filters unwanted road conditions
+    if (!conditions || conditions.length === 0) {
+      // Hide banner if no conditions
+      banner.style.display = 'none';
+      return;
+    }
+
+    banner.style.display = '';
+
+    // Create a map of existing cards by condition ID
+    const existingCards = new Map();
+    banner.querySelectorAll('.road-conditions-card').forEach(card => {
+      const id = card.getAttribute('data-condition-id');
+      if (id) {
+        existingCards.set(parseInt(id), card);
+      }
+    });
+
+    // Create a map of new conditions by ID
+    const newConditionsMap = new Map();
+    conditions.forEach(cond => {
+      newConditionsMap.set(cond.Id, cond);
+    });
+
+    // Remove cards that no longer exist
+    existingCards.forEach((card, id) => {
+      if (!newConditionsMap.has(id)) {
+        card.remove();
+      }
+    });
+
+    // Update or create cards for each condition
+    conditions.forEach(cond => {
+      let card = existingCards.get(cond.Id);
+      
+      if (!card) {
+        // Create new card
+        card = document.createElement('div');
+        card.className = 'road-conditions-card';
+        card.setAttribute('data-condition-id', cond.Id);
+        card.innerHTML = `
+          <h3 class="road-condition-title">${this.escapeHtml(cond.RoadwayName)}</h3>
+          <div class="road-condition-badge">
+            <span class="road-condition-badge-label">Road</span>
+            <span class="road-condition-badge-value" data-condition="${this.escapeHtml(cond.RoadCondition)}">${this.escapeHtml(cond.RoadCondition)}</span>
+          </div>
+          <div class="road-condition-badge">
+            <span class="road-condition-badge-label">Weather</span>
+            <span class="road-condition-badge-value" data-condition="${this.escapeHtml(cond.WeatherCondition)}">${this.escapeHtml(cond.WeatherCondition)}</span>
+          </div>
+          <div class="road-condition-badge${cond.Restriction !== 'none' ? ' road-condition-badge-warning' : ''}">
+            <span class="road-condition-badge-label">Restriction</span>
+            <span class="road-condition-badge-value">${this.escapeHtml(cond.Restriction)}</span>
+          </div>
+          <time class="road-condition-updated" datetime="${cond.LastUpdated}" data-last-updated="${cond.LastUpdated}">
+            (<span class="road-condition-time-ago">${this.escapeHtml(this.formatTimeAgo(cond.LastUpdated))}</span> ago)
+          </time>
+        `;
+        banner.appendChild(card);
+      } else {
+        // Update existing card
+        const title = card.querySelector('.road-condition-title');
+        const badges = card.querySelectorAll('.road-condition-badge');
+        const roadBadge = badges[0];
+        const weatherBadge = badges[1];
+        const restrictionBadge = badges[2];
+        
+        const roadValue = roadBadge?.querySelector('.road-condition-badge-value');
+        const weatherValue = weatherBadge?.querySelector('.road-condition-badge-value');
+        const restrictionValue = restrictionBadge?.querySelector('.road-condition-badge-value');
+
+        if (title && title.textContent !== cond.RoadwayName) {
+          title.textContent = cond.RoadwayName;
+        }
+        if (roadValue && roadValue.textContent !== cond.RoadCondition) {
+          roadValue.textContent = cond.RoadCondition;
+          roadValue.setAttribute('data-condition', cond.RoadCondition);
+        }
+        if (weatherValue && weatherValue.textContent !== cond.WeatherCondition) {
+          weatherValue.textContent = cond.WeatherCondition;
+          weatherValue.setAttribute('data-condition', cond.WeatherCondition);
+        }
+        if (restrictionValue && restrictionValue.textContent !== cond.Restriction) {
+          restrictionValue.textContent = cond.Restriction;
+        }
+        
+        // Update restriction badge warning class
+        if (restrictionBadge) {
+          if (cond.Restriction !== 'none') {
+            restrictionBadge.classList.add('road-condition-badge-warning');
+          } else {
+            restrictionBadge.classList.remove('road-condition-badge-warning');
+          }
+        }
+
+        // Update timestamp
+        let updatedTime = card.querySelector('.road-condition-updated');
+        if (!updatedTime) {
+          updatedTime = document.createElement('time');
+          updatedTime.className = 'road-condition-updated';
+          card.appendChild(updatedTime);
+        }
+        const currentTimestamp = parseInt(updatedTime.getAttribute('data-last-updated') || '0');
+        if (currentTimestamp !== cond.LastUpdated) {
+          updatedTime.setAttribute('datetime', cond.LastUpdated);
+          updatedTime.setAttribute('data-last-updated', cond.LastUpdated);
+          const timeAgoSpan = document.createElement('span');
+          timeAgoSpan.className = 'road-condition-time-ago';
+          timeAgoSpan.textContent = this.formatTimeAgo(cond.LastUpdated);
+          updatedTime.textContent = '(';
+          updatedTime.appendChild(timeAgoSpan);
+          updatedTime.appendChild(document.createTextNode(' ago)'));
+        } else {
+          // Update relative time even if timestamp hasn't changed (for "X minutes ago" updates)
+          const timeAgoSpan = updatedTime.querySelector('.road-condition-time-ago');
+          if (timeAgoSpan) {
+            timeAgoSpan.textContent = this.formatTimeAgo(cond.LastUpdated);
+          }
+        }
+      }
+    });
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  formatUnixTime(timestamp) {
+    if (!timestamp || timestamp === 0) {
+      return 'Unknown';
+    }
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+
+  formatTimeAgo(timestamp) {
+    if (!timestamp || timestamp === 0) {
+      return 'unknown';
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const diff = now - timestamp;
+    
+    if (diff < 60) {
+      return 'just now';
+    } else if (diff < 3600) {
+      const minutes = Math.floor(diff / 60);
+      return `${minutes}m`;
+    } else if (diff < 86400) {
+      const hours = Math.floor(diff / 3600);
+      return `${hours}h`;
+    } else if (diff < 604800) {
+      const days = Math.floor(diff / 86400);
+      return `${days}d`;
+    } else {
+      const weeks = Math.floor(diff / 604800);
+      return `${weeks}w`;
+    }
+  }
+
+  stop() {
+    if (this.pollTimer) {
+      clearTimeout(this.pollTimer);
+      this.pollTimer = null;
+    }
+  }
+}
+
+// ========================================
 // Initialize
 // ========================================
 
@@ -774,4 +1000,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const viewer = new FullscreenViewer();
   const shareHandler = new ShareHandler();
   const fullscreenHandler = new FullscreenButtonHandler(viewer);
+
+  // Start UDOT polling if on canyon page
+  const canyonNav = document.querySelector('.canyon-nav');
+  if (canyonNav) {
+    // Determine canyon name from active tab or URL
+    const activeTab = canyonNav.querySelector('.active');
+    let canyonName = 'LCC'; // default
+    if (activeTab) {
+      canyonName = activeTab.textContent.trim();
+    } else if (window.location.pathname.includes('/bcc')) {
+      canyonName = 'BCC';
+    }
+
+    const poller = new UDOTPoller(canyonName);
+    poller.start();
+  }
 });

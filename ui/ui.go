@@ -201,6 +201,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		viewportHeight := m.height - 12 // HUD + separator + footer
+		if viewportHeight < 1 {
+			viewportHeight = 1 // Ensure minimum height
+		}
 
 		if !m.ready {
 			m.viewport = viewport.New(msg.Width, viewportHeight)
@@ -211,9 +214,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport.Height = viewportHeight
 		}
 
-		if len(m.logs) > 0 {
+		if len(m.logs) > 0 && m.ready && m.viewport.Height > 0 {
 			m.viewport.SetContent(m.buildLogContent())
-			m.viewport.GotoBottom()
+			if m.viewport.TotalLineCount() > 0 {
+				m.viewport.GotoBottom()
+			}
 		}
 
 	case logMsg:
@@ -222,8 +227,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			copy(m.logs, m.logs[len(m.logs)-maxLogs:])
 			m.logs = m.logs[:maxLogs]
 		}
-		m.viewport.SetContent(m.buildLogContent())
-		m.viewport.GotoBottom()
+		if m.ready && m.viewport.Height > 0 {
+			m.viewport.SetContent(m.buildLogContent())
+			if m.viewport.TotalLineCount() > 0 {
+				m.viewport.GotoBottom()
+			}
+		}
 
 	case statsMsg:
 		m.stats = msg.stats

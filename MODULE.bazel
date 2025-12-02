@@ -63,8 +63,8 @@ use_repo(oci, "alpine", "alpine_linux_amd64", "alpine_linux_arm64_v8")
 # External binaries for favicon generation (inspired by http_archive API)
 http_binaries_ext = use_extension("//tools:http_binary.bzl", "http_binaries_ext")
 http_binaries_ext.binary(
-    name_prefix = "tools",
     config_file = "//tools:external_repos.json",
+    name_prefix = "tools",
     # tools is optional - if not specified, all tools from config will be used
 )
-use_repo(http_binaries_ext, "tools_rsvg_convert", "tools_magick")
+use_repo(http_binaries_ext, "tools_magick", "tools_rsvg_convert")

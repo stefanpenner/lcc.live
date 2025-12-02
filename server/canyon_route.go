@@ -9,12 +9,22 @@ import (
 	"github.com/stefanpenner/lcc-live/store"
 )
 
-func CanyonRoute(store *store.Store, canyonID string) func(c echo.Context) error {
+type CanyonPageData struct {
+	*store.Canyon
+	RoadConditions []store.RoadCondition
+	Events         []store.Event
+}
+
+func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		// Track page view
 		metrics.PageViewsTotal.WithLabelValues(canyonID).Inc()
 
-		canyon := store.Canyon(canyonID)
+		canyon := s.Canyon(canyonID)
+		roadConditions := s.GetRoadConditions(canyonID)
+		// Filter out unwanted road conditions
+		roadConditions = FilterRoadConditions(roadConditions)
+		events := s.GetEvents(canyonID)
 
 		// Determine response format and set appropriate headers BEFORE caching headers
 		isJSON := strings.HasSuffix(c.Request().URL.Path, ".json")
@@ -74,6 +84,11 @@ func CanyonRoute(store *store.Store, canyonID string) func(c echo.Context) error
 			return c.JSON(http.StatusOK, canyon)
 		}
 
-		return c.Render(http.StatusOK, "canyon.html.tmpl", canyon)
+		pageData := CanyonPageData{
+			Canyon:         canyon,
+			RoadConditions: roadConditions,
+			Events:         events,
+		}
+		return c.Render(http.StatusOK, "canyon.html.tmpl", pageData)
 	}
 }

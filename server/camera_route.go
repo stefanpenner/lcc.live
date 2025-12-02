@@ -10,10 +10,11 @@ import (
 )
 
 type CameraPageData struct {
-	Camera     store.Camera
-	CanyonName string
-	CanyonPath string
-	ImageURL   string
+	Camera        store.Camera
+	CanyonName    string
+	CanyonPath    string
+	ImageURL      string
+	WeatherStation *store.WeatherStation
 }
 
 func CameraRoute(store *store.Store) func(c echo.Context) error {
@@ -67,14 +68,18 @@ func CameraRoute(store *store.Store) func(c echo.Context) error {
 			canyonPath = "/bcc"
 		}
 
+		// Get weather station for this camera
+		weatherStation := store.GetWeatherStation(entry.Camera.ID)
+
 		// Build the data for the template
 		// Use the actual camera ID for image URL, not the path parameter (which might be a slug)
 		// For iframe cameras, ImageURL is not used but we set it anyway for consistency
 		data := CameraPageData{
-			Camera:     *entry.Camera,
-			CanyonName: canyonName,
-			CanyonPath: canyonPath,
-			ImageURL:   "/image/" + entry.Camera.ID,
+			Camera:         *entry.Camera,
+			CanyonName:     canyonName,
+			CanyonPath:     canyonPath,
+			ImageURL:       "/image/" + entry.Camera.ID,
+			WeatherStation: weatherStation,
 		}
 
 		// Determine response format and set appropriate headers BEFORE caching headers

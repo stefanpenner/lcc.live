@@ -10,6 +10,7 @@ import (
 
 	"github.com/stefanpenner/lcc-live/server"
 	"github.com/stefanpenner/lcc-live/store"
+	"github.com/stefanpenner/lcc-live/udot"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -270,4 +271,109 @@ func TestApplicationStartup(t *testing.T) {
 		// Should be 503 since we haven't fetched images yet
 		assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
 	})
+}
+
+func TestFilterEventsByCanyon(t *testing.T) {
+	tests := []struct {
+		name    string
+		event   store.Event
+		wantLCC bool
+		wantBCC bool
+	}{
+		{
+			name:    "LCC - SR-210 in roadway name",
+			event:   store.Event{RoadwayName: "SR-210"},
+			wantLCC: true,
+			wantBCC: false,
+		},
+		{
+			name:    "LCC - SR 210 in roadway name",
+			event:   store.Event{RoadwayName: "SR 210"},
+			wantLCC: true,
+			wantBCC: false,
+		},
+		{
+			name:    "LCC - State Route 210",
+			event:   store.Event{RoadwayName: "State Route 210"},
+			wantLCC: true,
+			wantBCC: false,
+		},
+		{
+			name:    "LCC - Little Cottonwood in location",
+			event:   store.Event{Location: "Little Cottonwood Canyon"},
+			wantLCC: true,
+			wantBCC: false,
+		},
+		{
+			name:    "LCC - 210 with SR context",
+			event:   store.Event{RoadwayName: "SR-210 near Alta"},
+			wantLCC: true,
+			wantBCC: false,
+		},
+		{
+			name:    "BCC - SR-190 in roadway name",
+			event:   store.Event{RoadwayName: "SR-190"},
+			wantLCC: false,
+			wantBCC: true,
+		},
+		{
+			name:    "BCC - Big Cottonwood in description",
+			event:   store.Event{Description: "Roadwork on Big Cottonwood Canyon"},
+			wantLCC: false,
+			wantBCC: true,
+		},
+		{
+			name:    "Neither - I-210 (not SR-210)",
+			event:   store.Event{RoadwayName: "I-210"},
+			wantLCC: false,
+			wantBCC: false,
+		},
+		{
+			name:    "Neither - US-190 (not SR-190)",
+			event:   store.Event{RoadwayName: "US-190"},
+			wantLCC: false,
+			wantBCC: false,
+		},
+		{
+			name:    "Neither - standalone 210 without context",
+			event:   store.Event{RoadwayName: "Highway 210"},
+			wantLCC: false,
+			wantBCC: false,
+		},
+		{
+			name:    "Neither - unrelated highway",
+			event:   store.Event{RoadwayName: "I-15"},
+			wantLCC: false,
+			wantBCC: false,
+		},
+		{
+			name: "Both - event mentions both canyons",
+			event: store.Event{
+				RoadwayName: "SR-210",
+				Description: "Near Big Cottonwood Canyon",
+			},
+			wantLCC: true,
+			wantBCC: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lccEvents, bccEvents := udot.FilterEventsByCanyon([]store.Event{tt.event})
+
+			if tt.wantLCC {
+				assert.Len(t, lccEvents, 1, "should match LCC")
+				assert.Equal(t, tt.event.ID, lccEvents[0].ID)
+			} else {
+				assert.Len(t, lccEvents, 0, "should not match LCC")
+			}
+
+			if tt.wantBCC {
+				assert.Len(t, bccEvents, 1, "should match BCC")
+				assert.Equal(t, tt.event.ID, bccEvents[0].ID)
+			} else {
+				assert.Len(t, bccEvents, 0, "should not match BCC")
+			}
+		})
+	}
 }

@@ -175,6 +175,53 @@
         border: 1px solid var(--border-color, #e2e8f0);
       }
       
+      .weather-section {
+        max-width: 1200px;
+        margin: 1.5rem auto 0;
+        padding: 1rem;
+        background: var(--card-bg, white);
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+      
+      .weather-section h2 {
+        font-size: 1.5rem;
+        margin: 0 0 1rem 0;
+        color: var(--text-color, #1a202c);
+      }
+      
+      .weather-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+      
+      .weather-item {
+        display: flex;
+        flex-direction: column;
+        padding: 0.75rem;
+        background: var(--bg-color, #f7fafc);
+        border-radius: 8px;
+      }
+      
+      .weather-label {
+        font-size: 0.875rem;
+        color: var(--text-muted, #718096);
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+      }
+      
+      .weather-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-color, #1a202c);
+      }
+      
+      .weather-value.null {
+        color: var(--text-muted, #718096);
+        font-style: italic;
+      }
+      
       @media (max-width: 768px) {
         .photo-header h1 {
           font-size: 1.5rem;
@@ -187,6 +234,10 @@
         
         .share-btn {
           justify-content: center;
+        }
+        
+        .weather-grid {
+          grid-template-columns: 1fr;
         }
       }
     </style>
@@ -223,6 +274,65 @@
             {{- end -}}
           </div>
         </div>
+        {{- if .WeatherStation -}}
+        <div class="weather-section">
+          <h2>Weather Conditions</h2>
+          <div class="weather-grid">
+            {{- if .WeatherStation.AirTemperature -}}
+            <div class="weather-item">
+              <span class="weather-label">Air Temperature</span>
+              <span class="weather-value">{{.WeatherStation.AirTemperature}}°F</span>
+            </div>
+            {{- end -}}
+            {{- if .WeatherStation.SurfaceTemp -}}
+            <div class="weather-item">
+              <span class="weather-label">Surface Temperature</span>
+              <span class="weather-value">{{.WeatherStation.SurfaceTemp}}°F</span>
+            </div>
+            {{- end -}}
+            {{- if .WeatherStation.SurfaceStatus -}}
+            <div class="weather-item">
+              <span class="weather-label">Surface Status</span>
+              <span class="weather-value">{{.WeatherStation.SurfaceStatus}}</span>
+            </div>
+            {{- end -}}
+            {{- if .WeatherStation.WindSpeedAvg -}}
+            <div class="weather-item">
+              <span class="weather-label">Wind Speed</span>
+              <span class="weather-value">
+                {{.WeatherStation.WindSpeedAvg}} mph
+                {{- if .WeatherStation.WindDirection -}}
+                 {{.WeatherStation.WindDirection}}
+                {{- end -}}
+              </span>
+            </div>
+            {{- end -}}
+            {{- if .WeatherStation.WindSpeedGust -}}
+            <div class="weather-item">
+              <span class="weather-label">Wind Gust</span>
+              <span class="weather-value">{{.WeatherStation.WindSpeedGust}} mph</span>
+            </div>
+            {{- end -}}
+            {{- if .WeatherStation.Precipitation -}}
+            <div class="weather-item">
+              <span class="weather-label">Precipitation</span>
+              <span class="weather-value">{{.WeatherStation.Precipitation}}</span>
+            </div>
+            {{- else -}}
+            <div class="weather-item">
+              <span class="weather-label">Precipitation</span>
+              <span class="weather-value null">N/A</span>
+            </div>
+            {{- end -}}
+            {{- if .WeatherStation.RelativeHumidity -}}
+            <div class="weather-item">
+              <span class="weather-label">Humidity</span>
+              <span class="weather-value">{{.WeatherStation.RelativeHumidity}}%</span>
+            </div>
+            {{- end -}}
+          </div>
+        </div>
+        {{- end -}}
       </div>
     </main>
     {{template "analytics" .}}

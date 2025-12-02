@@ -13,6 +13,9 @@ build)
   ;;
 
 test)
+  echo "🔄 Updating BUILD files with Gazelle..."
+  bazel run //:gazelle
+  echo "✅ BUILD files updated"
   echo "🧪 Running tests..."
   bazel test //...
   ;;
@@ -48,6 +51,9 @@ opt)
   ;;
 
 deploy)
+  echo "🔄 Updating BUILD files with Gazelle..."
+  bazel run //:gazelle
+  echo "✅ BUILD files updated"
   echo "🧪 Running tests..."
   bazel test //...
   echo "🚀 Deploying..."

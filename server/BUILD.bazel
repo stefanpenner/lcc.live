@@ -7,8 +7,10 @@ go_library(
         "canyon_route.go",
         "healthcheck_router.go",
         "image_route.go",
+        "json_helpers.go",
         "metrics_middleware.go",
         "server.go",
+        "udot_route.go",
         "version.go",
         "version_route.go",
     ],
@@ -17,6 +19,7 @@ go_library(
     deps = [
         "//metrics",
         "//store",
+        "@com_github_cespare_xxhash_v2//:xxhash",
         "@com_github_charmbracelet_lipgloss//:lipgloss",
         "@com_github_getsentry_sentry_go_echo//:echo",
         "@com_github_labstack_echo_v4//:echo",

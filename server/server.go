@@ -46,8 +46,42 @@ func slugify(name string) string {
 	return slug
 }
 
+func formatUnixTime(timestamp int64) string {
+	if timestamp == 0 {
+		return "Unknown"
+	}
+	t := time.Unix(timestamp, 0)
+	return t.Format("Jan 2, 2006 3:04 PM MST")
+}
+
+func formatTimeAgo(timestamp int64) string {
+	if timestamp == 0 {
+		return "unknown"
+	}
+	now := time.Now().Unix()
+	diff := now - timestamp
+
+	if diff < 60 {
+		return "just now"
+	} else if diff < 3600 {
+		minutes := diff / 60
+		return fmt.Sprintf("%dm", minutes)
+	} else if diff < 86400 {
+		hours := diff / 3600
+		return fmt.Sprintf("%dh", hours)
+	} else if diff < 604800 {
+		days := diff / 86400
+		return fmt.Sprintf("%dd", days)
+	} else {
+		weeks := diff / 604800
+		return fmt.Sprintf("%dw", weeks)
+	}
+}
+
 var templateFuncs = template.FuncMap{
-	"slugify": slugify,
+	"slugify":        slugify,
+	"formatUnixTime": formatUnixTime,
+	"formatTimeAgo":  formatTimeAgo,
 }
 
 // Render renders a template with the given data
@@ -344,6 +378,8 @@ func Start(cfg ServerConfig) (*echo.Echo, error) {
 
 	e.GET("/camera/*", CameraRoute(cfg.Store))
 	e.HEAD("/camera/*", CameraRoute(cfg.Store))
+
+	e.GET("/api/canyon/:canyon/udot", UDOTRoute(cfg.Store))
 
 	e.GET("/healthcheck", HealthCheckRoute(cfg.Store))
 

@@ -143,6 +143,34 @@
       
     </header>
     
+    <!-- Road Conditions Banner -->
+    {{- if .RoadConditions -}}
+    <section class="road-conditions-banner" role="region" aria-label="Road conditions">
+      {{- range $i, $cond := .RoadConditions -}}
+      <div class="road-conditions-card" data-condition-id="{{$cond.Id}}">
+        <h3 class="road-condition-title">{{$cond.RoadwayName}}</h3>
+        <div class="road-condition-content">
+          <div class="road-condition-badge">
+            <span class="road-condition-badge-label">Road</span>
+            <span class="road-condition-badge-value" data-condition="{{$cond.RoadCondition}}">{{$cond.RoadCondition}}</span>
+          </div>
+          <div class="road-condition-badge">
+            <span class="road-condition-badge-label">Weather</span>
+            <span class="road-condition-badge-value" data-condition="{{$cond.WeatherCondition}}">{{$cond.WeatherCondition}}</span>
+          </div>
+          <div class="road-condition-badge{{if ne $cond.Restriction "none"}} road-condition-badge-warning{{end}}">
+            <span class="road-condition-badge-label">Restriction</span>
+            <span class="road-condition-badge-value">{{$cond.Restriction}}</span>
+          </div>
+          <time class="road-condition-updated" datetime="{{$cond.LastUpdated}}" data-last-updated="{{$cond.LastUpdated}}">
+            (<span class="road-condition-time-ago">{{formatTimeAgo $cond.LastUpdated}}</span> ago)
+          </time>
+        </div>
+      </div>
+      {{- end -}}
+    </section>
+    {{- end -}}
+    
     <!-- Camera Grid -->
     <main role="main">
       <section 
