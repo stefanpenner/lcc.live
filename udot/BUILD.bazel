@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "udot",
+    srcs = [
+        "client.go",
+        "filters.go",
+        "poller.go",
+    ],
+    importpath = "github.com/stefanpenner/lcc-live/udot",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//logger",
+        "//store",
+    ],
+)
