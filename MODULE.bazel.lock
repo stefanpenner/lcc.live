@@ -188,7 +188,7 @@
     "//tools:http_binary.bzl%http_binaries_ext": {
       "general": {
         "bzlTransitiveDigest": "K+ZaxCTN2Qgze8R9N/reufLLGOtJfEaFFzTKuT3tk3w=",
-        "usagesDigest": "6vmYFL7RuBy4xbIQI1h/cVXP0ieMfajXn4nxfnoQKKo=",
+        "usagesDigest": "yqR+ZRc87G3G6tSvhXPG+y0Pd1WDlbqrs63QQn6qBY8=",
         "recordedFileInputs": {
           "@@//tools/external_repos.json": "d4d64acfb8a6a476cc021b3f1fb29e1f80701ca177e59e54a70db100c7e0c03a"
         },

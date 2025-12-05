@@ -21,3 +21,33 @@ func RecordMemoryUsage() {
 	runtime.ReadMemStats(&m)
 	MemoryUsageBytes.Set(float64(m.Alloc))
 }
+
+// ErrorRateStats holds error rate statistics
+type ErrorRateStats struct {
+	TotalRequests float64
+	ErrorRequests float64
+	ErrorRate     float64 // Percentage
+	ErrorsPerSec  float64
+}
+
+// CalculateErrorRate calculates error rate from request and error counts
+func CalculateErrorRate(totalRequests, errorRequests, lastErrors float64, elapsedSeconds float64) ErrorRateStats {
+	// Calculate error rate percentage
+	errorRate := 0.0
+	if totalRequests > 0 {
+		errorRate = (errorRequests / totalRequests) * 100.0
+	}
+
+	// Calculate errors per second
+	errorsPerSec := 0.0
+	if elapsedSeconds > 0 {
+		errorsPerSec = (errorRequests - lastErrors) / elapsedSeconds
+	}
+
+	return ErrorRateStats{
+		TotalRequests: totalRequests,
+		ErrorRequests: errorRequests,
+		ErrorRate:     errorRate,
+		ErrorsPerSec:  errorsPerSec,
+	}
+}

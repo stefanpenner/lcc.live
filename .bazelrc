@@ -82,7 +82,7 @@ common --strategy=PackageTar=local
 common --strategy=OCIDescriptor=local
 common --strategy=OCIImage=local
 common --strategy=OCITarballManifest=local
-common --genrule_strategy=local
+# Genrules can run remotely if configured (removed --genrule_strategy=local to allow caching and remote execution)
 
 # Remote cache configuration (optional - requires setup)
 # To enable: create .bazelrc.remote with your remote cache settings

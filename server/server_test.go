@@ -231,9 +231,9 @@ func TestCanyonRoute_GET_LCC(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Body.String(), "Little Cottonwood Canyon")
-	// ETag should contain base ETag, version, and format suffix
+	// ETag should contain base ETag, version, road conditions hash, and format suffix
 	etag := rec.Header().Get("ETag")
-	assert.Contains(t, etag, "\"test-lcc-etag\"")
+	assert.Contains(t, etag, "test-lcc-etag")
 	assert.Contains(t, etag, "-html")
 	assert.Equal(t, "public, max-age=30, stale-while-revalidate=60, must-revalidate", rec.Header().Get("Cache-Control"))
 }
@@ -248,9 +248,9 @@ func TestCanyonRoute_HEAD_LCC(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Empty(t, rec.Body.String())
-	// ETag should contain base ETag, version, and format suffix
+	// ETag should contain base ETag, version, road conditions hash, and format suffix
 	etag := rec.Header().Get("ETag")
-	assert.Contains(t, etag, "\"test-lcc-etag\"")
+	assert.Contains(t, etag, "test-lcc-etag")
 	assert.Contains(t, etag, "-html")
 	assert.Equal(t, "public, max-age=30, stale-while-revalidate=60, must-revalidate", rec.Header().Get("Cache-Control"))
 }
@@ -265,9 +265,9 @@ func TestCanyonRoute_GET_BCC(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Body.String(), "Big Cottonwood Canyon")
-	// ETag should contain base ETag, version, and format suffix
+	// ETag should contain base ETag, version, road conditions hash, and format suffix
 	etag := rec.Header().Get("ETag")
-	assert.Contains(t, etag, "\"test-bcc-etag\"")
+	assert.Contains(t, etag, "test-bcc-etag")
 	assert.Contains(t, etag, "-html")
 }
 
@@ -281,9 +281,9 @@ func TestCanyonRoute_HEAD_BCC(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Empty(t, rec.Body.String())
-	// ETag should contain base ETag, version, and format suffix
+	// ETag should contain base ETag, version, road conditions hash, and format suffix
 	etag := rec.Header().Get("ETag")
-	assert.Contains(t, etag, "\"test-bcc-etag\"")
+	assert.Contains(t, etag, "test-bcc-etag")
 	assert.Contains(t, etag, "-html")
 }
 
@@ -641,9 +641,9 @@ func TestCanyonRoute_CacheHeaders(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(t, "public, max-age=30, stale-while-revalidate=60, must-revalidate", rec.Header().Get("Cache-Control"))
-	// ETag should contain version
+	// ETag should contain version, canyon ETag, road conditions hash, and format suffix
 	etag := rec.Header().Get("ETag")
-	assert.Contains(t, etag, "\"test-lcc-etag\"")
+	assert.Contains(t, etag, "test-lcc-etag")
 	assert.Contains(t, etag, "-html")
 }
 
@@ -799,9 +799,9 @@ func TestCanyonRoute_GET_JSON_LCC(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Header().Get("Content-Type"), "application/json")
-	// ETag should contain base ETag, version, and format suffix
+	// ETag should contain base ETag, version, road conditions hash, and format suffix
 	etag := rec.Header().Get("ETag")
-	assert.Contains(t, etag, "\"test-lcc-etag\"")
+	assert.Contains(t, etag, "test-lcc-etag")
 	assert.Contains(t, etag, "-json")
 	assert.Equal(t, "public, max-age=30, stale-while-revalidate=60, must-revalidate", rec.Header().Get("Cache-Control"))
 
@@ -821,9 +821,9 @@ func TestCanyonRoute_GET_JSON_BCC(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Header().Get("Content-Type"), "application/json")
-	// ETag should contain base ETag, version, and format suffix
+	// ETag should contain base ETag, version, road conditions hash, and format suffix
 	etag := rec.Header().Get("ETag")
-	assert.Contains(t, etag, "\"test-bcc-etag\"")
+	assert.Contains(t, etag, "test-bcc-etag")
 	assert.Contains(t, etag, "-json")
 
 	body := rec.Body.String()

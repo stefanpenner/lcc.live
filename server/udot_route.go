@@ -41,24 +41,29 @@ func UDOTRoute(s *store.Store) func(c echo.Context) error {
 			LastUpdated:    lastUpdated,
 		}
 
-		// Generate ETag based on content hash using helper
-		etag, err := StableJSONHash(data)
-		if err != nil {
-			return c.String(http.StatusInternalServerError, "Failed to generate ETag")
-		}
-
-		// Set appropriate headers for polling endpoint
+		// Set Content-Type before calling SetCacheHeaders
 		c.Response().Header().Set("Content-Type", "application/json; charset=UTF-8")
-		c.Response().Header().Set("Cache-Control", "public, max-age=55")
-		c.Response().Header().Set("ETag", etag)
-		c.Response().Header().Set("X-Content-Type-Options", "nosniff")
 
-		// Check if client has matching ETag
-		if ifNoneMatch := c.Request().Header.Get("If-None-Match"); ifNoneMatch != "" {
-			if ifNoneMatch == etag {
-				return c.NoContent(http.StatusNotModified)
-			}
+		// Check if dev mode is enabled
+		devMode := c.Get("_dev_mode") != nil
+
+		// Build cache config - pass the data itself as the component
+		config := CacheConfig{
+			Components: []interface{}{data},
+			DevMode:    devMode,
 		}
+
+		// Set cache headers and check for 304
+		_, shouldReturn304, err := SetCacheHeaders(c, config)
+		if err != nil {
+			return err
+		}
+		if shouldReturn304 {
+			return c.NoContent(http.StatusNotModified)
+		}
+
+		// Set additional headers specific to API endpoint
+		c.Response().Header().Set("X-Content-Type-Options", "nosniff")
 
 		return c.JSON(http.StatusOK, data)
 	}

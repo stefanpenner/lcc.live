@@ -318,6 +318,7 @@ func main() {
 	// Track total syncs and requests
 	totalSyncs := 0
 	var requestCount int64
+	var errorCount int64
 	var lastRequestCount int64
 	var lastCheckTime = time.Now()
 
@@ -386,6 +387,7 @@ func main() {
 
 	// Start server
 	server.RequestCounter = &requestCount
+	server.ErrorCounter = &errorCount
 	app, err := server.Start(server.ServerConfig{
 		Store:         store,
 		StaticFS:      staticFS,
@@ -424,6 +426,7 @@ func main() {
 		logger.Error(err, "error during shutdown: %v", err)
 	}
 	ui.Shutdown()
+	server.CloseErrorLogger()
 	time.Sleep(100 * time.Millisecond)
 
 	// Flush Sentry before exiting

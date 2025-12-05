@@ -107,6 +107,9 @@ var LogWriter func(string)
 // RequestCounter tracks total requests (for UI stats)
 var RequestCounter *int64
 
+// ErrorCounter tracks error requests (status >= 400) for UI stats
+var ErrorCounter *int64
+
 // Charm colors for HTTP logs
 var (
 	methodGET    = lipgloss.NewStyle().Foreground(lipgloss.Color("#42D9C8")).Bold(true)
@@ -149,6 +152,14 @@ func Start(cfg ServerConfig) (*echo.Echo, error) {
 	e.HideBanner = true
 	e.HidePort = true
 
+	// Initialize error logger
+	if err := InitErrorLogger(""); err != nil {
+		// Log warning but don't fail startup
+		if LogWriter != nil {
+			LogWriter(fmt.Sprintf("Warning: Failed to initialize error logger: %v", err))
+		}
+	}
+
 	// Use our custom log writer if available
 	if LogWriter != nil {
 		e.Logger.SetOutput(customLogWriter{})
@@ -172,13 +183,30 @@ func Start(cfg ServerConfig) (*echo.Echo, error) {
 	// Add metrics middleware early to track all requests
 	e.Use(MetricsMiddleware())
 
-	// Increment request counter for UI stats
+	// Increment request and error counters for UI stats, and log errors
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			if RequestCounter != nil {
 				atomic.AddInt64(RequestCounter, 1)
 			}
-			return next(c)
+			start := time.Now()
+			err := next(c)
+			status := c.Response().Status
+			if ErrorCounter != nil && status >= 400 {
+				atomic.AddInt64(ErrorCounter, 1)
+				// Log error to file
+				LogError(
+					status,
+					c.Request().Method,
+					c.Path(),
+					c.Request().URL.String(),
+					c.RealIP(),
+					c.Request().UserAgent(),
+					time.Since(start),
+					err,
+				)
+			}
+			return err
 		}
 	})
 

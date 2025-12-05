@@ -26,6 +26,7 @@ run)
   bazel run //:lcc-live
   ;;
 
+
 clean)
   echo "🧹 Cleaning build artifacts..."
   bazel clean

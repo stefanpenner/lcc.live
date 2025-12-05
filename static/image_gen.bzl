@@ -24,10 +24,6 @@ def image_from_svg(name, script, svg_src, output, **kwargs):
             svg_src = svg_src,
             output = output,
         ),
-        tags = [
-            "local",
-            "no-remote",
-        ],
         tools = [
             script,
             "@tools_magick//:magick",

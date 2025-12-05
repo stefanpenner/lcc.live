@@ -36,12 +36,15 @@ use_repo(
     "com_github_charmbracelet_bubbletea",
     "com_github_charmbracelet_lipgloss",
     "com_github_charmbracelet_log",
+    "com_github_fsnotify_fsnotify",
     "com_github_getsentry_sentry_go",
     "com_github_getsentry_sentry_go_echo",
+    "com_github_gorilla_websocket",
     "com_github_labstack_echo_v4",
     "com_github_mattn_go_isatty",
     "com_github_mitchellh_hashstructure",
     "com_github_prometheus_client_golang",
+    "com_github_sabhiram_go_gitignore",
     "com_github_stretchr_testify",
 )
 
