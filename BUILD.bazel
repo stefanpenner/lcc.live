@@ -30,7 +30,6 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//logger",
-        "//metrics",
         "//server",
         "//store",
         "//udot",
