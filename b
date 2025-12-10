@@ -13,9 +13,6 @@ build)
   ;;
 
 test)
-  echo "🔄 Updating BUILD files with Gazelle..."
-  bazel run //:gazelle
-  echo "✅ BUILD files updated"
   echo "🧪 Running tests..."
   bazel test //...
   ;;
@@ -25,7 +22,6 @@ run)
   echo "🚀 Running server in dev mode (hot reload enabled)..."
   bazel run //:lcc-live
   ;;
-
 
 clean)
   echo "🧹 Cleaning build artifacts..."
@@ -52,9 +48,6 @@ opt)
   ;;
 
 deploy)
-  echo "🔄 Updating BUILD files with Gazelle..."
-  bazel run //:gazelle
-  echo "✅ BUILD files updated"
   echo "🧪 Running tests..."
   bazel test //...
   echo "🚀 Deploying..."
