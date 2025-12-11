@@ -194,9 +194,35 @@ load_image
 if [ "$TARGET" = "local" ]; then
   log_success "Image loaded into Docker!"
 
-  # Run the new container with dynamic port allocation
+  # Run the new container with dynamic port allocation and API secrets
   log_info "Starting container with dynamic port allocation..."
-  CONTAINER_ID=$(docker run -d -p 0:3000 --name "${CONTAINER_NAME}" "${IMAGE_NAME}")
+
+  # Build environment variable arguments for API tokens
+  ENV_ARGS=""
+  ENV_VARS_PASSED=""
+
+  if [ -n "${UDOT_API_KEY:-}" ]; then
+    ENV_ARGS="$ENV_ARGS -e UDOT_API_KEY=$UDOT_API_KEY"
+    ENV_VARS_PASSED="$ENV_VARS_PASSED UDOT_API_KEY"
+  fi
+  if [ -n "${CLOUDFLARE_ZONE_ID:-}" ]; then
+    ENV_ARGS="$ENV_ARGS -e CLOUDFLARE_ZONE_ID=$CLOUDFLARE_ZONE_ID"
+    ENV_VARS_PASSED="$ENV_VARS_PASSED CLOUDFLARE_ZONE_ID"
+  fi
+  if [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
+    ENV_ARGS="$ENV_ARGS -e CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN"
+    ENV_VARS_PASSED="$ENV_VARS_PASSED CLOUDFLARE_API_TOKEN"
+  fi
+  if [ -n "${SENTRY_DSN:-}" ]; then
+    ENV_ARGS="$ENV_ARGS -e SENTRY_DSN=$SENTRY_DSN"
+    ENV_VARS_PASSED="$ENV_VARS_PASSED SENTRY_DSN"
+  fi
+
+  if [ -n "$ENV_VARS_PASSED" ]; then
+    log_info "Passing API tokens from environment:$ENV_VARS_PASSED"
+  fi
+
+  CONTAINER_ID=$(docker run -d -p 0:3000 $ENV_ARGS --name "${CONTAINER_NAME}" "${IMAGE_NAME}")
   log_success "Container started: ${CONTAINER_ID:0:12}"
 
   # Wait for container to be ready
