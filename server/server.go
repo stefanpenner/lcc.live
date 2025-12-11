@@ -72,9 +72,12 @@ func formatTimeAgo(timestamp int64) string {
 	} else if diff < 604800 {
 		days := diff / 86400
 		return fmt.Sprintf("%dd", days)
-	} else {
+	} else if diff < 31536000 {
 		weeks := diff / 604800
 		return fmt.Sprintf("%dw", weeks)
+	} else {
+		years := diff / 31536000
+		return fmt.Sprintf("%dy", years)
 	}
 }
 

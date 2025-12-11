@@ -772,6 +772,7 @@ class UDOTPoller {
     this.canyonName = canyonName;
     this.interval = interval;
     this.pollTimer = null;
+    this.timeAgoTimer = null; // Timer for continuous time-ago updates
     this.retryDelay = 60000; // Start with 60s retry delay
     this.maxRetryDelay = 300000; // Max 5 minutes
   }
@@ -779,6 +780,8 @@ class UDOTPoller {
   start() {
     // Start polling
     this.poll();
+    // Start continuous time-ago updates every minute
+    this.startTimeAgoUpdates();
   }
 
   async poll() {
@@ -975,16 +978,45 @@ class UDOTPoller {
     } else if (diff < 604800) {
       const days = Math.floor(diff / 86400);
       return `${days}d`;
-    } else {
+    } else if (diff < 31536000) {
       const weeks = Math.floor(diff / 604800);
       return `${weeks}w`;
+    } else {
+      const years = Math.floor(diff / 31536000);
+      return `${years}y`;
     }
+  }
+
+  startTimeAgoUpdates() {
+    // Update all time-ago displays every minute
+    const updateAllTimeAgo = () => {
+      const banner = document.querySelector('.road-conditions-banner');
+      if (!banner) return;
+
+      banner.querySelectorAll('.road-condition-updated').forEach(updatedTime => {
+        const timestamp = parseInt(updatedTime.getAttribute('data-last-updated') || '0');
+        if (timestamp > 0) {
+          const timeAgoSpan = updatedTime.querySelector('.road-condition-time-ago');
+          if (timeAgoSpan) {
+            timeAgoSpan.textContent = this.formatTimeAgo(timestamp);
+          }
+        }
+      });
+    };
+
+    // Update immediately, then every minute
+    updateAllTimeAgo();
+    this.timeAgoTimer = setInterval(updateAllTimeAgo, 60000);
   }
 
   stop() {
     if (this.pollTimer) {
       clearTimeout(this.pollTimer);
       this.pollTimer = null;
+    }
+    if (this.timeAgoTimer) {
+      clearInterval(this.timeAgoTimer);
+      this.timeAgoTimer = null;
     }
   }
 }
