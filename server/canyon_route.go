@@ -11,8 +11,9 @@ import (
 
 type CanyonPageData struct {
 	*store.Canyon
-	RoadConditions []store.RoadCondition
-	Events         []store.Event
+	RoadConditions  []store.RoadCondition
+	Events          []store.Event
+	WeatherStations map[string]*store.WeatherStation
 }
 
 func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
@@ -25,6 +26,9 @@ func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
 		// Filter out unwanted road conditions
 		roadConditions = FilterRoadConditions(roadConditions)
 		events := s.GetEvents(canyonID)
+
+		// Get weather stations for all cameras (single lock acquisition)
+		weatherStations := s.GetWeatherStationsForCanyon(canyon)
 
 		// Determine response format
 		isJSON := strings.HasSuffix(c.Request().URL.Path, ".json")
@@ -42,8 +46,9 @@ func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
 		// Build cache config - include all components that affect the response
 		config := CacheConfig{
 			Components: []interface{}{
-				canyon,         // Canyon data (cameras, etc.) - uses ETag() method
-				roadConditions, // Road conditions - hashed with StableJSONHash
+				canyon,          // Canyon data (cameras, etc.) - uses ETag() method
+				roadConditions,  // Road conditions - hashed with StableJSONHash
+				weatherStations, // Weather stations - hashed with StableJSONHash
 			},
 			DevMode: devMode,
 		}
@@ -67,9 +72,10 @@ func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
 		}
 
 		pageData := CanyonPageData{
-			Canyon:         canyon,
-			RoadConditions: roadConditions,
-			Events:         events,
+			Canyon:          canyon,
+			RoadConditions:  roadConditions,
+			Events:          events,
+			WeatherStations: weatherStations,
 		}
 		return c.Render(http.StatusOK, "canyon.html.tmpl", pageData)
 	}

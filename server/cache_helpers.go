@@ -2,7 +2,6 @@ package server
 
 import (
 	"errors"
-	"reflect"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -10,7 +9,7 @@ import (
 
 // ETagger is an interface for types that have their own ETag
 type ETagger interface {
-	ETag() string
+	GetETag() string
 }
 
 // CacheConfig holds configuration for cache headers and ETag generation
@@ -85,10 +84,7 @@ func buildCompositeETag(config CacheConfig, formatSuffix string) string {
 
 		// Check if component implements ETagger interface
 		if etagger, ok := component.(ETagger); ok {
-			hashValue = strings.Trim(etagger.ETag(), "\"")
-		} else if etag := getETagFromStruct(component); etag != "" {
-			// Check if component has an ETag field (like store.Canyon)
-			hashValue = strings.Trim(etag, "\"")
+			hashValue = strings.Trim(etagger.GetETag(), "\"")
 		} else {
 			// Fall back to StableJSONHash
 			hash, err := StableJSONHash(component)
@@ -113,21 +109,4 @@ func buildCompositeETag(config CacheConfig, formatSuffix string) string {
 	return "\"" + strings.Join(parts, "-") + "\""
 }
 
-// getETagFromStruct extracts ETag field from a struct using reflection
-func getETagFromStruct(component interface{}) string {
-	v := reflect.ValueOf(component)
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	if v.Kind() != reflect.Struct {
-		return ""
-	}
-
-	etagField := v.FieldByName("ETag")
-	if etagField.IsValid() && etagField.Kind() == reflect.String {
-		return etagField.String()
-	}
-
-	return ""
-}
 

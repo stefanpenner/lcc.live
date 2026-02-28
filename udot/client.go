@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -28,10 +29,13 @@ type Client struct {
 
 // NewClient creates a new UDOT API client
 func NewClient(apiKey string) *Client {
+	if len(apiKey) > 0 && len(apiKey) < 32 {
+		fmt.Printf("WARNING: UDOT_API_KEY seems too short (%d chars). Expecting ~32 characters.\n", len(apiKey))
+	}
 	return &Client{
 		apiKey:  apiKey,
-		client:  &http.Client{Timeout: 10 * time.Second},
-		timeout: 10 * time.Second,
+		client:  &http.Client{Timeout: 30 * time.Second},
+		timeout: 30 * time.Second,
 		etags:   make(map[string]string),
 	}
 }
@@ -119,6 +123,11 @@ func fetchJSON[T any](ctx context.Context, client *Client, url string, endpoint 
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		// Try to read error message from body
+		body, _ := io.ReadAll(resp.Body)
+		if len(body) > 0 {
+			return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+		}
 		return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
 	}
 

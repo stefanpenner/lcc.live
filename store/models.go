@@ -176,6 +176,11 @@ type Canyon struct {
 	Cameras []Camera `json:"cameras"`
 }
 
+// GetETag returns the canyon's ETag for cache validation
+func (c *Canyon) GetETag() string {
+	return c.ETag
+}
+
 // Canyons represents the collection of all canyons
 type Canyons struct {
 	LCC Canyon `json:"lcc"`

@@ -13,6 +13,7 @@ kill_timeout = '5s'
 
 [env]
   PORT = '3000'
+  GOMEMLIMIT = '200MiB'
 
 [deploy]
   strategy = "bluegreen"
@@ -23,7 +24,7 @@ kill_timeout = '5s'
 
 [http_service]
   internal_port = 3000
-  # force_https = true
+  force_https = true
   min_machines_running = 1
   processes = ['app']
   [[http_service.checks]]

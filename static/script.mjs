@@ -476,6 +476,32 @@ class FullscreenViewer {
       this.overlay.appendChild(video);
     }
     
+    // Add caption (Name + Temp) from source
+    const cameraFeed = sourceElement.closest('camera-feed');
+    if (cameraFeed) {
+      const footer = document.createElement('div');
+      footer.className = 'overlay-footer';
+      
+      const name = cameraFeed.querySelector('h4')?.textContent;
+      if (name) {
+        const nameEl = document.createElement('h4');
+        nameEl.textContent = name;
+        footer.appendChild(nameEl);
+      }
+
+      const temp = cameraFeed.querySelector('.camera-temp')?.textContent;
+      if (temp) {
+        const tempEl = document.createElement('span');
+        tempEl.className = 'camera-temp';
+        tempEl.textContent = temp;
+        footer.appendChild(tempEl);
+      }
+      
+      if (footer.children.length > 0) {
+        this.overlay.appendChild(footer);
+      }
+    }
+
     this.overlay.style.display = 'flex';
     
     // Store scroll position and prevent body scroll (iOS-specific handling)

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -24,6 +25,7 @@ import (
 	"github.com/stefanpenner/lcc-live/store"
 	"github.com/stefanpenner/lcc-live/udot"
 	"github.com/stefanpenner/lcc-live/ui"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -222,9 +224,6 @@ func initSentry(devMode bool) bool {
 	if err != nil {
 		log.Fatalf("sentry.Init: %s", err)
 	}
-	// Ensure buffered events are sent before the program exits
-	defer sentry.Flush(2 * time.Second)
-
 	// Configure logger to send errors to Sentry
 	logger.SetSentryCaptureException(func(err error) interface{} {
 		return sentry.CaptureException(err)
@@ -361,26 +360,23 @@ func main() {
 
 	// Fetch initial images and start background sync
 	logger.Info("Fetching initial camera images...")
-	go store.FetchImages(ctx)
-	go func() {
-		_ = keepCamerasInSync(ctx, store, config.SyncInterval, &totalSyncs)
-	}()
+	g, gCtx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		store.FetchImages(gCtx)
+		return nil
+	})
+	g.Go(func() error {
+		return keepCamerasInSync(gCtx, store, config.SyncInterval, &totalSyncs)
+	})
 
 	// Start UDOT API fetchers
 	udotClient := udot.NewClient(config.UDOTAPIKey)
 	udotPoller := udot.NewPoller(udotClient, store, config.UDOTInterval)
-	go func() {
-		_ = udotPoller.StartRoadConditions(ctx)
-	}()
-	go func() {
-		_ = udotPoller.StartWeatherStations(ctx)
-	}()
-	go func() {
-		_ = udotPoller.StartEvents(ctx)
-	}()
-	go func() {
-		_ = udotPoller.StartCameraCoordinates(ctx)
-	}()
+	g.Go(func() error { return udotPoller.StartRoadConditions(gCtx) })
+	g.Go(func() error { return udotPoller.StartWeatherStations(gCtx) })
+	g.Go(func() error { return udotPoller.StartEvents(gCtx) })
+	g.Go(func() error { return udotPoller.StartCameraCoordinates(gCtx) })
 
 	// Configure server to use UI logger
 	server.LogWriter = ui.AddLog
@@ -420,11 +416,17 @@ func main() {
 	cancel()
 
 	logger.Info("Shutting down gracefully...")
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 1*time.Second)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer shutdownCancel()
 	if err := app.Shutdown(shutdownCtx); err != nil {
 		logger.Error(err, "error during shutdown: %v", err)
 	}
+
+	// Wait for background goroutines to finish
+	if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
+		logger.Error(err, "background task error: %v", err)
+	}
+
 	ui.Shutdown()
 	server.CloseErrorLogger()
 	time.Sleep(100 * time.Millisecond)

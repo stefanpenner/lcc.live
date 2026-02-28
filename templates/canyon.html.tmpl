@@ -215,6 +215,10 @@
           
           <div class="camera-footer">
             <h4>{{$c.Alt}}</h4>
+            {{- $station := index $.WeatherStations $c.ID -}}
+            {{- if and $station $station.AirTemperature -}}
+            <span class="camera-temp">{{$station.AirTemperature}}°F</span>
+            {{- end -}}
             <div class="camera-actions">
               <button class="fullscreen-button" 
                       data-camera-id="{{$c.ID}}"

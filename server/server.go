@@ -28,20 +28,22 @@ type TemplateRenderer struct {
 	mu        sync.Mutex // Protects template reloading in dev mode
 }
 
+// Pre-compiled regexes for slugify (avoid recompiling on every call)
+var (
+	reSpacesUnderscores = regexp.MustCompile(`[\s_]+`)
+	reNonAlphanumeric   = regexp.MustCompile(`[^a-z0-9-]`)
+	reMultipleHyphens   = regexp.MustCompile(`-+`)
+)
+
 // slugify converts a camera name to a URL-safe slug
 func slugify(name string) string {
 	if name == "" {
 		return ""
 	}
-	// Convert to lowercase
 	slug := strings.ToLower(name)
-	// Replace spaces and common separators with hyphens
-	slug = regexp.MustCompile(`[\s_]+`).ReplaceAllString(slug, "-")
-	// Remove all non-alphanumeric characters except hyphens
-	slug = regexp.MustCompile(`[^a-z0-9-]`).ReplaceAllString(slug, "")
-	// Replace multiple consecutive hyphens with a single hyphen
-	slug = regexp.MustCompile(`-+`).ReplaceAllString(slug, "-")
-	// Remove leading and trailing hyphens
+	slug = reSpacesUnderscores.ReplaceAllString(slug, "-")
+	slug = reNonAlphanumeric.ReplaceAllString(slug, "")
+	slug = reMultipleHyphens.ReplaceAllString(slug, "-")
 	slug = strings.Trim(slug, "-")
 	return slug
 }
@@ -168,12 +170,42 @@ func Start(cfg ServerConfig) (*echo.Echo, error) {
 		e.Logger.SetOutput(customLogWriter{})
 	}
 
+	// Recover middleware must be outermost to catch panics in all middleware
+	if !cfg.SentryEnabled {
+		e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
+			DisableStackAll:   false,
+			DisablePrintStack: false,
+			StackSize:         4 << 10, // 4 KB
+			LogLevel:          0,       // Log all panics
+		}))
+	}
+
 	// Add Sentry middleware to capture panics and errors (only if Sentry is enabled)
 	if cfg.SentryEnabled {
 		e.Use(sentryecho.New(sentryecho.Options{
 			Repanic: true,
 		}))
 	}
+
+	// Security headers
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			h := c.Response().Header()
+			h.Set("X-Content-Type-Options", "nosniff")
+			h.Set("X-Frame-Options", "DENY")
+			h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+			h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+			if !cfg.DevMode {
+				h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			}
+			return next(c)
+		}
+	})
+
+	// Request timeout to prevent slow clients from holding connections
+	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
+		Timeout: 30 * time.Second,
+	}))
 
 	// Add version header to all responses
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -349,15 +381,6 @@ func Start(cfg ServerConfig) (*echo.Echo, error) {
 		}
 	})
 
-	// Recover middleware (only needed if Sentry is disabled, as Sentry middleware handles panics)
-	if !cfg.SentryEnabled {
-		e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
-			DisableStackAll:   false,
-			DisablePrintStack: false,
-			StackSize:         4 << 10, // 4 KB
-			LogLevel:          0,       // Log all panics
-		}))
-	}
 	// Custom Rendering Stuff [
 	tmpl, err := template.New("").Funcs(templateFuncs).ParseFS(cfg.TemplateFS, "*.html.tmpl")
 	if err != nil {

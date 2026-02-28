@@ -28,6 +28,8 @@ const (
 	headRequestTimeout = 2 * time.Second
 	// Timeout for GET requests to fetch images
 	getRequestTimeout = 2 * time.Second
+	// Maximum image size to prevent OOM from unexpectedly large responses
+	maxImageSize = 10 * 1024 * 1024 // 10MB
 	// User agent to mimic Chrome browser (helps with servers that block non-browser requests)
 	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
@@ -423,7 +425,7 @@ func (s *Store) FetchImages(ctx context.Context) {
 			contentType := resp.Header.Get("Content-Type")
 			contentLength := resp.ContentLength
 
-			imageBytes, err := io.ReadAll(resp.Body)
+			imageBytes, err := io.ReadAll(io.LimitReader(resp.Body, maxImageSize))
 			if err != nil {
 				atomic.AddInt32(&errorCount, 1)
 				metrics.CameraFetchTotal.WithLabelValues(cameraName, canyon, "error").Inc()
@@ -725,6 +727,57 @@ func (s *Store) GetWeatherStation(cameraID string) *WeatherStation {
 	}
 
 	return nil
+}
+
+// GetWeatherStationsForCanyon returns weather stations for all cameras in a canyon,
+// acquiring the lock once instead of per-camera.
+func (s *Store) GetWeatherStationsForCanyon(canyon *Canyon) map[string]*WeatherStation {
+	if canyon == nil {
+		return nil
+	}
+
+	s.imagesReady.Wait()
+
+	// Collect sourceIds and camera IDs
+	type lookup struct {
+		sourceId string
+		cameraID string
+	}
+	lookups := make([]lookup, 0, len(canyon.Cameras))
+	for _, cam := range canyon.Cameras {
+		entry, exists := s.index[cam.ID]
+		if !exists {
+			entry, exists = s.nameIndex[cam.ID]
+		}
+		if !exists {
+			continue
+		}
+		var l lookup
+		entry.Read(func(e *Entry) {
+			if e.Camera != nil {
+				l.sourceId = e.Camera.SourceId
+				l.cameraID = e.Camera.ID
+			}
+		})
+		lookups = append(lookups, l)
+	}
+
+	s.weatherStationsMu.RLock()
+	defer s.weatherStationsMu.RUnlock()
+
+	result := make(map[string]*WeatherStation)
+	for _, l := range lookups {
+		if l.sourceId != "" {
+			if station, exists := s.weatherStations[l.sourceId]; exists {
+				result[l.cameraID] = station
+				continue
+			}
+		}
+		if station, exists := s.weatherStations[l.cameraID]; exists {
+			result[l.cameraID] = station
+		}
+	}
+	return result
 }
 
 // UpdateEvents updates the events for a canyon
