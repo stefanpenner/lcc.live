@@ -35,6 +35,7 @@ go_library(
         "//udot",
         "//ui",
         "@com_github_getsentry_sentry_go//:sentry-go",
+        "@org_golang_x_sync//errgroup",
     ],
 )
 
@@ -74,7 +75,10 @@ go_binary(
 
 go_test(
     name = "lcc-live_test",
-    srcs = ["main_test.go"],
+    srcs = [
+        "main_test.go",
+        "smoke_test.go",
+    ],
     data = [":runtime_files"],
     embed = [":lcc-live_lib"],
     deps = [
