@@ -1,15 +1,14 @@
 {
-  "_comment": "macOS URLs need to be configured with valid Homebrew bottle URLs from ghcr.io or other sources",
   "tools": {
     "rsvg-convert": {
       "binary_name": "rsvg-convert",
       "urls": {
         "linux": {
           "amd64": [
-            "http://archive.ubuntu.com/ubuntu/pool/main/libr/librsvg/librsvg2-bin_2.52.5+dfsg-3ubuntu0.1_amd64.deb"
+            "http://mirrors.kernel.org/ubuntu/pool/universe/libr/librsvg/librsvg2-bin_2.52.5+dfsg-3ubuntu0.2_amd64.deb"
           ],
           "arm64": [
-            "http://ports.ubuntu.com/ubuntu-ports/pool/main/libr/librsvg/librsvg2-bin_2.52.5+dfsg-3ubuntu0.1_arm64.deb"
+            "http://ports.ubuntu.com/ubuntu-ports/pool/universe/libr/librsvg/librsvg2-bin_2.52.5+dfsg-3ubuntu0.2_arm64.deb"
           ]
         },
         "macos": {
@@ -19,8 +18,8 @@
       },
       "sha256": {
         "linux": {
-          "amd64": null,
-          "arm64": null
+          "amd64": "ddce7b6107bbbad1f70d138abeecce3a9309836662af929f7683e89236506445",
+          "arm64": "f605d2a7ff4a1176d58bc64843db3c89ad614d1084ed8874a4cf55bb750783d1"
         },
         "macos": {
           "amd64": null,
@@ -33,10 +32,10 @@
       "urls": {
         "linux": {
           "amd64": [
-            "http://archive.ubuntu.com/ubuntu/pool/universe/i/imagemagick/imagemagick_8%3A6.9.11.60+dfsg-1ubuntu3_amd64.deb"
+            "http://mirrors.kernel.org/ubuntu/pool/universe/i/imagemagick/imagemagick_6.9.11.60+dfsg-1.3ubuntu0.22.04.5_amd64.deb"
           ],
           "arm64": [
-            "http://ports.ubuntu.com/ubuntu-ports/pool/universe/i/imagemagick/imagemagick_8%3A6.9.11.60+dfsg-1ubuntu3_arm64.deb"
+            "http://ports.ubuntu.com/ubuntu-ports/pool/universe/i/imagemagick/imagemagick_6.9.11.60+dfsg-1.3ubuntu0.22.04.5_arm64.deb"
           ]
         },
         "macos": {
@@ -46,8 +45,8 @@
       },
       "sha256": {
         "linux": {
-          "amd64": null,
-          "arm64": null
+          "amd64": "c50f4cc240a3c73112f2013898e03dbddf5d2004d2c0a0684474bb175c08361a",
+          "arm64": "e428aac6057ad0a3843365518f5ca72923ce838f34bfaab4ebbe3e114eb4ea7c"
         },
         "macos": {
           "amd64": null,
@@ -57,4 +56,3 @@
     }
   }
 }
-

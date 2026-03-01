@@ -190,7 +190,7 @@
         "bzlTransitiveDigest": "K+ZaxCTN2Qgze8R9N/reufLLGOtJfEaFFzTKuT3tk3w=",
         "usagesDigest": "yqR+ZRc87G3G6tSvhXPG+y0Pd1WDlbqrs63QQn6qBY8=",
         "recordedFileInputs": {
-          "@@//tools/external_repos.json": "d4d64acfb8a6a476cc021b3f1fb29e1f80701ca177e59e54a70db100c7e0c03a"
+          "@@//tools/external_repos.json": "86e53dc0caba39de747bfee5805d6fa838c9b799dad0d998c0247ef1e7e8f0cf"
         },
         "recordedDirentsInputs": {},
         "envVariables": {},
