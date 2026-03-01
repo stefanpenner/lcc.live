@@ -1,0 +1,286 @@
+# 🚀 Fastlane Configuration for LCC.live iOS
+#
+# Available commands:
+#   fastlane test           - Run all tests
+#   fastlane build          - Build .ipa file (uses automatic signing for local builds)
+#   fastlane build skip_export:true - Build archive only (skip IPA export)
+#   fastlane beta           - Upload to TestFlight
+#   fastlane screenshots    - Generate App Store screenshots
+#   fastlane release        - Submit to App Store
+#   fastlane bump_version   - Increment version (major/minor/patch)
+#
+# Build behavior:
+#   - If MATCH_GIT_URL is set: Uses match for App Store provisioning
+#   - Otherwise: Uses automatic code signing (development build)
+#   - Use skip_export:true to build archive without exporting IPA
+#
+# First time setup:
+#   gem install fastlane
+#   fastlane setup_signing
+#
+
+default_platform(:ios)
+
+platform :ios do
+  
+  # MARK: - Configuration
+  
+  before_all do
+    # Increase timeouts for slow CI environments
+    ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] = "120"
+    ENV["FASTLANE_XCODE_LIST_TIMEOUT"] = "120"
+  end
+  
+  # MARK: - Main Lanes
+  
+  desc "Run all tests"
+  lane :test do
+    # Use destination specifier that matches available simulators
+    run_tests(
+      scheme: "lcc",
+      project: "lcc.xcodeproj",
+      destination: "platform=iOS Simulator,name=iPhone 17 Pro,OS=26.0.1",
+      clean: true,
+      code_coverage: true
+    )
+  end
+  
+  desc "Build the app"
+  lane :build do |options|
+    # Increment build number based on CI build number or timestamp
+    build_number = ENV["GITHUB_RUN_NUMBER"] || Time.now.to_i.to_s
+    
+    increment_build_number(
+      build_number: build_number,
+      xcodeproj: "lcc.xcodeproj"
+    )
+    
+    UI.message("Building version #{get_version_number(xcodeproj: 'lcc.xcodeproj')} (#{build_number})")
+    
+    # Common build configuration
+    common_config = {
+      scheme: "lcc",
+      project: "lcc.xcodeproj",
+      clean: true,
+      include_symbols: true,
+      include_bitcode: false
+    }
+    
+    # Check if match is configured (for App Store builds)
+    use_match = !ENV["MATCH_GIT_URL"].nil? && !ENV["MATCH_GIT_URL"].empty?
+    skip_export = options[:skip_export] || false
+    
+    if use_match && !skip_export
+      # App Store build with match provisioning
+      UI.message("Using match for code signing")
+      build_app(
+        common_config.merge(
+          export_method: "app-store",
+          export_options: {
+            provisioningProfiles: {
+              "lcc.live" => "match AppStore lcc.live"
+            }
+          },
+          output_directory: "./build",
+          output_name: "LCC.ipa"
+        )
+      )
+    elsif skip_export
+      # Just build archive without exporting (for local testing)
+      UI.message("Building archive only (skipping export)")
+      build_app(
+        common_config.merge(
+          skip_archive: false,
+          skip_codesigning: false,
+          skip_package_ipa: true
+        )
+      )
+    else
+      # Use automatic signing (for local development)
+      UI.message("Using automatic code signing")
+      build_app(
+        common_config.merge(
+          export_method: "development",
+          output_directory: "./build",
+          output_name: "LCC.ipa"
+        )
+      )
+    end
+    
+    UI.success("✅ Build completed successfully!")
+  end
+  
+  desc "Upload to TestFlight"
+  lane :beta do
+    # Build the app first (creates IPA file for App Store)
+    # Increment build number
+    build_number = ENV["GITHUB_RUN_NUMBER"] || Time.now.to_i.to_s
+    
+    increment_build_number(
+      build_number: build_number,
+      xcodeproj: "lcc.xcodeproj"
+    )
+    
+    UI.message("Building version #{get_version_number(xcodeproj: 'lcc.xcodeproj')} (#{build_number})")
+    
+    # Check if match is configured (for App Store builds)
+    use_match = !ENV["MATCH_GIT_URL"].nil? && !ENV["MATCH_GIT_URL"].empty?
+    
+    if use_match
+      # App Store build with match provisioning
+      UI.message("Using match for code signing")
+      build_app(
+        scheme: "lcc",
+        project: "lcc.xcodeproj",
+        clean: true,
+        include_symbols: true,
+        include_bitcode: false,
+        export_method: "app-store",
+        export_options: {
+          provisioningProfiles: {
+            "lcc.live" => "match AppStore lcc.live"
+          }
+        },
+        output_directory: "./build",
+        output_name: "LCC.ipa"
+      )
+    else
+      # App Store build with automatic signing (requires proper provisioning profile in Xcode)
+      UI.message("Using automatic code signing for App Store")
+      build_app(
+        scheme: "lcc",
+        project: "lcc.xcodeproj",
+        clean: true,
+        include_symbols: true,
+        include_bitcode: false,
+        export_method: "app-store",
+        output_directory: "./build",
+        output_name: "LCC.ipa"
+      )
+    end
+    
+    # Use App Store Connect API for authentication
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY"],
+      is_key_content_base64: true,
+      in_house: false
+    )
+    
+    # Upload to TestFlight
+    upload_to_testflight(
+      api_key: api_key,
+      ipa: "./build/LCC.ipa",
+      skip_submission: false,
+      skip_waiting_for_build_processing: false,
+      distribute_external: true,
+      notify_external_testers: true,
+      changelog: "New build from CI/CD",
+      groups: ["Beta Testers"]
+      # app_identifier is automatically read from Appfile
+    )
+    
+    UI.success("✅ Successfully uploaded to TestFlight!")
+  end
+  
+  desc "Take screenshots for App Store"
+  lane :screenshots do
+    capture_screenshots(
+      scheme: "lcc",
+      devices: [
+        "iPhone 15 Pro Max",
+        "iPhone 15 Pro",
+        "iPad Pro (12.9-inch) (6th generation)"
+      ],
+      clear_previous_screenshots: true,
+      output_directory: "./fastlane/screenshots"
+    )
+    
+    frame_screenshots(
+      white: true,
+      path: "./fastlane/screenshots"
+    )
+    
+    UI.success("✅ Screenshots captured successfully!")
+  end
+  
+  desc "Setup code signing with match"
+  lane :setup_signing do
+    match(
+      type: "appstore",
+      app_identifier: "lcc.live",
+      readonly: is_ci
+    )
+  end
+  
+  desc "Register new device"
+  lane :add_device do |options|
+    device_name = options[:name]
+    device_udid = options[:udid]
+    
+    register_devices(
+      devices: {
+        device_name => device_udid
+      }
+    )
+    
+    match(
+      type: "development",
+      force_for_new_devices: true
+    )
+    
+    UI.success("✅ Device registered successfully!")
+  end
+  
+  desc "Bump version number"
+  lane :bump_version do |options|
+    version_type = options[:type] || "patch"  # major, minor, patch
+    
+    increment_version_number(
+      bump_type: version_type,
+      xcodeproj: "lcc.xcodeproj"
+    )
+    
+    version = get_version_number(xcodeproj: "lcc.xcodeproj")
+    build = get_build_number(xcodeproj: "lcc.xcodeproj")
+    
+    UI.success("✅ Version bumped to #{version} (#{build})")
+  end
+  
+  desc "Release to App Store"
+  lane :release do
+    # Build the app
+    build
+    
+    # Upload to App Store
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY"],
+      is_key_content_base64: true
+    )
+    
+    deliver(
+      api_key: api_key,
+      submit_for_review: true,
+      automatic_release: false,
+      force: true,
+      skip_metadata: false,
+      skip_screenshots: false,
+      submission_information: {
+        add_id_info_uses_idfa: false
+      }
+    )
+    
+    UI.success("✅ App submitted for review!")
+  end
+  
+  # MARK: - Error Handling
+  
+  error do |lane, exception|
+    UI.error("Error in lane #{lane}: #{exception.message}")
+  end
+  
+end
+
