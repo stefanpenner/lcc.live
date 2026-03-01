@@ -11,6 +11,7 @@ class ImagePreloader {
     var fadingOut: [URL: Date] = [:]
 
     @ObservationIgnored private var urls: [URL] = []
+    private(set) var lastFetchedAt: [URL: Date] = [:]
     @ObservationIgnored private var etags: [URL: String] = [:]
     @ObservationIgnored private var lastModifieds: [URL: String] = [:]
     @ObservationIgnored private var hasLoadedOnce: Set<URL> = []
@@ -175,6 +176,7 @@ class ImagePreloader {
         cacheAccessTimes.removeValue(forKey: url)
         etags.removeValue(forKey: url)
         lastModifieds.removeValue(forKey: url)
+        lastFetchedAt.removeValue(forKey: url)
         hasLoadedOnce.remove(url)
     }
 
@@ -445,7 +447,21 @@ class ImagePreloader {
             }
 
             if let newEtag = newEtag { etags[url] = newEtag }
-            if let newLastModified = newLastModified { lastModifieds[url] = newLastModified }
+            if let newLastModified = newLastModified {
+                lastModifieds[url] = newLastModified
+                // Parse Last-Modified header into a Date for the "as of" overlay
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "en_US_POSIX")
+                formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
+                formatter.timeZone = TimeZone(secondsFromGMT: 0)
+                if let date = formatter.date(from: newLastModified) {
+                    lastFetchedAt[url] = date
+                }
+            }
+            // Always record a fetch time even without Last-Modified header
+            if lastFetchedAt[url] == nil {
+                lastFetchedAt[url] = Date()
+            }
 
             if loadedImages.count > maxCachedImages {
                 pruneCache()

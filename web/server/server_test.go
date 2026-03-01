@@ -642,6 +642,76 @@ func TestImageRoute_CacheHeaders(t *testing.T) {
 	assert.NotEmpty(t, rec.Header().Get("Content-Length"))
 }
 
+func TestImageRoute_LastModifiedHeader(t *testing.T) {
+	imageServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.Header().Set("ETag", "\"test-etag\"")
+		if r.Method == "GET" {
+			w.Write([]byte("image data"))
+		}
+	}))
+	defer imageServer.Close()
+
+	canyons := &store.Canyons{
+		LCC: store.Canyon{
+			Name: "LCC",
+			ETag: "\"test-lcc-etag\"",
+			Cameras: []store.Camera{
+				{
+					Kind:   "img",
+					Src:    imageServer.URL + "/test.jpg",
+					Alt:    "Test",
+					Canyon: "LCC",
+				},
+			},
+		},
+		BCC: store.Canyon{Name: "BCC"},
+	}
+
+	testStore := store.NewStore(canyons)
+	testStore.FetchImages(context.Background())
+
+	tmplFS := fstest.MapFS{
+		"canyon.html.tmpl": &fstest.MapFile{
+			Data: []byte(`<!DOCTYPE html><html><body>{{.Name}}</body></html>`),
+		},
+	}
+	staticFS := fstest.MapFS{}
+
+	app, err := Start(ServerConfig{
+		Store:         testStore,
+		StaticFS:      staticFS,
+		TemplateFS:    tmplFS,
+		DevMode:       false,
+		SentryEnabled: false,
+	})
+	require.NoError(t, err)
+	srv := &http.Server{Handler: app}
+
+	cameraID := testStore.Canyon("LCC").Cameras[0].ID
+
+	req := httptest.NewRequest("GET", "/image/"+cameraID, nil)
+	rec := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	lastModified := rec.Header().Get("Last-Modified")
+	assert.NotEmpty(t, lastModified, "Last-Modified header should be present")
+
+	// Verify it's a valid HTTP date
+	_, err = time.Parse(time.RFC1123, lastModified)
+	assert.NoError(t, err, "Last-Modified should be a valid RFC1123 date")
+
+	// HEAD request should also have Last-Modified
+	req = httptest.NewRequest("HEAD", "/image/"+cameraID, nil)
+	rec = httptest.NewRecorder()
+	srv.Handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.NotEmpty(t, rec.Header().Get("Last-Modified"), "HEAD response should also have Last-Modified")
+}
+
 func TestCanyonRoute_CacheHeaders(t *testing.T) {
 	srv := setupTestServer(t)
 

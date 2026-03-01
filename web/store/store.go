@@ -59,6 +59,7 @@ type Entry struct {
 	Camera      *Camera
 	Image       *Image
 	HTTPHeaders *HTTPHeaders
+	FetchedAt   time.Time
 	ID          string
 	mu          sync.RWMutex
 }
@@ -68,6 +69,7 @@ type EntrySnapshot struct {
 	Camera      *Camera
 	Image       *Image
 	HTTPHeaders *HTTPHeaders
+	FetchedAt   time.Time
 	ID          string
 	ETag        string
 }
@@ -100,6 +102,7 @@ func (e *Entry) ShallowSnapshot() EntrySnapshot {
 		Camera:      e.Camera,
 		Image:       e.Image,
 		HTTPHeaders: e.HTTPHeaders,
+		FetchedAt:   e.FetchedAt,
 		ID:          e.ID,
 	}
 }
@@ -423,6 +426,10 @@ func (s *Store) FetchImages(ctx context.Context) {
 			}
 			etag := "\"" + strconv.FormatUint(xxhash.Sum64(imageBytes), 10) + "\""
 			entry.Write(func(entry *Entry) {
+				// Only update FetchedAt when image content actually changed
+				if entry.Image.ETag != etag {
+					entry.FetchedAt = time.Now()
+				}
 				// replace headers
 				entry.HTTPHeaders = &HTTPHeaders{
 					Status:        http.StatusOK,

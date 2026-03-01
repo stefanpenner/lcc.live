@@ -16,6 +16,38 @@
 // ========================================
 
 // ========================================
+// Shared Utilities
+// ========================================
+
+function formatTimeAgo(date) {
+  const now = Date.now();
+  const diff = Math.floor((now - date.getTime()) / 1000);
+
+  if (diff < 60) {
+    return '<1m';
+  } else if (diff < 3600) {
+    return `${Math.floor(diff / 60)}m`;
+  } else if (diff < 86400) {
+    return `${Math.floor(diff / 3600)}h`;
+  } else {
+    return `${Math.floor(diff / 86400)}d`;
+  }
+}
+
+function formatUnixTimeAgo(timestamp) {
+  if (!timestamp || timestamp === 0) return 'unknown';
+  const now = Math.floor(Date.now() / 1000);
+  const diff = now - timestamp;
+
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
+  if (diff < 31536000) return `${Math.floor(diff / 604800)}w`;
+  return `${Math.floor(diff / 31536000)}y`;
+}
+
+// ========================================
 // ETag-Aware Image Reloading with Double Buffering
 // ========================================
 
@@ -73,13 +105,20 @@ class ImageReloader {
       if (headResponse.status !== 200) return;
 
       const etag = headResponse.headers.get('etag');
-      
+      const lastModified = headResponse.headers.get('last-modified');
+
+      // Update image age overlay whenever we get a Last-Modified header
+      if (lastModified) {
+        img.dataset.lastModified = lastModified;
+        this.updateImageAge(img);
+      }
+
       // If this is the first check and image is already loaded, just store the ETag
       if (!img.dataset.etag && img.complete && img.naturalWidth > 0) {
         img.dataset.etag = etag;
         return; // Don't swap, image is already displaying correctly
       }
-      
+
       if (img.dataset.etag === etag) return; // No change
 
       img.dataset.etag = etag;
@@ -133,7 +172,12 @@ class ImageReloader {
         if (entry.isIntersecting) {
           // Add class when entering viewport
           entry.target.classList.add('in-viewport');
-          
+
+          // Eagerly fetch image age for newly visible images
+          if (!entry.target.dataset.lastModified) {
+            this.fetchImageAge(entry.target);
+          }
+
           // Set last reload time to NOW to prevent immediate reload
           // This prevents flicker when scrolling back to an image
           const now = Date.now();
@@ -192,6 +236,9 @@ class ImageReloader {
     
     reload();
 
+    // Keep image age badges fresh
+    this.imageAgeTimer = setInterval(() => this.updateAllImageAges(), 60000);
+
     // Reload on visibility change
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
@@ -220,9 +267,60 @@ class ImageReloader {
     }, { passive: true });
   }
 
+  async fetchImageAge(img) {
+    try {
+      const src = img.dataset.src || img.src;
+      const response = await fetch(src, {
+        method: 'HEAD',
+        cache: 'no-cache',
+        credentials: 'same-origin',
+      });
+      if (response.status !== 200) return;
+      const lastModified = response.headers.get('last-modified');
+      if (lastModified) {
+        img.dataset.lastModified = lastModified;
+        this.updateImageAge(img);
+      }
+      // Also seed the etag if not set
+      if (!img.dataset.etag) {
+        const etag = response.headers.get('etag');
+        if (etag) img.dataset.etag = etag;
+      }
+    } catch {
+      // Ignore - this is best-effort
+    }
+  }
+
+  updateImageAge(img) {
+    const lastModified = img.dataset.lastModified;
+    if (!lastModified) return;
+
+    const feed = img.closest('camera-feed');
+    if (!feed) return;
+
+    let badge = feed.querySelector('.image-age');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'image-age';
+      feed.appendChild(badge);
+    }
+
+    const date = new Date(lastModified);
+    if (isNaN(date.getTime())) return;
+
+    badge.textContent = formatTimeAgo(date);
+  }
+
+  updateAllImageAges() {
+    document.querySelectorAll('img[data-last-modified]').forEach(img => {
+      this.updateImageAge(img);
+    });
+  }
+
   cleanup() {
     this.observer?.disconnect();
-    
+    if (this.imageAgeTimer) clearInterval(this.imageAgeTimer);
+
     // Revoke all blob URLs
     document.querySelectorAll('img').forEach(img => {
       const blobUrl = this.blobUrls.get(img);
@@ -1062,30 +1160,7 @@ class UDOTPoller {
   }
 
   formatTimeAgo(timestamp) {
-    if (!timestamp || timestamp === 0) {
-      return 'unknown';
-    }
-    const now = Math.floor(Date.now() / 1000);
-    const diff = now - timestamp;
-    
-    if (diff < 60) {
-      return 'just now';
-    } else if (diff < 3600) {
-      const minutes = Math.floor(diff / 60);
-      return `${minutes}m`;
-    } else if (diff < 86400) {
-      const hours = Math.floor(diff / 3600);
-      return `${hours}h`;
-    } else if (diff < 604800) {
-      const days = Math.floor(diff / 86400);
-      return `${days}d`;
-    } else if (diff < 31536000) {
-      const weeks = Math.floor(diff / 604800);
-      return `${weeks}w`;
-    } else {
-      const years = Math.floor(diff / 31536000);
-      return `${years}y`;
-    }
+    return formatUnixTimeAgo(timestamp);
   }
 
   startTimeAgoUpdates() {

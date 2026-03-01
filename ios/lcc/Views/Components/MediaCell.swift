@@ -135,6 +135,17 @@ struct MediaCell: View {
                     }
 
                     Spacer(minLength: 0)
+
+                    // "as of" timestamp
+                    if let url = URL(string: mediaItem.url),
+                       let fetchedAt = preloader.lastFetchedAt[url] {
+                        Text(relativeTime(fetchedAt))
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.55))
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(.black.opacity(0.3), in: RoundedRectangle(cornerRadius: 3))
+                    }
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
@@ -165,6 +176,14 @@ struct MediaCell: View {
             .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
             .lineLimit(1)
             .fixedSize()
+    }
+
+    private func relativeTime(_ date: Date) -> String {
+        let diff = Int(Date().timeIntervalSince(date))
+        if diff < 60 { return "<1m" }
+        if diff < 3600 { return "\(diff / 60)m" }
+        if diff < 86400 { return "\(diff / 3600)h" }
+        return "\(diff / 86400)d"
     }
 
     private func precipIcon(_ value: String) -> String {

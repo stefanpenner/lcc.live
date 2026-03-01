@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/stefanpenner/lcc-live/web/metrics"
@@ -35,6 +36,9 @@ func ImageRoute(store *store.Store) func(c echo.Context) error {
 				c.Response().Header().Set("Cache-Control", "public, max-age=10, stale-while-revalidate=20")
 				c.Response().Header().Set("ETag", entry.Image.ETag)
 				c.Response().Header().Set("Content-Length", fmt.Sprintf("%d", headers.ContentLength))
+				if !entry.FetchedAt.IsZero() {
+					c.Response().Header().Set("Last-Modified", entry.FetchedAt.UTC().Format(time.RFC1123))
+				}
 
 				if ifNoneMatch := c.Request().Header.Get("If-None-Match"); ifNoneMatch != "" {
 					if ifNoneMatch == entry.Image.ETag {
