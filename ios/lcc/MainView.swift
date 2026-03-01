@@ -24,7 +24,7 @@ struct MainView: View {
 
     @State private var selectedTab: Tab = .lcc
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @AppStorage("gridMode") private var gridMode: PhotoTabView.GridMode = .single
+    @AppStorage("gridMode") private var gridMode: PhotoTabView.GridMode = .compact
     @State private var fullScreenMedia: PresentedMedia? = nil
     @State private var showConnectionDetails = false
     
