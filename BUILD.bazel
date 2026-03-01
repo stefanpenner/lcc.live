@@ -5,6 +5,7 @@ load("@rules_go//go:def.bzl", "nogo")
 # gazelle:exclude tmp
 # gazelle:exclude .git
 # gazelle:exclude ios
+# gazelle:exclude android
 gazelle(name = "gazelle")
 
 # Test that BUILD files are up to date

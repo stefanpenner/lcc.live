@@ -1,0 +1,78 @@
+load("@rules_kotlin//kotlin:android.bzl", "kt_android_library")
+load("@rules_kotlin//kotlin:core.bzl", "kt_compiler_plugin")
+load("@rules_android//rules:rules.bzl", "android_binary", "android_library")
+
+# Compose compiler plugin (Kotlin 2.x embeddable)
+kt_compiler_plugin(
+    name = "compose_compiler_plugin",
+    id = "androidx.compose.compiler.plugins.kotlin",
+    options = {
+        "sourceInformation": "true",
+    },
+    target_embedded_compiler = True,
+    visibility = ["//visibility:public"],
+    deps = [
+        "@android_maven//:org_jetbrains_kotlin_kotlin_compose_compiler_plugin_embeddable",
+    ],
+)
+
+# Kotlinx Serialization compiler plugin
+kt_compiler_plugin(
+    name = "serialization_compiler_plugin",
+    id = "org.jetbrains.kotlin.serialization",
+    target_embedded_compiler = True,
+    visibility = ["//visibility:public"],
+    deps = [
+        "@android_maven//:org_jetbrains_kotlin_kotlin_serialization_compiler_plugin_embeddable",
+    ],
+)
+
+# Android resources
+android_library(
+    name = "res",
+    manifest = "src/main/AndroidManifest.xml",
+    resource_files = glob(["src/main/res/**"]),
+)
+
+# Kotlin source with Compose
+kt_android_library(
+    name = "lib",
+    srcs = glob(["src/main/kotlin/**/*.kt"]),
+    plugins = [":compose_compiler_plugin", ":serialization_compiler_plugin"],
+    deps = [
+        ":res",
+        "@android_maven//:androidx_activity_activity_compose",
+        "@android_maven//:androidx_compose_ui_ui",
+        "@android_maven//:androidx_compose_runtime_runtime",
+        "@android_maven//:androidx_compose_material3_material3",
+        "@android_maven//:androidx_compose_foundation_foundation",
+        "@android_maven//:androidx_lifecycle_lifecycle_viewmodel_compose",
+        "@android_maven//:androidx_lifecycle_lifecycle_runtime_compose",
+        "@android_maven//:androidx_navigation_navigation_compose",
+        "@android_maven//:com_squareup_okhttp3_okhttp",
+        "@android_maven//:org_jetbrains_kotlinx_kotlinx_serialization_json",
+        "@android_maven//:org_jetbrains_kotlinx_kotlinx_coroutines_android",
+        "@android_maven//:io_insert_koin_koin_core_jvm",
+        "@android_maven//:io_insert_koin_koin_core_viewmodel_jvm",
+        "@android_maven//:io_insert_koin_koin_android",
+        "@android_maven//:io_insert_koin_koin_compose_jvm",
+        "@android_maven//:io_insert_koin_koin_androidx_compose",
+        "@android_maven//:androidx_compose_material_material_icons_extended",
+        "@android_maven//:io_coil_kt_coil_compose",
+        "@android_maven//:com_jakewharton_timber_timber",
+    ],
+)
+
+# Debug APK
+android_binary(
+    name = "app_debug",
+    manifest = "src/main/AndroidManifest.xml",
+    deps = [":lib"],
+)
+
+# Release APK
+android_binary(
+    name = "app",
+    manifest = "src/main/AndroidManifest.xml",
+    deps = [":lib"],
+)

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LCC Live</string>
+    <string name="tab_lcc">LCC</string>
+    <string name="tab_bcc">BCC</string>
+    <string name="loading">Loading cameras…</string>
+    <string name="no_cameras">No cameras available</string>
+    <string name="error_loading">Failed to load cameras</string>
+    <string name="retry">Retry</string>
+    <string name="road_conditions">Road Conditions</string>
+    <string name="last_updated">Last updated %s</string>
+    <string name="share">Share</string>
+    <string name="close">Close</string>
+    <string name="connection_status">Connection Status</string>
+    <string name="connected">Connected</string>
+    <string name="disconnected">Disconnected</string>
+    <string name="grid_toggle">Toggle grid size</string>
+    <string name="photo_of">%d of %d</string>
+</resources>

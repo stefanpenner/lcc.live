@@ -53,7 +53,7 @@ func SetCacheHeaders(c echo.Context, config CacheConfig) (string, bool, error) {
 	}
 
 	// Set standard cache headers
-	c.Response().Header().Set("Cache-Control", "public, max-age=30, stale-while-revalidate=60, must-revalidate")
+	c.Response().Header().Set("Cache-Control", "public, max-age=30, stale-while-revalidate=120, must-revalidate")
 	c.Response().Header().Set("ETag", etag)
 	c.Response().Header().Set("Vary", "Accept")
 

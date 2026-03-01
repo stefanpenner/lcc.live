@@ -47,6 +47,17 @@ opt)
   echo "✅ Optimized build complete: bazel-bin/web/lcc-live_/lcc-live"
   ;;
 
+build:android)
+  echo "📱 Building Android APK..."
+  bazel build //android:app_debug
+  echo "✅ APK: bazel-bin/android/app_debug.apk"
+  ;;
+
+test:android)
+  echo "🧪 Running Android tests..."
+  bazel test //android:lib_test
+  ;;
+
 deploy|deploy:web)
   echo "🧪 Running tests..."
   bazel test //...
@@ -127,8 +138,10 @@ Commands:
   gazelle      - Regenerate BUILD files
   deps         - Update dependencies from go.mod
   opt          - Build optimized binary for production
-  deploy       - Deploy web to Fly.io (alias: deploy:web)
-  deploy:ios   - Deploy iOS to TestFlight
+  build:android - Build Android debug APK
+  test:android  - Run Android unit tests
+  deploy        - Deploy web to Fly.io (alias: deploy:web)
+  deploy:ios    - Deploy iOS to TestFlight
   deploy:local - Build, load, and run image in local Docker
   deploy:clean - Clean up Docker resources before deploying locally
   cleanup      - Clean up Docker containers and images

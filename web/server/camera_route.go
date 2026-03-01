@@ -104,7 +104,7 @@ func CameraRoute(store *store.Store) func(c echo.Context) error {
 
 		// Use max-age with stale-while-revalidate for better performance
 		// When version changes, ETag changes automatically, so no manual purge needed
-		c.Response().Header().Set("Cache-Control", "public, max-age=30, stale-while-revalidate=60, must-revalidate")
+		c.Response().Header().Set("Cache-Control", "public, max-age=30, stale-while-revalidate=120, must-revalidate")
 		c.Response().Header().Set("ETag", etag)
 
 		// Add Vary header to ensure Cloudflare caches by Content-Type
