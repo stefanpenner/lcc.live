@@ -711,6 +711,28 @@ camera-feed .camera-temp {
   opacity: 0.8;
 }
 
+camera-feed .camera-weather-chip {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-tertiary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  margin: 0 1px;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+camera-feed .camera-temp.stale,
+camera-feed .camera-weather-chip.stale {
+  opacity: 0.35;
+}
+
+.precip-icon {
+  vertical-align: middle;
+  display: inline-block;
+}
+
 camera-feed:hover h4 {
   opacity: 0.65;
 }
@@ -950,6 +972,20 @@ the-overlay video {
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   font-weight: 600;
+}
+
+.overlay-footer .camera-weather-chip {
+  color: white;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: var(--text-sm);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.overlay-footer .camera-temp.stale,
+.overlay-footer .camera-weather-chip.stale {
+  opacity: 0.4;
 }
 
 /* Navigation hint in fullscreen */

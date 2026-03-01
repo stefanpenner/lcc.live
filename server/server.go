@@ -5,8 +5,10 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
+	"math"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -83,10 +85,51 @@ func formatTimeAgo(timestamp int64) string {
 	}
 }
 
+func isStale(timestamp int64) bool {
+	return timestamp == 0 || time.Now().Unix()-timestamp > 1800
+}
+
+func roundTemp(temp *string) string {
+	if temp == nil {
+		return ""
+	}
+	f, err := strconv.ParseFloat(*temp, 64)
+	if err != nil {
+		return *temp
+	}
+	return strconv.Itoa(int(math.Round(f)))
+}
+
+const (
+	svgSnow  = `<svg class="precip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>`
+	svgRain  = `<svg class="precip-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`
+	svgMixed = `<svg class="precip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="2" x2="6" y2="12"/><line x1="1" y1="7" x2="11" y2="7"/><line x1="3" y1="4" x2="9" y2="10"/><line x1="9" y1="4" x2="3" y2="10"/><path d="M17 11l4 4a5.5 5.5 0 1 1-8 0z" fill="currentColor" stroke="none"/></svg>`
+)
+
+func precipIcon(airTemp *string) template.HTML {
+	if airTemp == nil {
+		return template.HTML(svgRain)
+	}
+	temp, err := strconv.ParseFloat(*airTemp, 64)
+	if err != nil {
+		return template.HTML(svgRain)
+	}
+	if temp < 35 {
+		return template.HTML(svgSnow)
+	}
+	if temp <= 40 {
+		return template.HTML(svgMixed)
+	}
+	return template.HTML(svgRain)
+}
+
 var templateFuncs = template.FuncMap{
 	"slugify":        slugify,
 	"formatUnixTime": formatUnixTime,
 	"formatTimeAgo":  formatTimeAgo,
+	"isStale":        isStale,
+	"roundTemp":      roundTemp,
+	"precipIcon":     precipIcon,
 	"version":        GetVersionString,
 }
 

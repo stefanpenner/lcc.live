@@ -376,7 +376,6 @@ func main() {
 	g.Go(func() error { return udotPoller.StartRoadConditions(gCtx) })
 	g.Go(func() error { return udotPoller.StartWeatherStations(gCtx) })
 	g.Go(func() error { return udotPoller.StartEvents(gCtx) })
-	g.Go(func() error { return udotPoller.StartCameraCoordinates(gCtx) })
 
 	// Configure server to use UI logger
 	server.LogWriter = ui.AddLog

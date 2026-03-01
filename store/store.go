@@ -48,10 +48,8 @@ type Store struct {
 	syncCallbackMu             sync.Mutex
 	roadConditions             map[string][]RoadCondition // Maps canyon -> road conditions
 	roadConditionsMu           sync.RWMutex
-	weatherStations            map[string]*WeatherStation // Maps camera SourceId -> weather station
+	weatherStationsById        map[int]*WeatherStation // Maps station Id -> weather station
 	weatherStationsMu          sync.RWMutex
-	allWeatherStations         []WeatherStation // Store all weather stations for re-matching
-	allWeatherStationsMu       sync.RWMutex
 	events                     map[string][]Event // Maps canyon -> events
 	eventsMu                   sync.RWMutex
 }
@@ -158,16 +156,6 @@ func NewStore(canyons *Canyons) *Store {
 
 	createEntry := func(camera *Camera) {
 		camera.ID = base64.StdEncoding.EncodeToString([]byte(camera.Src))
-		// Extract SourceId from UDOT camera URLs (e.g., https://udottraffic.utah.gov/map/Cctv/86277)
-		if camera.SourceId == "" && strings.Contains(camera.Src, "udottraffic.utah.gov/map/Cctv/") {
-			parts := strings.Split(camera.Src, "/Cctv/")
-			if len(parts) > 1 {
-				// Extract the number before the query string or end of URL
-				sourceIdPart := strings.Split(parts[1], "?")[0]
-				sourceIdPart = strings.Split(sourceIdPart, "#")[0]
-				camera.SourceId = strings.TrimSpace(sourceIdPart)
-			}
-		}
 		entry := &Entry{
 			Camera:      camera,
 			Image:       &Image{},
@@ -239,10 +227,9 @@ func NewStore(canyons *Canyons) *Store {
 		index:              index,
 		nameIndex:          nameIndex,
 		canyons:            canyons,
-		roadConditions:     make(map[string][]RoadCondition),
-		weatherStations:    make(map[string]*WeatherStation),
-		allWeatherStations: make([]WeatherStation, 0),
-		events:             make(map[string][]Event),
+		roadConditions:      make(map[string][]RoadCondition),
+		weatherStationsById: make(map[int]*WeatherStation),
+		events:              make(map[string][]Event),
 		client: &http.Client{
 			Timeout:   httpClientTimeout,
 			Transport: transport,
@@ -573,123 +560,20 @@ func (s *Store) GetRoadConditions(canyon string) []RoadCondition {
 	return result
 }
 
-// StoreAllWeatherStations stores all weather stations for later re-matching
-func (s *Store) StoreAllWeatherStations(stations []WeatherStation) {
-	s.allWeatherStationsMu.Lock()
-	defer s.allWeatherStationsMu.Unlock()
-	s.allWeatherStations = stations
-}
-
-// UpdateWeatherStation updates the weather station data for a camera SourceId
-func (s *Store) UpdateWeatherStation(cameraSourceId string, station *WeatherStation) {
-	if cameraSourceId == "" || station == nil {
-		return
-	}
+// StoreWeatherStationsById indexes weather stations by their Id for lookup by cameras
+func (s *Store) StoreWeatherStationsById(stations []WeatherStation) {
 	s.weatherStationsMu.Lock()
 	defer s.weatherStationsMu.Unlock()
-	s.weatherStations[cameraSourceId] = station
-}
 
-// UpdateCameraCoordinates updates camera coordinates from UDOT cameras data
-// This is called with a map of camera ID (from UDOT) -> (lat, lon) pairs
-// The camera ID is matched against the SourceId extracted from camera URLs
-func (s *Store) UpdateCameraCoordinates(cameraIdToCoords map[string]struct {
-	Lat float64
-	Lon float64
-}) {
-	s.mu.RLock()
-	entries := make([]*Entry, len(s.entries))
-	copy(entries, s.entries)
-	s.mu.RUnlock()
-
-	updated := 0
-	for _, entry := range entries {
-		entry.Write(func(e *Entry) {
-			if e.Camera == nil || e.Camera.SourceId == "" {
-				return
-			}
-
-			// Match by SourceId (which is the camera ID from UDOT URL)
-			coords, exists := cameraIdToCoords[e.Camera.SourceId]
-			if !exists {
-				return
-			}
-
-			// Update coordinates
-			lat := coords.Lat
-			lon := coords.Lon
-			e.Camera.Latitude = &lat
-			e.Camera.Longitude = &lon
-			updated++
-		})
-	}
-	logger.Muted("Updated coordinates for %d cameras", updated)
-
-	// Re-match weather stations now that coordinates are available
-	s.allWeatherStationsMu.RLock()
-	stations := make([]WeatherStation, len(s.allWeatherStations))
-	copy(stations, s.allWeatherStations)
-	s.allWeatherStationsMu.RUnlock()
-
-	if len(stations) > 0 {
-		logger.Muted("Re-matching %d weather stations after coordinate update", len(stations))
-		s.MatchWeatherStationsByCoordinates(stations)
-	} else {
-		logger.Muted("No weather stations stored yet for re-matching")
-	}
-}
-
-// MatchWeatherStationsByCoordinates matches weather stations to cameras by lat/long coordinates
-// Uses a threshold of 0.001 degrees (~111 meters) for matching
-func (s *Store) MatchWeatherStationsByCoordinates(stations []WeatherStation) {
-	const coordThreshold = 0.001 // ~111 meters
-
-	s.mu.RLock()
-	entries := make([]*Entry, len(s.entries))
-	copy(entries, s.entries)
-	s.mu.RUnlock()
-
-	matched := 0
+	m := make(map[int]*WeatherStation, len(stations))
 	for i := range stations {
-		station := &stations[i]
-		if station.Latitude == nil || station.Longitude == nil {
-			continue
-		}
-
-		// Find matching camera by coordinates
-		for _, entry := range entries {
-			entry.Read(func(e *Entry) {
-				if e.Camera == nil {
-					return
-				}
-				if e.Camera.Latitude == nil || e.Camera.Longitude == nil {
-					return
-				}
-
-				latDiff := *e.Camera.Latitude - *station.Latitude
-				if latDiff < 0 {
-					latDiff = -latDiff
-				}
-				lonDiff := *e.Camera.Longitude - *station.Longitude
-				if lonDiff < 0 {
-					lonDiff = -lonDiff
-				}
-
-				if latDiff < coordThreshold && lonDiff < coordThreshold {
-					// Match found - use camera ID as key
-					s.UpdateWeatherStation(e.Camera.ID, station)
-					matched++
-					logger.Muted("Matched weather station %s (%s) to camera %s (%s) by coordinates",
-						station.StationName, e.Camera.Alt, e.Camera.ID, e.Camera.Alt)
-				}
-			})
-		}
+		m[stations[i].Id] = &stations[i]
 	}
-	logger.Muted("Matched %d weather stations to cameras by coordinates", matched)
+	s.weatherStationsById = m
+	logger.Muted("Indexed %d weather stations by Id", len(m))
 }
 
 // GetWeatherStation returns the weather station data for a camera by its ID
-// It first tries to match by SourceId, then by camera ID (for coordinate-based matching)
 func (s *Store) GetWeatherStation(cameraID string) *WeatherStation {
 	s.imagesReady.Wait()
 
@@ -702,31 +586,20 @@ func (s *Store) GetWeatherStation(cameraID string) *WeatherStation {
 		return nil
 	}
 
-	var sourceId string
-	var cameraIDForMatch string
+	var stationId *int
 	entry.Read(func(e *Entry) {
 		if e.Camera != nil {
-			sourceId = e.Camera.SourceId
-			cameraIDForMatch = e.Camera.ID
+			stationId = e.Camera.WeatherStationId
 		}
 	})
 
+	if stationId == nil {
+		return nil
+	}
+
 	s.weatherStationsMu.RLock()
 	defer s.weatherStationsMu.RUnlock()
-
-	// First try by SourceId
-	if sourceId != "" {
-		if station, exists := s.weatherStations[sourceId]; exists {
-			return station
-		}
-	}
-
-	// Then try by camera ID (for coordinate-based matching)
-	if station, exists := s.weatherStations[cameraIDForMatch]; exists {
-		return station
-	}
-
-	return nil
+	return s.weatherStationsById[*stationId]
 }
 
 // GetWeatherStationsForCanyon returns weather stations for all cameras in a canyon,
@@ -738,28 +611,21 @@ func (s *Store) GetWeatherStationsForCanyon(canyon *Canyon) map[string]*WeatherS
 
 	s.imagesReady.Wait()
 
-	// Collect sourceIds and camera IDs
+	// Collect weatherStationIds from cameras
 	type lookup struct {
-		sourceId string
-		cameraID string
+		cameraID  string
+		stationId int
 	}
-	lookups := make([]lookup, 0, len(canyon.Cameras))
+	var lookups []lookup
 	for _, cam := range canyon.Cameras {
-		entry, exists := s.index[cam.ID]
-		if !exists {
-			entry, exists = s.nameIndex[cam.ID]
-		}
-		if !exists {
+		if cam.WeatherStationId == nil {
 			continue
 		}
-		var l lookup
-		entry.Read(func(e *Entry) {
-			if e.Camera != nil {
-				l.sourceId = e.Camera.SourceId
-				l.cameraID = e.Camera.ID
-			}
-		})
-		lookups = append(lookups, l)
+		lookups = append(lookups, lookup{cameraID: cam.ID, stationId: *cam.WeatherStationId})
+	}
+
+	if len(lookups) == 0 {
+		return nil
 	}
 
 	s.weatherStationsMu.RLock()
@@ -767,13 +633,7 @@ func (s *Store) GetWeatherStationsForCanyon(canyon *Canyon) map[string]*WeatherS
 
 	result := make(map[string]*WeatherStation)
 	for _, l := range lookups {
-		if l.sourceId != "" {
-			if station, exists := s.weatherStations[l.sourceId]; exists {
-				result[l.cameraID] = station
-				continue
-			}
-		}
-		if station, exists := s.weatherStations[l.cameraID]; exists {
+		if station, exists := s.weatherStationsById[l.stationId]; exists {
 			result[l.cameraID] = station
 		}
 	}

@@ -53,7 +53,7 @@
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        color: var(--primary-color, #667eea);
+        color: var(--color-accent-focus);
         text-decoration: none;
         font-size: 1rem;
         margin-bottom: 1rem;
@@ -63,7 +63,7 @@
       }
       
       .back-link:hover {
-        background-color: rgba(102, 126, 234, 0.1);
+        background-color: var(--color-bg-tertiary);
       }
       
       .back-link svg {
@@ -79,13 +79,13 @@
       .photo-header h1 {
         font-size: 2rem;
         margin: 0.5rem 0;
-        color: var(--text-color, #1a202c);
+        color: var(--color-text-primary);
       }
       
       .photo-header .canyon-badge {
         display: inline-block;
         padding: 0.25rem 0.75rem;
-        background: var(--primary-color, #667eea);
+        background: var(--color-accent-focus);
         color: white;
         border-radius: 999px;
         font-size: 0.875rem;
@@ -102,9 +102,9 @@
       .photo-frame {
         width: 100%;
         max-width: 1200px;
-        background: var(--card-bg, white);
+        background: var(--color-bg-primary);
         border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--shadow-lg);
         overflow: hidden;
       }
       
@@ -120,7 +120,7 @@
       }
       
       .share-section p {
-        color: var(--text-muted, #718096);
+        color: var(--color-text-tertiary);
         font-size: 0.875rem;
         margin-bottom: 0.5rem;
       }
@@ -170,24 +170,39 @@
       }
       
       .share-btn.copy {
-        background: var(--card-bg, #edf2f7);
-        color: var(--text-color, #1a202c);
-        border: 1px solid var(--border-color, #e2e8f0);
+        background: var(--color-bg-tertiary);
+        color: var(--color-text-primary);
+        border: 1px solid var(--color-border-default);
       }
       
       .weather-section {
         max-width: 1200px;
         margin: 1.5rem auto 0;
         padding: 1rem;
-        background: var(--card-bg, white);
+        background: var(--color-bg-primary);
         border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--shadow-lg);
       }
       
       .weather-section h2 {
         font-size: 1.5rem;
         margin: 0 0 1rem 0;
-        color: var(--text-color, #1a202c);
+        color: var(--color-text-primary);
+        display: flex;
+        align-items: baseline;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      .weather-updated {
+        font-size: 0.875rem;
+        font-weight: 400;
+        color: var(--color-text-tertiary);
+        margin-left: auto;
+      }
+
+      .weather-updated.stale {
+        color: #d97706;
       }
       
       .weather-grid {
@@ -200,13 +215,13 @@
         display: flex;
         flex-direction: column;
         padding: 0.75rem;
-        background: var(--bg-color, #f7fafc);
+        background: var(--color-bg-tertiary);
         border-radius: 8px;
       }
       
       .weather-label {
         font-size: 0.875rem;
-        color: var(--text-muted, #718096);
+        color: var(--color-text-tertiary);
         margin-bottom: 0.25rem;
         font-weight: 500;
       }
@@ -214,11 +229,11 @@
       .weather-value {
         font-size: 1.25rem;
         font-weight: 600;
-        color: var(--text-color, #1a202c);
+        color: var(--color-text-primary);
       }
       
       .weather-value.null {
-        color: var(--text-muted, #718096);
+        color: var(--color-text-tertiary);
         font-style: italic;
       }
       
@@ -276,18 +291,18 @@
         </div>
         {{- if .WeatherStation -}}
         <div class="weather-section">
-          <h2>Weather Conditions</h2>
+          <h2>Weather Conditions {{- if .WeatherStation.LastUpdated}} <span class="weather-updated{{if isStale .WeatherStation.LastUpdated}} stale{{end}}">Updated {{formatTimeAgo .WeatherStation.LastUpdated}} ago</span>{{- end}}</h2>
           <div class="weather-grid">
             {{- if .WeatherStation.AirTemperature -}}
             <div class="weather-item">
               <span class="weather-label">Air Temperature</span>
-              <span class="weather-value">{{.WeatherStation.AirTemperature}}°F</span>
+              <span class="weather-value">{{roundTemp .WeatherStation.AirTemperature}}°F</span>
             </div>
             {{- end -}}
             {{- if .WeatherStation.SurfaceTemp -}}
             <div class="weather-item">
               <span class="weather-label">Surface Temperature</span>
-              <span class="weather-value">{{.WeatherStation.SurfaceTemp}}°F</span>
+              <span class="weather-value">{{roundTemp .WeatherStation.SurfaceTemp}}°F</span>
             </div>
             {{- end -}}
             {{- if .WeatherStation.SurfaceStatus -}}
@@ -316,18 +331,19 @@
             {{- if .WeatherStation.Precipitation -}}
             <div class="weather-item">
               <span class="weather-label">Precipitation</span>
-              <span class="weather-value">{{.WeatherStation.Precipitation}}</span>
-            </div>
-            {{- else -}}
-            <div class="weather-item">
-              <span class="weather-label">Precipitation</span>
-              <span class="weather-value null">N/A</span>
+              <span class="weather-value">{{precipIcon .WeatherStation.AirTemperature}}</span>
             </div>
             {{- end -}}
             {{- if .WeatherStation.RelativeHumidity -}}
             <div class="weather-item">
               <span class="weather-label">Humidity</span>
               <span class="weather-value">{{.WeatherStation.RelativeHumidity}}%</span>
+            </div>
+            {{- end -}}
+            {{- if .WeatherStation.DewpointTemp -}}
+            <div class="weather-item">
+              <span class="weather-label">Dew Point</span>
+              <span class="weather-value">{{roundTemp .WeatherStation.DewpointTemp}}°F</span>
             </div>
             {{- end -}}
           </div>

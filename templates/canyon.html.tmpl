@@ -217,7 +217,16 @@
             <h4>{{$c.Alt}}</h4>
             {{- $station := index $.WeatherStations $c.ID -}}
             {{- if and $station $station.AirTemperature -}}
-            <span class="camera-temp">{{$station.AirTemperature}}°F</span>
+            <span class="camera-temp{{if isStale $station.LastUpdated}} stale{{end}}">{{roundTemp $station.AirTemperature}}°F</span>
+            {{- end -}}
+            {{- if and $station $station.WindSpeedAvg -}}
+            <span class="camera-weather-chip{{if isStale $station.LastUpdated}} stale{{end}}">{{roundTemp $station.WindSpeedAvg}} mph{{if $station.WindDirection}} {{$station.WindDirection}}{{end}}</span>
+            {{- end -}}
+            {{- if and $station $station.SurfaceStatus -}}
+            <span class="camera-weather-chip{{if isStale $station.LastUpdated}} stale{{end}}">{{$station.SurfaceStatus}}</span>
+            {{- end -}}
+            {{- if and $station $station.Precipitation -}}
+            <span class="camera-weather-chip{{if isStale $station.LastUpdated}} stale{{end}}">{{precipIcon $station.AirTemperature}}</span>
             {{- end -}}
             <div class="camera-actions">
               <button class="fullscreen-button" 

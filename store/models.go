@@ -27,14 +27,12 @@ type HTTPHeaders struct {
 
 // Camera represents a webcam with its configuration
 type Camera struct {
-	ID        string   `json:"id"`
-	Kind      string   `json:"kind"`
-	Src       string   `json:"src"`
-	Alt       string   `json:"alt"`
-	Canyon    string   `json:"canyon"`
-	SourceId  string   `json:"sourceId,omitempty"`  // Optional: for matching with weather stations
-	Latitude  *float64 `json:"latitude,omitempty"`  // Optional: camera latitude for weather station matching
-	Longitude *float64 `json:"longitude,omitempty"` // Optional: camera longitude for weather station matching
+	ID               string `json:"id"`
+	Kind             string `json:"kind"`
+	Src              string `json:"src"`
+	Alt              string `json:"alt"`
+	Canyon           string `json:"canyon"`
+	WeatherStationId *int   `json:"weatherStationId,omitempty"`
 }
 
 // RoadCondition represents road condition data from UDOT API

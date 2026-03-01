@@ -10,7 +10,8 @@
         {
           "kind": "img",
           "src": "https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Collins_Snow_Stake.jpg",
-          "alt": "Alta Collins Snow Stake (12h)"
+          "alt": "Alta Collins Snow Stake (12h)",
+          "weatherStationId": 1650231
         },
         {
           "kind": "img",
@@ -20,7 +21,8 @@
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/84836?t=1764447780",
-          "alt": "Powerhouse"
+          "alt": "Powerhouse",
+          "weatherStationId": 1650225
         },
         {
           "kind": "img",
@@ -40,7 +42,8 @@
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/85930?t=1764447947",
-          "alt": "White Pine"
+          "alt": "White Pine",
+          "weatherStationId": 1650226
         },
         {
           "kind": "img",
@@ -55,7 +58,8 @@
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/85183?t=1764447660",
-          "alt": "Alta"
+          "alt": "Alta",
+          "weatherStationId": 1650091
         },
         {
           "kind": "img",
@@ -80,7 +84,8 @@
         {
           "kind": "img",
           "src": "https://app.prismcam.com/public/helpers/realtime_preview.php?c=88&s=720",
-          "alt": "Mount Baldy"
+          "alt": "Mount Baldy",
+          "weatherStationId": 1650160
         },
         {
           "kind": "img",
@@ -125,7 +130,8 @@
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/85732?t=1764448123",
-          "alt": "S Curves"
+          "alt": "S Curves",
+          "weatherStationId": 1650085
         },
         {
           "kind": "img",
@@ -144,7 +150,7 @@
         },
         {
           "kind": "iframe",
-          "src": "https://www.youtube.com/embed/Jl7RmcLqtYM?si=HfQSiGj9IbcRQjqN&autoplay=1&mute=1&controls=0",
+          "src": "https://www.youtube.com/embed/1LmE10tNdwI?autoplay=1&mute=1&controls=0",
           "alt": "Honeycomb canyon"
         },
         {
@@ -159,7 +165,7 @@
         },
         {
           "kind": "iframe",
-          "src": "https://www.youtube.com/embed/Hhv0J8fQAxw?autoplay=1&mute=1&controls=0",
+          "src": "https://www.youtube.com/embed/QCqYmOGzULs?autoplay=1&mute=1&controls=0",
           "alt": "Solitude Snow Stake"
         },
         {

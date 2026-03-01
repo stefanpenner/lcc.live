@@ -2,7 +2,6 @@ package udot
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/stefanpenner/lcc-live/logger"
@@ -126,22 +125,7 @@ func (p *Poller) pollWeatherStations(ctx context.Context) {
 		return
 	}
 
-	// Store all weather stations for later re-matching when camera coordinates are available
-	p.store.StoreAllWeatherStations(stations)
-
-	// First match by CameraSourceId (existing method)
-	matched := 0
-	for i := range stations {
-		station := &stations[i]
-		if station.CameraSourceId != nil && *station.CameraSourceId != "" {
-			p.store.UpdateWeatherStation(*station.CameraSourceId, station)
-			matched++
-		}
-	}
-
-	// Then match by coordinates (new method)
-	p.store.MatchWeatherStationsByCoordinates(stations)
-	logger.Muted("Updated weather stations: %d matched by SourceId, additional matches by coordinates", matched)
+	p.store.StoreWeatherStationsById(stations)
 }
 
 func (p *Poller) pollEvents(ctx context.Context) {
@@ -163,59 +147,3 @@ func (p *Poller) pollEvents(ctx context.Context) {
 	logger.Muted("Updated events: LCC=%d, BCC=%d", len(lccEvents), len(bccEvents))
 }
 
-// StartCameraCoordinates starts polling camera coordinates from UDOT
-func (p *Poller) StartCameraCoordinates(ctx context.Context) error {
-	if !p.client.IsConfigured() {
-		logger.Warn("UDOT_API_KEY not set. Skipping camera coordinates fetching.")
-		return nil
-	}
-
-	ticker := time.NewTicker(p.interval)
-	defer ticker.Stop()
-
-	// Fetch immediately on startup
-	p.pollCameraCoordinates(ctx)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-			p.pollCameraCoordinates(ctx)
-		}
-	}
-}
-
-func (p *Poller) pollCameraCoordinates(ctx context.Context) {
-	cameras, err := p.client.FetchCameras(ctx)
-	if err != nil {
-		logger.Error(err, "Failed to fetch camera coordinates: %v", err)
-		return
-	}
-
-	// If cameras is nil, it means we got a 304 Not Modified - data hasn't changed
-	if cameras == nil {
-		logger.Muted("Camera coordinates unchanged (304 Not Modified)")
-		return
-	}
-
-	// Build map of camera ID (as string) -> coordinates
-	// The camera ID from UDOT matches the SourceId extracted from camera URLs
-	cameraIdToCoords := make(map[string]struct {
-		Lat float64
-		Lon float64
-	})
-	for _, cam := range cameras {
-		// Convert camera Id to string to match SourceId from URLs
-		cameraIdStr := fmt.Sprintf("%d", cam.Id)
-		cameraIdToCoords[cameraIdStr] = struct {
-			Lat float64
-			Lon float64
-		}{
-			Lat: cam.Latitude,
-			Lon: cam.Longitude,
-		}
-	}
-
-	p.store.UpdateCameraCoordinates(cameraIdToCoords)
-}

@@ -75,24 +75,6 @@ func (c *Client) FetchEvents(ctx context.Context) ([]store.Event, error) {
 	return fetchJSON[store.Event](ctx, c, url, "events")
 }
 
-// UDOTCamera represents a camera from the UDOT cameras API
-type UDOTCamera struct {
-	Id        int     `json:"Id"`
-	SourceId  string  `json:"SourceId"`
-	Latitude  float64 `json:"Latitude"`
-	Longitude float64 `json:"Longitude"`
-}
-
-// FetchCameras fetches all cameras from the UDOT API
-func (c *Client) FetchCameras(ctx context.Context) ([]UDOTCamera, error) {
-	if !c.IsConfigured() {
-		return nil, fmt.Errorf("UDOT_API_KEY not set")
-	}
-
-	url := fmt.Sprintf("%s/get/cameras?key=%s&format=json", baseURL, c.apiKey)
-	return fetchJSON[UDOTCamera](ctx, c, url, "cameras")
-}
-
 // fetchJSON is a generic helper to fetch and decode JSON from the API
 // It respects ETags and caching headers for conditional requests
 func fetchJSON[T any](ctx context.Context, client *Client, url string, endpoint string) ([]T, error) {
