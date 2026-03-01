@@ -32,7 +32,7 @@ func setupTestServer(t *testing.T) *http.Server {
 			Name: "Little Cottonwood Canyon",
 			ETag: "\"test-lcc-etag\"",
 			Status: store.Camera{
-				Kind:   "webcam",
+				Kind:   "img",
 				Src:    imageServer.URL + "/lcc-status.jpg",
 				Alt:    "LCC Status",
 				Canyon: "LCC",
@@ -40,7 +40,7 @@ func setupTestServer(t *testing.T) *http.Server {
 			Cameras: []store.Camera{
 				{
 					ID:     "lcc-cam1",
-					Kind:   "webcam",
+					Kind:   "img",
 					Src:    imageServer.URL + "/lcc-cam1.jpg",
 					Alt:    "LCC Camera 1",
 					Canyon: "LCC",
@@ -51,7 +51,7 @@ func setupTestServer(t *testing.T) *http.Server {
 			Name: "Big Cottonwood Canyon",
 			ETag: "\"test-bcc-etag\"",
 			Status: store.Camera{
-				Kind:   "webcam",
+				Kind:   "img",
 				Src:    imageServer.URL + "/bcc-status.jpg",
 				Alt:    "BCC Status",
 				Canyon: "BCC",
@@ -59,9 +59,16 @@ func setupTestServer(t *testing.T) *http.Server {
 			Cameras: []store.Camera{
 				{
 					ID:     "bcc-cam1",
-					Kind:   "webcam",
+					Kind:   "img",
 					Src:    imageServer.URL + "/bcc-cam1.jpg",
 					Alt:    "BCC Camera 1",
+					Canyon: "BCC",
+				},
+				{
+					ID:     "bcc-yt1",
+					Kind:   "iframe",
+					Src:    "https://www.youtube.com/embed/abc123?autoplay=1&mute=1",
+					Alt:    "BCC YouTube Camera",
 					Canyon: "BCC",
 				},
 			},
@@ -321,7 +328,7 @@ func TestImageRoute_GET_Success(t *testing.T) {
 			ETag: "\"test-lcc-etag\"",
 			Cameras: []store.Camera{
 				{
-					Kind:   "webcam",
+					Kind:   "img",
 					Src:    imageServer.URL + "/test.jpg",
 					Alt:    "Test Camera",
 					Canyon: "LCC",
@@ -386,7 +393,7 @@ func TestImageRoute_HEAD_Success(t *testing.T) {
 			ETag: "\"test-lcc-etag\"",
 			Cameras: []store.Camera{
 				{
-					Kind:   "webcam",
+					Kind:   "img",
 					Src:    imageServer.URL + "/test.jpg",
 					Alt:    "Test Camera",
 					Canyon: "LCC",
@@ -446,7 +453,7 @@ func TestImageRoute_NotModified(t *testing.T) {
 			ETag: "\"test-lcc-etag\"",
 			Cameras: []store.Camera{
 				{
-					Kind:   "webcam",
+					Kind:   "img",
 					Src:    imageServer.URL + "/test.jpg",
 					Alt:    "Test Camera",
 					Canyon: "LCC",
@@ -525,7 +532,7 @@ func TestImageRoute_ETagCaching(t *testing.T) {
 			ETag: "\"test-lcc-etag\"",
 			Cameras: []store.Camera{
 				{
-					Kind:   "webcam",
+					Kind:   "img",
 					Src:    imageServer.URL + "/test.jpg",
 					Alt:    "Test",
 					Canyon: "LCC",
@@ -592,7 +599,7 @@ func TestImageRoute_CacheHeaders(t *testing.T) {
 			ETag: "\"test-lcc-etag\"",
 			Cameras: []store.Camera{
 				{
-					Kind:   "webcam",
+					Kind:   "img",
 					Src:    imageServer.URL + "/test.jpg",
 					Alt:    "Test",
 					Canyon: "LCC",
@@ -702,7 +709,7 @@ func TestImageRoute_WrongETag(t *testing.T) {
 			ETag: "\"test-lcc-etag\"",
 			Cameras: []store.Camera{
 				{
-					Kind:   "webcam",
+					Kind:   "img",
 					Src:    imageServer.URL + "/test.jpg",
 					Alt:    "Test",
 					Canyon: "LCC",
@@ -853,7 +860,7 @@ func TestCanyonRoute_JSON_ProxiesCameraSrc(t *testing.T) {
 		assert.Equal(t, "http://example.com/image/"+cam.ID, cam.Src, "JSON src should be a proxy URL for camera %s", cam.Alt)
 	}
 
-	// BCC JSON should also rewrite src to proxy URLs
+	// BCC JSON should rewrite img src but preserve iframe src
 	req = httptest.NewRequest("GET", "/bcc.json", nil)
 	rec = httptest.NewRecorder()
 	srv.Handler.ServeHTTP(rec, req)
@@ -864,7 +871,11 @@ func TestCanyonRoute_JSON_ProxiesCameraSrc(t *testing.T) {
 	assert.NoError(t, err)
 
 	for _, cam := range canyon.Cameras {
-		assert.Equal(t, "http://example.com/image/"+cam.ID, cam.Src, "JSON src should be a proxy URL for camera %s", cam.Alt)
+		if cam.Kind == "img" {
+			assert.Equal(t, "http://example.com/image/"+cam.ID, cam.Src, "JSON src should be a proxy URL for img camera %s", cam.Alt)
+		} else {
+			assert.NotContains(t, cam.Src, "/image/", "iframe camera %s src should not be rewritten", cam.Alt)
+		}
 	}
 }
 
@@ -872,7 +883,8 @@ func TestCanyonRoute_JSON_ProxiesCameraSrc(t *testing.T) {
 func TestCanyonRoute_JSON_ProxiesCameraSrc_AbsoluteURLs(t *testing.T) {
 	srv := setupTestServer(t)
 
-	req := httptest.NewRequest("GET", "/.json", nil)
+	// Check BCC which has both img and iframe cameras
+	req := httptest.NewRequest("GET", "/bcc.json", nil)
 	rec := httptest.NewRecorder()
 	srv.Handler.ServeHTTP(rec, req)
 
@@ -887,7 +899,9 @@ func TestCanyonRoute_JSON_ProxiesCameraSrc_AbsoluteURLs(t *testing.T) {
 		parsed, err := url.Parse(cam.Src)
 		assert.NoError(t, err, "src should be a valid URL for camera %s", cam.Alt)
 		assert.True(t, parsed.IsAbs(), "src must be an absolute URL (got %q) for camera %s", cam.Src, cam.Alt)
-		assert.Contains(t, cam.Src, "/image/", "src should be a proxy URL for camera %s", cam.Alt)
+		if cam.Kind == "img" {
+			assert.Contains(t, cam.Src, "/image/", "img camera %s src should be a proxy URL", cam.Alt)
+		}
 	}
 }
 

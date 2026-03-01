@@ -74,7 +74,9 @@ func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
 			proxied := *canyon
 			proxied.Cameras = make([]store.Camera, len(canyon.Cameras))
 			for i, cam := range canyon.Cameras {
-				cam.Src = scheme + "://" + c.Request().Host + "/image/" + cam.ID
+				if cam.Kind == "img" {
+					cam.Src = scheme + "://" + c.Request().Host + "/image/" + cam.ID
+				}
 				proxied.Cameras[i] = cam
 			}
 			return c.JSON(http.StatusOK, &proxied)
