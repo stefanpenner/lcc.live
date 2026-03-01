@@ -11,7 +11,7 @@ struct RoadConditionsBannerView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.vertical, 14)
             .transition(.opacity.combined(with: .move(edge: .top)))
         }
     }
