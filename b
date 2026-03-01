@@ -56,8 +56,7 @@ deploy|deploy:web)
 
 deploy:ios)
   echo "📱 Deploying iOS to TestFlight..."
-  cd ios
-  bundle exec fastlane beta
+  cd ios && ./scripts/deploy.sh
   ;;
 
 deploy:local)
