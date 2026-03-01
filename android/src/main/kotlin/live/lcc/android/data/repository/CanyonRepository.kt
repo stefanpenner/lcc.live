@@ -50,7 +50,8 @@ class CanyonRepository(private val apiClient: LccApiClient) {
     val bccError: StateFlow<String?> = _bccError.asStateFlow()
 
     suspend fun refreshLcc() {
-        _isLoading.value = true
+        val isInitial = _lccMediaItems.value.isEmpty()
+        if (isInitial) _isLoading.value = true
         try {
             when (val result = apiClient.fetchCanyon("lcc")) {
                 is ApiResult.Success -> {
@@ -65,12 +66,13 @@ class CanyonRepository(private val apiClient: LccApiClient) {
                 }
             }
         } finally {
-            _isLoading.value = false
+            if (isInitial) _isLoading.value = false
         }
     }
 
     suspend fun refreshBcc() {
-        _isLoading.value = true
+        val isInitial = _bccMediaItems.value.isEmpty()
+        if (isInitial) _isLoading.value = true
         try {
             when (val result = apiClient.fetchCanyon("bcc")) {
                 is ApiResult.Success -> {
@@ -85,7 +87,7 @@ class CanyonRepository(private val apiClient: LccApiClient) {
                 }
             }
         } finally {
-            _isLoading.value = false
+            if (isInitial) _isLoading.value = false
         }
     }
 

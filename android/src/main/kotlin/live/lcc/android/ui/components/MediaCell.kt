@@ -30,6 +30,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import live.lcc.android.data.model.MediaItem
 import live.lcc.android.data.model.MediaType
 import live.lcc.android.data.model.WeatherStation
@@ -57,9 +60,17 @@ fun MediaCell(
             else -> imageUrl
         }
 
-        // Image fills the entire cell
+        // Image fills the entire cell — use stable cache key so old image
+        // stays visible as placeholder while the new revision loads.
+        val stableKey = item.identifier ?: displayUrl
         AsyncImage(
-            model = displayUrl,
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(displayUrl)
+                .memoryCacheKey(stableKey)
+                .memoryCachePolicy(CachePolicy.WRITE_ONLY)
+                .placeholderMemoryCacheKey(stableKey)
+                .crossfade(500)
+                .build(),
             contentDescription = item.alt,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
