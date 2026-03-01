@@ -489,12 +489,13 @@ class FullscreenViewer {
         footer.appendChild(nameEl);
       }
 
-      const temp = cameraFeed.querySelector('.camera-temp')?.textContent;
+      const temp = cameraFeed.querySelector('.camera-temp');
       if (temp) {
-        const tempEl = document.createElement('span');
-        tempEl.className = 'camera-temp';
-        tempEl.textContent = temp;
-        footer.appendChild(tempEl);
+        footer.appendChild(temp.cloneNode(true));
+      }
+
+      for (const chip of cameraFeed.querySelectorAll('.camera-weather-chip')) {
+        footer.appendChild(chip.cloneNode(true));
       }
       
       if (footer.children.length > 0) {
