@@ -77,7 +77,7 @@ struct ConnectionDetailsView: View {
             }
             
             Divider()
-            
+
             // App info
             VStack(alignment: .leading, spacing: 4) {
                 Text("App Version")

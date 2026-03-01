@@ -16,9 +16,11 @@ struct MainView: View {
     }
     
     let mediaItems: (lcc: [MediaItem], bcc: [MediaItem])
+    let roadConditions: (lcc: [RoadCondition], bcc: [RoadCondition])
     @Environment(ImagePreloader.self) var preloader
     @Environment(NetworkMonitor.self) var networkMonitor
     @Environment(APIService.self) var apiService
+    @Environment(WeatherService.self) var weatherService
 
     @State private var selectedTab: Tab = .lcc
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -38,11 +40,16 @@ struct MainView: View {
         )
     }
     
+    private func roadConditionsForTab(_ tab: Tab) -> [RoadCondition] {
+        tab == .lcc ? roadConditions.lcc : roadConditions.bcc
+    }
+
     @ViewBuilder
     private func tabContent(items: [MediaItem], tab: Tab) -> some View {
         NavigationStack {
             PhotoTabView(
                 mediaItems: items,
+                roadConditions: roadConditionsForTab(tab),
                 gridMode: $gridMode,
                 onRequestFullScreen: { media in
                     #if os(iOS)
@@ -121,6 +128,7 @@ struct MainView: View {
                 onClose: { fullScreenMedia = nil }
             )
             .environment(preloader)
+            .environment(weatherService)
         }
         .onChange(of: fullScreenMedia) { _, newValue in
             // Close popover when navigating to full screen
@@ -159,11 +167,13 @@ struct MainViewPreview : View {
             mediaItems: (
                 lcc: lccUrls.compactMap { MediaItem.from(urlString: $0) },
                 bcc: bccUrls.compactMap { MediaItem.from(urlString: $0) }
-            )
+            ),
+            roadConditions: (lcc: [], bcc: [])
         )
         .environment(ImagePreloader())
         .environment(NetworkMonitor.shared)
         .environment(APIService())
+        .environment(WeatherService())
     }
 }
 

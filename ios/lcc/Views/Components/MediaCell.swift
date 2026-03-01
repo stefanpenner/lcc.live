@@ -10,13 +10,18 @@ struct MediaCell: View {
     let onRetry: () -> Void
 
     @Environment(ImagePreloader.self) var preloader
+    @Environment(WeatherService.self) var weatherService
     @State private var isRetrying = false
+
+    private var weather: WeatherStation? {
+        guard let slug = mediaItem.slug else { return nil }
+        return weatherService.station(for: slug)
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
                 if mediaItem.type.isVideo {
-                    // Show YouTube thumbnail with play button
                     if case .youtubeVideo(let embedURL) = mediaItem.type {
                         YouTubeThumbnailView(
                             embedURL: embedURL,
@@ -24,41 +29,32 @@ struct MediaCell: View {
                             height: imageHeight
                         )
                         .clipped()
-                        .onTapGesture {
-                            onTap()
-                        }
+                        .onTapGesture { onTap() }
                         .accessibilityLabel("YouTube video")
                         .accessibilityAddTraits(.isButton)
                     }
                 } else if let url = URL(string: mediaItem.url) {
-                    // Show image
                     let loadedImage = preloader.loadedImages[url]
-                    
+
                     if let uiImage = loadedImage {
-                        // Show preloaded image
                         Image(uiImage: uiImage)
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(width: imageWidth, height: imageHeight)
                             .clipped()
                             .transition(.opacity.animation(.easeIn(duration: 0.3)))
-                            .onTapGesture {
-                                onTap()
-                            }
-                            .accessibilityLabel("Camera image")
+                            .onTapGesture { onTap() }
+                            .accessibilityLabel(mediaItem.caption ?? "Camera image")
                             .accessibilityAddTraits(.isImage)
                     } else if preloader.loading.contains(url) || isRetrying || !hasCompletedInitialLoad {
-                        // Show shimmer loading state (including during initial load)
                         ShimmerView(width: imageWidth, height: imageHeight, colorScheme: colorScheme)
                     } else {
-                        // Show error state with retry (only after initial load completes)
                         Button(action: {
                             #if os(iOS)
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             #endif
                             isRetrying = true
                             onRetry()
-                            // Reset after brief delay to allow loading state to show
                             Task {
                                 try? await Task.sleep(for: .milliseconds(300))
                                 isRetrying = false
@@ -93,8 +89,8 @@ struct MediaCell: View {
                         .accessibilityLabel("Failed to load image")
                         .accessibilityHint("Tap to retry loading")
                     }
-                    
-                    // Subtle border while updating (only for images)
+
+                    // Subtle border while updating
                     let isLoading = preloader.loading.contains(url)
                     let fadeDate = preloader.fadingOut[url]
                     let isFadingOut = fadeDate != nil
@@ -112,36 +108,69 @@ struct MediaCell: View {
                         .animation(.easeInOut(duration: 0.4), value: borderOpacity)
                 }
             }
-            
-            // Subtle caption overlay
-            if let caption = mediaItem.caption {
-                VStack {
-                    Spacer()
-                    HStack {
+
+            // Caption + weather footer — single row
+            VStack(spacing: 0) {
+                Spacer()
+                HStack(spacing: 5) {
+                    if let caption = mediaItem.caption {
                         Text(caption)
                             .font(.caption2)
                             .fontWeight(.medium)
                             .foregroundColor(.white)
                             .lineLimit(1)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                        Spacer()
                     }
-                    .background(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color.black.opacity(0),
-                                Color.black.opacity(0.6)
-                            ]),
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
+
+                    if let w = weather {
+                        if let temp = w.airTempF {
+                            weatherChip("\(temp)\u{00B0}F")
+                        }
+                        if let wind = w.WindSpeedAvg {
+                            let dir = w.WindDirection ?? ""
+                            weatherChip("\(wind) mph \(dir)")
+                        }
+                        if let status = w.SurfaceStatus, !status.isEmpty {
+                            weatherChip(status)
+                        }
+                    }
+
+                    Spacer(minLength: 0)
                 }
-                .frame(width: imageWidth, height: imageHeight)
-                .allowsHitTesting(false)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.black.opacity(0),
+                            Color.black.opacity(0.65)
+                        ]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
             }
+            .frame(width: imageWidth, height: imageHeight)
+            .allowsHitTesting(false)
         }
     }
-}
 
+    @ViewBuilder
+    private func weatherChip(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 10, weight: .medium))
+            .foregroundStyle(.white.opacity(0.7))
+            .padding(.horizontal, 4)
+            .padding(.vertical, 1)
+            .background(.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 3))
+            .lineLimit(1)
+            .fixedSize()
+    }
+
+    private func precipIcon(_ value: String) -> String {
+        if let v = Double(value), v > 0 {
+            return "precip"
+        }
+        return value
+    }
+}

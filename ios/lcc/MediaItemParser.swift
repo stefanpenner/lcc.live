@@ -82,7 +82,12 @@ struct MediaItemParser {
             return nil
         }()
 
-        return MediaItem.from(urlString: urlString, identifier: identifier, alt: alt)
+        let weatherStationId: Int? = {
+            if let id = object["weatherStationId"] as? Int { return id }
+            return nil
+        }()
+
+        return MediaItem.from(urlString: urlString, identifier: identifier, alt: alt, weatherStationId: weatherStationId)
     }
 
     // MARK: - URL extraction helpers

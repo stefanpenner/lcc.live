@@ -5,6 +5,8 @@ import Observation
 class APIService {
     var lccMedia: [MediaItem] = []
     var bccMedia: [MediaItem] = []
+    var lccRoadConditions: [RoadCondition] = []
+    var bccRoadConditions: [RoadCondition] = []
     var isLoading = false
     var error: Error?
     var isUsingFallback = false
@@ -112,6 +114,12 @@ class APIService {
             }
             group.addTask {
                 await self.fetchBCCMedia()
+            }
+            group.addTask {
+                await self.fetchRoadConditions(for: "LCC")
+            }
+            group.addTask {
+                await self.fetchRoadConditions(for: "BCC")
             }
         }
 
@@ -249,6 +257,60 @@ class APIService {
             }
         }
     }
+    /// Fetch road conditions for a canyon
+    func fetchRoadConditions(for canyon: String) async {
+        let urlString = "\(baseURL)/api/canyon/\(canyon)/udot"
+        guard let url = URL(string: urlString) else { return }
+
+        var request = URLRequest(url: url)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = AppEnvironment.networkTimeout
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else { return }
+
+            let udotResponse = try JSONDecoder().decode(UDOTResponse.self, from: data)
+
+            await MainActor.run {
+                switch canyon {
+                case "LCC":
+                    self.lccRoadConditions = udotResponse.roadConditions
+                case "BCC":
+                    self.bccRoadConditions = udotResponse.roadConditions
+                default:
+                    break
+                }
+            }
+            logger.info("Fetched \(udotResponse.roadConditions.count) road conditions for \(canyon)")
+        } catch {
+            logger.error("Error fetching road conditions for \(canyon)", error: error)
+        }
+    }
+
+    /// Fetch camera detail (includes weather station data)
+    func fetchCameraDetail(slug: String) async -> CameraPageData? {
+        let urlString = "\(baseURL)/camera/\(slug).json"
+        guard let url = URL(string: urlString) else { return nil }
+
+        var request = URLRequest(url: url)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = AppEnvironment.networkTimeout
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else { return nil }
+
+            let pageData = try JSONDecoder().decode(CameraPageData.self, from: data)
+            return pageData
+        } catch {
+            logger.error("Error fetching camera detail for \(slug)", error: error)
+            return nil
+        }
+    }
+
     /// Manually trigger a refresh
     func refresh() async {
         await fetchAllImages()

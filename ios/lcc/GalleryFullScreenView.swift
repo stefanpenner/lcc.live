@@ -13,6 +13,8 @@ struct GalleryFullScreenView: View {
     @State private var maxDragDistance: CGFloat = 0
     @State private var hasTriggeredDismissHaptic: Bool = false
     @Environment(ImagePreloader.self) var preloader
+    @Environment(WeatherService.self) var weatherService
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     
     // MARK: - Constants
     private enum DragConstants {
@@ -51,9 +53,7 @@ struct GalleryFullScreenView: View {
                                 .background(Color.black)
                                 .ignoresSafeArea(edges: .top)
                                 .overlay(alignment: .bottom) {
-                                    if let caption = items[i].caption {
-                                        captionOverlay(caption: caption)
-                                    }
+                                    captionOverlay(item: items[i])
                                 }
                                 .tag(i)
                                 .onAppear {
@@ -101,34 +101,157 @@ struct GalleryFullScreenView: View {
     
     // MARK: - View Builders
     
+    private func weather(for item: MediaItem) -> WeatherStation? {
+        guard let slug = item.slug else { return nil }
+        return weatherService.station(for: slug)
+    }
+
+    private var isLandscape: Bool {
+        verticalSizeClass == .compact
+    }
+
     @ViewBuilder
-    private func captionOverlay(caption: String) -> some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text(caption)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-                    .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
+    private func captionOverlay(item: MediaItem) -> some View {
+        let ws = weather(for: item)
+        let hasContent = item.caption != nil || ws != nil
+
+        if hasContent {
+            VStack(alignment: .leading, spacing: isLandscape ? 4 : 6) {
                 Spacer()
+
+                if let caption = item.caption {
+                    Text(caption)
+                        .font(isLandscape ? .caption : .subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)
+                }
+
+                if let ws = ws {
+                    if isLandscape {
+                        weatherChipsRow(ws)
+                    } else {
+                        weatherDetailsGrid(ws)
+                    }
+                }
             }
-            .padding(.bottom, 50)
-        }
-        .frame(maxWidth: .infinity)
-        .background(
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.clear,
-                    Color.black.opacity(0.4)
-                ]),
-                startPoint: .top,
-                endPoint: .bottom
+            .padding(.horizontal, 20)
+            .padding(.bottom, isLandscape ? 16 : 60)
+            .padding(.top, 40)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.clear,
+                        Color.black.opacity(0.5)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea(edges: .bottom)
             )
-            .ignoresSafeArea(edges: .bottom)
-        )
-        .allowsHitTesting(false)
+            .allowsHitTesting(false)
+        }
+    }
+
+    // Landscape: single horizontal row of compact chips
+    @ViewBuilder
+    private func weatherChipsRow(_ ws: WeatherStation) -> some View {
+        HStack(spacing: 6) {
+            if let temp = ws.AirTemperature {
+                weatherChip("thermometer", "\(temp)\u{00B0}F")
+            }
+            if let surface = ws.SurfaceTemp {
+                weatherChip("road.lanes", "Sfc \(surface)\u{00B0}F")
+            }
+            if let status = ws.SurfaceStatus, !status.isEmpty {
+                weatherChip("circle.dotted", status)
+            }
+            if let wind = ws.WindSpeedAvg {
+                let dir = ws.WindDirection ?? ""
+                weatherChip("wind", "\(wind) mph \(dir)")
+            }
+            if let gust = ws.WindSpeedGust {
+                weatherChip("wind", "G \(gust)")
+            }
+            if let humidity = ws.RelativeHumidity {
+                weatherChip("humidity", "\(humidity)%")
+            }
+            if let dewpoint = ws.DewpointTemp {
+                weatherChip("thermometer.snowflake", "\(dewpoint)\u{00B0}F")
+            }
+            if let precip = ws.Precipitation, !precip.isEmpty {
+                weatherChip("drop.fill", precip)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func weatherChip(_ icon: String, _ value: String) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 9))
+                .foregroundStyle(.white.opacity(0.6))
+            Text(value)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.white.opacity(0.8))
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 5)
+        .padding(.vertical, 2)
+        .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+        .fixedSize()
+    }
+
+    // Portrait: 2-column grid
+    private let weatherColumns = [
+        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8)
+    ]
+
+    @ViewBuilder
+    private func weatherDetailsGrid(_ ws: WeatherStation) -> some View {
+        LazyVGrid(columns: weatherColumns, alignment: .leading, spacing: 4) {
+            if let temp = ws.AirTemperature {
+                weatherDetail("thermometer", "\(temp)\u{00B0}F")
+            }
+            if let surface = ws.SurfaceTemp {
+                weatherDetail("road.lanes", "Sfc \(surface)\u{00B0}F")
+            }
+            if let status = ws.SurfaceStatus, !status.isEmpty {
+                weatherDetail("circle.dotted", status)
+            }
+            if let wind = ws.WindSpeedAvg {
+                let dir = ws.WindDirection ?? ""
+                weatherDetail("wind", "\(wind) mph \(dir)")
+            }
+            if let gust = ws.WindSpeedGust {
+                weatherDetail("wind", "Gust \(gust) mph")
+            }
+            if let humidity = ws.RelativeHumidity {
+                weatherDetail("humidity", "\(humidity)%")
+            }
+            if let dewpoint = ws.DewpointTemp {
+                weatherDetail("thermometer.snowflake", "Dew \(dewpoint)\u{00B0}F")
+            }
+            if let precip = ws.Precipitation, !precip.isEmpty {
+                weatherDetail("drop.fill", precip)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func weatherDetail(_ icon: String, _ value: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 11))
+                .foregroundStyle(.white.opacity(0.6))
+                .frame(width: 14)
+            Text(value)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.85))
+                .lineLimit(1)
+        }
     }
 
     @ViewBuilder

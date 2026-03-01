@@ -3,6 +3,7 @@ import SwiftUI
 
 struct PhotoTabView: View {
     let mediaItems: [MediaItem]
+    let roadConditions: [RoadCondition]
 
     @Binding public var gridMode: GridMode
     var onRequestFullScreen: (PresentedMedia) -> Void
@@ -39,6 +40,12 @@ struct PhotoTabView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(spacing: 0) {
+                            if !roadConditions.isEmpty {
+                                RoadConditionsBannerView(conditions: roadConditions)
+                                    .padding(.top, 60)
+                                    .animation(.spring(duration: 0.4), value: roadConditions.count)
+                            }
+
                             if mediaItems.isEmpty {
                                 if isInitialLoadComplete {
                                     EmptyStateView()
@@ -232,10 +239,12 @@ private struct ZeroScrollContentMarginsIfAvailable: ViewModifier {
 
     PhotoTabView(
         mediaItems: mediaItems,
+        roadConditions: [],
         gridMode: .constant(PhotoTabView.GridMode.single),
         onRequestFullScreen: { _ in })
     .environment(preloader)
     .environment(APIService())
+    .environment(WeatherService())
 }
 
 #Preview("With Mock Images") {
@@ -247,8 +256,10 @@ private struct ZeroScrollContentMarginsIfAvailable: ViewModifier {
 
     PhotoTabView(
         mediaItems: mediaItems,
+        roadConditions: [],
         gridMode: .constant(PhotoTabView.GridMode.compact),
         onRequestFullScreen: { _ in })
     .environment(ImagePreloader())
     .environment(APIService())
+    .environment(WeatherService())
 }
