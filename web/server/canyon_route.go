@@ -70,10 +70,11 @@ func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
 		if isJSON {
 			// Rewrite camera Src to proxy URLs so clients (e.g. iOS)
 			// don't hit upstream sources directly (UDOT blocks non-US IPs).
+			scheme := c.Scheme()
 			proxied := *canyon
 			proxied.Cameras = make([]store.Camera, len(canyon.Cameras))
 			for i, cam := range canyon.Cameras {
-				cam.Src = "/image/" + cam.ID
+				cam.Src = scheme + "://" + c.Request().Host + "/image/" + cam.ID
 				proxied.Cameras[i] = cam
 			}
 			return c.JSON(http.StatusOK, &proxied)

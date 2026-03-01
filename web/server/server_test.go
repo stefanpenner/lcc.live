@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"net/http/httptest"
 	"testing"
 	"testing/fstest"
@@ -849,7 +850,7 @@ func TestCanyonRoute_JSON_ProxiesCameraSrc(t *testing.T) {
 	assert.NoError(t, err)
 
 	for _, cam := range canyon.Cameras {
-		assert.Equal(t, "/image/"+cam.ID, cam.Src, "JSON src should be a proxy URL for camera %s", cam.Alt)
+		assert.Equal(t, "http://example.com/image/"+cam.ID, cam.Src, "JSON src should be a proxy URL for camera %s", cam.Alt)
 	}
 
 	// BCC JSON should also rewrite src to proxy URLs
@@ -863,10 +864,32 @@ func TestCanyonRoute_JSON_ProxiesCameraSrc(t *testing.T) {
 	assert.NoError(t, err)
 
 	for _, cam := range canyon.Cameras {
-		assert.Equal(t, "/image/"+cam.ID, cam.Src, "JSON src should be a proxy URL for camera %s", cam.Alt)
+		assert.Equal(t, "http://example.com/image/"+cam.ID, cam.Src, "JSON src should be a proxy URL for camera %s", cam.Alt)
 	}
 }
 
+
+func TestCanyonRoute_JSON_ProxiesCameraSrc_AbsoluteURLs(t *testing.T) {
+	srv := setupTestServer(t)
+
+	req := httptest.NewRequest("GET", "/.json", nil)
+	rec := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	var canyon store.Canyon
+	err := json.Unmarshal(rec.Body.Bytes(), &canyon)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, canyon.Cameras)
+
+	for _, cam := range canyon.Cameras {
+		parsed, err := url.Parse(cam.Src)
+		assert.NoError(t, err, "src should be a valid URL for camera %s", cam.Alt)
+		assert.True(t, parsed.IsAbs(), "src must be an absolute URL (got %q) for camera %s", cam.Src, cam.Alt)
+		assert.Contains(t, cam.Src, "/image/", "src should be a proxy URL for camera %s", cam.Alt)
+	}
+}
 
 func TestCanyonRoute_JSON_ETag_NotModified(t *testing.T) {
 	srv := setupTestServer(t)
