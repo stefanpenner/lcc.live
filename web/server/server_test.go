@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -37,6 +38,7 @@ func setupTestServer(t *testing.T) *http.Server {
 			},
 			Cameras: []store.Camera{
 				{
+					ID:     "lcc-cam1",
 					Kind:   "webcam",
 					Src:    imageServer.URL + "/lcc-cam1.jpg",
 					Alt:    "LCC Camera 1",
@@ -55,6 +57,7 @@ func setupTestServer(t *testing.T) *http.Server {
 			},
 			Cameras: []store.Camera{
 				{
+					ID:     "bcc-cam1",
 					Kind:   "webcam",
 					Src:    imageServer.URL + "/bcc-cam1.jpg",
 					Alt:    "BCC Camera 1",
@@ -830,6 +833,40 @@ func TestCanyonRoute_GET_JSON_BCC(t *testing.T) {
 	assert.Contains(t, body, `"name":"Big Cottonwood Canyon"`)
 	assert.Contains(t, body, `"etag":"\"test-bcc-etag\""`)
 }
+
+func TestCanyonRoute_JSON_ProxiesCameraSrc(t *testing.T) {
+	srv := setupTestServer(t)
+
+	// LCC JSON should rewrite src to proxy URLs
+	req := httptest.NewRequest("GET", "/.json", nil)
+	rec := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	var canyon store.Canyon
+	err := json.Unmarshal(rec.Body.Bytes(), &canyon)
+	assert.NoError(t, err)
+
+	for _, cam := range canyon.Cameras {
+		assert.Equal(t, "/image/"+cam.ID, cam.Src, "JSON src should be a proxy URL for camera %s", cam.Alt)
+	}
+
+	// BCC JSON should also rewrite src to proxy URLs
+	req = httptest.NewRequest("GET", "/bcc.json", nil)
+	rec = httptest.NewRecorder()
+	srv.Handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	err = json.Unmarshal(rec.Body.Bytes(), &canyon)
+	assert.NoError(t, err)
+
+	for _, cam := range canyon.Cameras {
+		assert.Equal(t, "/image/"+cam.ID, cam.Src, "JSON src should be a proxy URL for camera %s", cam.Alt)
+	}
+}
+
 
 func TestCanyonRoute_JSON_ETag_NotModified(t *testing.T) {
 	srv := setupTestServer(t)
