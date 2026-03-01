@@ -28,11 +28,8 @@ func ImageRoute(store *store.Store) func(c echo.Context) error {
 				headers := entry.HTTPHeaders
 
 				c.Response().Header().Set("Content-Type", headers.ContentType)
-				// max-age=0: every request is "stale" so CF always revalidates
-				// in the background, keeping images maximally fresh.
-				// stale-while-revalidate=120: CF still serves instantly from
-				// edge cache during spikes — origin sees at most 1 req/POP.
-				c.Response().Header().Set("Cache-Control", "public, max-age=0, stale-while-revalidate=120")
+				// See web/docs/caching.md for analysis of max-age tradeoffs.
+				c.Response().Header().Set("Cache-Control", "public, max-age=3, stale-while-revalidate=120")
 				c.Response().Header().Set("ETag", entry.Image.ETag)
 				c.Response().Header().Set("Content-Length", fmt.Sprintf("%d", headers.ContentLength))
 				if !entry.FetchedAt.IsZero() {

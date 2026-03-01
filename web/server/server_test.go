@@ -373,7 +373,7 @@ func TestImageRoute_GET_Success(t *testing.T) {
 	assert.Equal(t, "fake image data", rec.Body.String())
 	assert.Equal(t, "image/jpeg", rec.Header().Get("Content-Type"))
 	assert.NotEmpty(t, rec.Header().Get("ETag"))
-	assert.Equal(t, "public, max-age=0, stale-while-revalidate=120", rec.Header().Get("Cache-Control"))
+	assert.Equal(t, "public, max-age=3, stale-while-revalidate=120", rec.Header().Get("Cache-Control"))
 }
 
 func TestImageRoute_HEAD_Success(t *testing.T) {
@@ -636,7 +636,7 @@ func TestImageRoute_CacheHeaders(t *testing.T) {
 	srv.Handler.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, "public, max-age=0, stale-while-revalidate=120", rec.Header().Get("Cache-Control"))
+	assert.Equal(t, "public, max-age=3, stale-while-revalidate=120", rec.Header().Get("Cache-Control"))
 	assert.NotEmpty(t, rec.Header().Get("ETag"))
 	assert.NotEmpty(t, rec.Header().Get("Content-Type"))
 	assert.NotEmpty(t, rec.Header().Get("Content-Length"))
