@@ -160,10 +160,29 @@ platform :ios do
     end
     
     # Use App Store Connect API for authentication
+    # Supports both env vars (CI) and local .p8 file (~/.appstoreconnect/AuthKey_*.p8)
+    key_id = ENV["APP_STORE_CONNECT_API_KEY_ID"]
+    issuer_id = ENV["APP_STORE_CONNECT_API_ISSUER_ID"]
+    key_content = ENV["APP_STORE_CONNECT_API_KEY"]
+
+    if key_id.nil? || key_id.empty?
+      # Auto-detect from ~/.appstoreconnect/AuthKey_*.p8
+      key_files = Dir.glob(File.expand_path("~/.appstoreconnect/AuthKey_*.p8"))
+      UI.user_error!("No App Store Connect API key found. Set APP_STORE_CONNECT_API_KEY_ID or place AuthKey_*.p8 in ~/.appstoreconnect/") if key_files.empty?
+      key_file = key_files.first
+      key_id = File.basename(key_file, ".p8").sub("AuthKey_", "")
+      key_content = Base64.strict_encode64(File.read(key_file))
+      UI.message("Using API key #{key_id} from #{key_file}")
+    end
+
+    if issuer_id.nil? || issuer_id.empty?
+      issuer_id = "69a6de74-20d1-47e3-e053-5b8c7c11a4d1"
+    end
+
     api_key = app_store_connect_api_key(
-      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
-      issuer_id: ENV["APP_STORE_CONNECT_API_ISSUER_ID"],
-      key_content: ENV["APP_STORE_CONNECT_API_KEY"],
+      key_id: key_id,
+      issuer_id: issuer_id,
+      key_content: key_content,
       is_key_content_base64: true,
       in_house: false
     )

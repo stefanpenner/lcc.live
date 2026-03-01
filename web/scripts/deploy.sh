@@ -254,7 +254,16 @@ if [ "$TARGET" = "local" ]; then
   fi
 else
   log_info "Deploying to Fly.io..."
-  fly deploy --local-only --image "${IMAGE_NAME}"
+  # fly.toml lives in web/ — find it relative to the workspace
+  FLY_TOML_DIR="$(cd "$(dirname "$0")" && pwd)"
+  # Walk up to find web/fly.toml
+  for candidate in "${FLY_TOML_DIR}/../../web" "${BUILD_WORKSPACE_DIRECTORY:-}/web" "web" "$(git rev-parse --show-toplevel 2>/dev/null)/web"; do
+    if [ -f "${candidate}/fly.toml" ]; then
+      FLY_TOML_DIR="$(cd "${candidate}" && pwd)"
+      break
+    fi
+  done
+  fly deploy --local-only --image "${IMAGE_NAME}" --config "${FLY_TOML_DIR}/fly.toml"
 
   if [ $? -eq 0 ]; then
     log_success "Deployment complete!"
@@ -262,7 +271,7 @@ else
     
     # Purge Cloudflare cache after successful deployment
     log_info "Purging Cloudflare cache..."
-    fly ssh console -C "/usr/local/bin/lcc-live purge-cache"
+    fly ssh console --config "${FLY_TOML_DIR}/fly.toml" -C "/usr/local/bin/lcc-live purge-cache"
     
     log_success "Deployment and cache purge complete!"
   else

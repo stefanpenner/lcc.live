@@ -47,11 +47,17 @@ opt)
   echo "✅ Optimized build complete: bazel-bin/web/lcc-live_/lcc-live"
   ;;
 
-deploy)
+deploy|deploy:web)
   echo "🧪 Running tests..."
   bazel test //...
-  echo "🚀 Deploying..."
+  echo "🚀 Deploying web..."
   bazel run --config=opt //web/scripts:deploy
+  ;;
+
+deploy:ios)
+  echo "📱 Deploying iOS to TestFlight..."
+  cd ios
+  bundle exec fastlane beta
   ;;
 
 deploy:local)
@@ -122,7 +128,8 @@ Commands:
   gazelle      - Regenerate BUILD files
   deps         - Update dependencies from go.mod
   opt          - Build optimized binary for production
-  deploy       - Deploy to Fly.io
+  deploy       - Deploy web to Fly.io (alias: deploy:web)
+  deploy:ios   - Deploy iOS to TestFlight
   deploy:local - Build, load, and run image in local Docker
   deploy:clean - Clean up Docker resources before deploying locally
   cleanup      - Clean up Docker containers and images
@@ -139,7 +146,8 @@ Examples:
   ./b test         # Run all tests
   ./b run          # Run server in dev mode (hot reload)
   ./b deploy:local # Deploy to local Docker
-  ./b deploy       # Deploy to Fly.io
+  ./b deploy       # Deploy web to Fly.io
+  ./b deploy:ios   # Deploy iOS to TestFlight
   ./b logs         # View Fly.io logs
 
 For more details, see doc/BAZEL.md
