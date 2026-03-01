@@ -34,6 +34,10 @@ bazel run //:lcc-live
 - `SYNC_INTERVAL` - Image refresh (default: 3s)
 - `DEV_MODE=1` - Hot reload from disk
 
+## iOS App
+
+The native iOS app lives in `ios/`. See [`ios/README.md`](ios/README.md) for setup and development.
+
 ## Docs
 
 See `doc/` for:

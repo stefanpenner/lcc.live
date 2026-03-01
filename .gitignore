@@ -3,6 +3,7 @@ lcc.live
 .vscode
 **/__debug*
 bazel-*
+.DS_Store
 
 # Bazel local config files (may contain credentials)
 .bazelrc.remote

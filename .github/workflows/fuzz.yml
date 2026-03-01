@@ -18,6 +18,8 @@ on:
       - '**.go'
       - 'go.mod'
       - 'go.sum'
+    paths-ignore:
+      - 'ios/**'
 
 jobs:
   fuzz:

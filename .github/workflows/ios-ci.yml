@@ -1,30 +1,40 @@
-name: CI
+name: iOS CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ master ]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-ci.yml'
   pull_request:
-    branches: [ main, develop ]
+    branches: [ master ]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-ci.yml'
 
 jobs:
   test:
     name: Run Tests
     runs-on: macos-15
-    
+
+    defaults:
+      run:
+        working-directory: ios
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2'
-      
+
       - name: Install Bundler 2.x
         run: |
           gem uninstall bundler -v 1.17.2 -x --force || true
           gem install bundler -v '~> 2.5'
-      
+
       - name: Update Bundler version in Gemfile.lock
         run: |
           BUNDLER_VERSION=$(bundle --version | awk '{print $3}')
@@ -33,46 +43,50 @@ jobs:
           else
             sed -i "s/^   1\.17\.2$/   ${BUNDLER_VERSION}/" Gemfile.lock
           fi
-      
+
       - name: Install dependencies
         run: |
           bundle install
-      
+
       - name: Run tests with fastlane
         run: |
           bundle exec fastlane test
         env:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
-      
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: |
-            fastlane/test_output/**/*
-            fastlane/report.xml
+            ios/fastlane/test_output/**/*
+            ios/fastlane/report.xml
 
   build:
     name: Build App
     runs-on: macos-15
     needs: test
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
-    
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))
+
+    defaults:
+      run:
+        working-directory: ios
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2'
-      
+
       - name: Install Bundler 2.x
         run: |
           gem uninstall bundler -v 1.17.2 -x --force || true
           gem install bundler -v '~> 2.5'
-      
+
       - name: Update Bundler version in Gemfile.lock
         run: |
           BUNDLER_VERSION=$(bundle --version | awk '{print $3}')
@@ -81,11 +95,11 @@ jobs:
           else
             sed -i "s/^   1\.17\.2$/   ${BUNDLER_VERSION}/" Gemfile.lock
           fi
-      
+
       - name: Install dependencies
         run: |
           bundle install
-      
+
       - name: Setup code signing (if match configured)
         continue-on-error: true
         run: |
@@ -94,7 +108,7 @@ jobs:
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
-      
+
       - name: Build with fastlane
         run: |
           bundle exec fastlane build skip_export:true
@@ -103,13 +117,12 @@ jobs:
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
-      
+
       - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: |
-            build/**/*
-            fastlane/report.xml
-
+            ios/build/**/*
+            ios/fastlane/report.xml
