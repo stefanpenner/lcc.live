@@ -1,0 +1,11 @@
+# Appfile for LCC.live
+
+app_identifier("lcc.live") # The bundle identifier of your app
+apple_id(ENV["APPLE_ID"]) # Your Apple ID email address
+
+itc_team_id(ENV["ITC_TEAM_ID"]) # App Store Connect Team ID
+team_id(ENV["TEAM_ID"]) # Developer Portal Team ID (T93925EZUT from your project)
+
+# For more information about the Appfile, see:
+#     https://docs.fastlane.tools/advanced/#appfile
+
