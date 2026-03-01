@@ -1,36 +1,27 @@
 #!/bin/bash
-# Generate apple-touch-icon.png from SVG
-# Usage: generate-apple-touch-icon.sh <svg_file> <output_file>
-# Tools (rsvg-convert and magick) are provided via data dependencies
+# Generate apple-touch-icon.png from app icon PNG
+# Usage: generate-apple-touch-icon.sh <png_file> <output_file>
 
 set -euo pipefail
 
-# Add binaries to PATH from runfiles
-export PATH="$0.runfiles/tools_rsvg_convert:$0.runfiles/tools_magick:$PATH"
-
 if [ $# -lt 2 ]; then
-    echo "Usage: $0 <svg_file> <output_file>"
+    echo "Usage: $0 <png_file> <output_file>"
     exit 1
 fi
 
-SVG_FILE="$1"
+PNG_FILE="$1"
 OUTPUT_FILE="$2"
-TEMP_FILE=$(mktemp)
 
-# Convert SVG to PNG at 180x180 (Apple Touch Icon standard size)
-# Use white background for iOS (Apple Touch Icons should not be transparent)
-rsvg-convert -w 180 -h 180 --background-color=white "$SVG_FILE" -o "$TEMP_FILE"
+# Apply rounded-rect mask to make white corners transparent,
+# then resize to 180x180 (Apple Touch Icon standard size).
+# iOS will apply its own mask on top, but this avoids white corner artifacts.
+SIZE=1024
+RADIUS=224
 
-# Ensure solid background and convert to PNG
-magick "$TEMP_FILE" \
-    -background white \
-    -alpha remove \
-    -alpha off \
+magick "$PNG_FILE" \
+    \( -size ${SIZE}x${SIZE} xc:none -fill white -draw "roundrectangle 0,0,$((SIZE-1)),$((SIZE-1)),$RADIUS,$RADIUS" \) \
+    -alpha off -compose CopyOpacity -composite \
+    -resize 180x180 \
     "$OUTPUT_FILE"
 
-rm -f "$TEMP_FILE"
-
 echo "Apple Touch Icon generated successfully at $OUTPUT_FILE"
-
-
-

@@ -9,3 +9,9 @@ filegroup(
     srcs = ["image.svg"],
     visibility = ["//visibility:public"],
 )
+
+filegroup(
+    name = "app_icon",
+    srcs = ["app-icon.png"],
+    visibility = ["//visibility:public"],
+)

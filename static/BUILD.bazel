@@ -1,5 +1,5 @@
 load("//tools:binary_dir.bzl", "binary_dir")
-load(":image_gen.bzl", "image_from_svg")
+load(":image_gen.bzl", "image_from_png", "image_from_svg")
 
 # Create a directory containing all image processing tools
 # This creates: image_tools, image_tools_magick, image_tools_rsvg-convert
@@ -11,28 +11,28 @@ binary_dir(
     ],
 )
 
-# Generate favicon.png from SVG
-image_from_svg(
+# Generate favicon.png from app icon
+image_from_png(
     name = "favicon",
     output = "favicon.png",
     script = "//scripts:generate-favicon",
-    svg_src = "//assets:favicon_svg",
+    png_src = "//assets:app_icon",
 )
 
-# Generate og-image.png from SVG for social media sharing
-image_from_svg(
+# Generate og-image.png from app icon for social media sharing
+image_from_png(
     name = "og_image",
     output = "og-image.png",
     script = "//scripts:generate-share-image",
-    svg_src = "//assets:favicon_svg",
+    png_src = "//assets:app_icon",
 )
 
-# Generate apple-touch-icon.png from image.svg for iOS homescreen
-image_from_svg(
+# Generate apple-touch-icon.png from app icon for iOS homescreen
+image_from_png(
     name = "apple_touch_icon",
     output = "apple-touch-icon.png",
     script = "//scripts:generate-apple-touch-icon",
-    svg_src = "//assets:image_svg",
+    png_src = "//assets:app_icon",
 )
 
 filegroup(

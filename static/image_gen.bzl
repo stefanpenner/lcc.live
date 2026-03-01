@@ -1,8 +1,8 @@
-"""Macro for generating images from SVG files using rsvg-convert and magick."""
+"""Macros for generating images from SVG or PNG files using rsvg-convert and magick."""
 
 def image_from_svg(name, script, svg_src, output, **kwargs):
     """Generate an image from an SVG file using a script.
-    
+
     Args:
         name: Name of the genrule target
         script: Label of the script to run (e.g., //scripts:generate-favicon)
@@ -28,6 +28,38 @@ def image_from_svg(name, script, svg_src, output, **kwargs):
             script,
             "@tools_magick//:magick",
             "@tools_rsvg_convert//:rsvg-convert",
+        ],
+        visibility = ["//visibility:public"],
+        **kwargs
+    )
+
+def image_from_png(name, script, png_src, output, **kwargs):
+    """Generate an image from a PNG file using magick.
+
+    Args:
+        name: Name of the genrule target
+        script: Label of the script to run
+        png_src: Label of the PNG source file
+        output: Output filename
+        **kwargs: Additional arguments passed to genrule
+    """
+    native.genrule(
+        name = name,
+        srcs = [png_src],
+        outs = [output],
+        cmd = """
+            export PATH="$$(dirname $(execpath @tools_magick//:magick)):$$PATH" && \
+            $(execpath {script}) \
+                $(location {png_src}) \
+                $(location :{output})
+        """.format(
+            script = script,
+            png_src = png_src,
+            output = output,
+        ),
+        tools = [
+            script,
+            "@tools_magick//:magick",
         ],
         visibility = ["//visibility:public"],
         **kwargs
