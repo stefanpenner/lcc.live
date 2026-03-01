@@ -29,6 +29,7 @@ class ImagePreloader {
     @ObservationIgnored private var refreshQueue: [URL] = []
     @ObservationIgnored private let maxConcurrentLoads = 6
     @ObservationIgnored private let batchRefreshInterval: TimeInterval = 0.5
+    @ObservationIgnored private var failedURLs: Set<URL> = []
 
     // Task-based polling (replaces 3 Timers)
     @ObservationIgnored private var refreshCycleTask: Task<Void, Never>?
@@ -206,6 +207,7 @@ class ImagePreloader {
     }
 
     func retryImage(for url: URL) {
+        failedURLs.remove(url)
         loadImage(for: url, forceRefresh: true)
     }
 
@@ -245,8 +247,14 @@ class ImagePreloader {
     }
 
     private func queueBackgroundRefresh() {
-        let urlsToQueue = urls.filter { url in
+        // Prioritize failed URLs for auto-retry
+        let retryUrls = failedURLs.filter { url in
             !refreshQueue.contains(url) && !loading.contains(url)
+        }
+        failedURLs.removeAll()
+
+        let urlsToQueue = urls.filter { url in
+            !refreshQueue.contains(url) && !loading.contains(url) && !retryUrls.contains(url)
         }
 
         let sortedUrls = urlsToQueue.sorted { url1, url2 in
@@ -255,8 +263,13 @@ class ImagePreloader {
             return time1 > time2
         }
 
+        // Failed URLs go first
+        refreshQueue.append(contentsOf: retryUrls)
         refreshQueue.append(contentsOf: sortedUrls)
 
+        if !retryUrls.isEmpty {
+            logger.debug("Auto-retrying \(retryUrls.count) failed images")
+        }
         if !sortedUrls.isEmpty {
             logger.debug("Queued \(sortedUrls.count) images for refresh")
         }
@@ -290,9 +303,8 @@ class ImagePreloader {
             return
         }
 
-        // If cache expired, remove stale entry
+        // If cache expired, clear expiration so we re-fetch, but keep the stale image visible
         if !forceRefresh, loadedImages[url] != nil, !isCacheValid(for: url) {
-            loadedImages.removeValue(forKey: url)
             cacheExpirationDates.removeValue(forKey: url)
         }
 
@@ -340,21 +352,14 @@ class ImagePreloader {
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 logger.warning("No HTTP response for URL: \(url.absoluteString)")
-                removeFromCache(url)
-                loading.remove(url)
+                handleLoadFailure(url: url, duration: duration, error: "No HTTP response")
                 return
             }
 
             // HTTP error
             if httpResponse.statusCode >= 400 {
                 logger.error("HTTP error \(httpResponse.statusCode) for URL: \(url.absoluteString)")
-                MetricsService.shared.track(
-                    event: .imageLoadFailure,
-                    duration: duration,
-                    tags: ["url": url.absoluteString, "error": "HTTP \(httpResponse.statusCode)"]
-                )
-                removeFromCache(url)
-                loading.remove(url)
+                handleLoadFailure(url: url, duration: duration, error: "HTTP \(httpResponse.statusCode)")
                 return
             }
 
@@ -375,13 +380,7 @@ class ImagePreloader {
             // Validate data
             guard data.count > 100 else {
                 logger.warning("Image data for URL \(url.absoluteString) is too small or missing (size: \(data.count))")
-                MetricsService.shared.track(
-                    event: .imageLoadFailure,
-                    duration: duration,
-                    tags: ["url": url.absoluteString, "error": "Invalid data size: \(data.count)"]
-                )
-                removeFromCache(url)
-                loading.remove(url)
+                handleLoadFailure(url: url, duration: duration, error: "Invalid data size: \(data.count)")
                 return
             }
 
@@ -389,13 +388,7 @@ class ImagePreloader {
             let image = await decodeImage(from: data)
             guard let decodedImage = image else {
                 logger.error("Failed to decode image for URL: \(url.absoluteString). Data length: \(data.count)")
-                MetricsService.shared.track(
-                    event: .imageLoadFailure,
-                    duration: duration,
-                    tags: ["url": url.absoluteString, "error": "Decode failure", "data_size": "\(data.count)"]
-                )
-                removeFromCache(url)
-                loading.remove(url)
+                handleLoadFailure(url: url, duration: duration, error: "Decode failure, data_size: \(data.count)")
                 return
             }
 
@@ -461,14 +454,28 @@ class ImagePreloader {
         } catch {
             let duration = Date().timeIntervalSince(startTime)
             logger.error("Failed to download image for URL: \(url.absoluteString)", error: error)
-            MetricsService.shared.track(
-                event: .imageLoadFailure,
-                duration: duration,
-                tags: ["url": url.absoluteString, "error": error.localizedDescription]
-            )
-            removeFromCache(url)
-            loading.remove(url)
+            handleLoadFailure(url: url, duration: duration, error: error.localizedDescription)
         }
+    }
+
+    /// Handle a load failure: keep existing image visible (stale > nothing), queue for auto-retry
+    private func handleLoadFailure(url: URL, duration: TimeInterval, error: String) {
+        MetricsService.shared.track(
+            event: .imageLoadFailure,
+            duration: duration,
+            tags: ["url": url.absoluteString, "error": error]
+        )
+
+        if loadedImages[url] != nil {
+            // Keep the stale image visible — just clear loading state
+            logger.debug("Keeping stale image for \(url.absoluteString) after failure: \(error)")
+        } else {
+            // No existing image — clean up fully so retry state shows
+            removeFromCache(url)
+        }
+
+        loading.remove(url)
+        failedURLs.insert(url)
     }
 
     /// Decode image data off the main actor to avoid UI stutter

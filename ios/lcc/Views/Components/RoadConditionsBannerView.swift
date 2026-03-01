@@ -5,12 +5,12 @@ struct RoadConditionsBannerView: View {
 
     var body: some View {
         if !conditions.isEmpty {
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 ForEach(conditions) { condition in
                     RoadConditionRow(condition: condition)
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .transition(.opacity.combined(with: .move(edge: .top)))
         }
@@ -22,67 +22,48 @@ private struct RoadConditionRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(condition.RoadwayName)
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(.white)
-                .lineLimit(1)
-
-            HStack(spacing: 6) {
-                // Road condition badge
-                ConditionBadge(
-                    label: "Road",
-                    value: condition.RoadCondition,
-                    color: ConditionColors.roadConditionColor(condition.RoadCondition)
-                )
-
-                // Weather condition badge
-                if !condition.WeatherCondition.isEmpty {
-                    ConditionBadge(
-                        label: "Weather",
-                        value: condition.WeatherCondition,
-                        color: .white.opacity(0.7)
-                    )
-                }
-
-                // Restriction badge
-                if condition.hasRestriction {
-                    ConditionBadge(
-                        label: "Restriction",
-                        value: condition.Restriction,
-                        color: .yellow,
-                        isWarning: true
-                    )
-                }
+            HStack(alignment: .firstTextBaseline) {
+                Text(condition.RoadwayName)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
 
                 Spacer()
 
                 Text(condition.timeAgo)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.35))
+            }
+
+            HStack(spacing: 12) {
+                badge(label: "Road", value: condition.RoadCondition,
+                      color: ConditionColors.roadConditionColor(condition.RoadCondition))
+
+                if !condition.WeatherCondition.isEmpty {
+                    badge(label: "Weather", value: condition.WeatherCondition,
+                          color: ConditionColors.weatherConditionColor(condition.WeatherCondition))
+                }
+
+                if condition.hasRestriction {
+                    badge(label: "Restriction", value: condition.Restriction,
+                          color: ConditionColors.warningColor, bold: true)
+                }
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(condition.RoadwayName): Road \(condition.RoadCondition), Weather \(condition.WeatherCondition)\(condition.hasRestriction ? ", restriction: \(condition.Restriction)" : "")")
     }
-}
 
-private struct ConditionBadge: View {
-    let label: String
-    let value: String
-    let color: Color
-    var isWarning: Bool = false
-
-    var body: some View {
-        HStack(spacing: 2) {
-            Text("\(label):")
-                .font(.system(size: 10))
-                .foregroundStyle(.white.opacity(0.5))
+    @ViewBuilder
+    private func badge(label: String, value: String, color: Color, bold: Bool = false) -> some View {
+        HStack(spacing: 3) {
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.4))
             Text(value)
-                .font(.system(size: 10, weight: isWarning ? .bold : .medium))
+                .font(.caption)
+                .fontWeight(bold ? .semibold : .medium)
                 .foregroundStyle(color)
                 .lineLimit(1)
         }
