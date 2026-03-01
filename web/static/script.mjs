@@ -828,6 +828,11 @@ class UDOTPoller {
         this.updateRoadConditions(data.roadConditions);
       }
 
+      // Update per-camera weather chips
+      if (data.weatherStations) {
+        this.updateWeatherChips(data.weatherStations);
+      }
+
       // Schedule next poll
       this.pollTimer = setTimeout(() => this.poll(), this.interval);
     } catch (error) {
@@ -964,6 +969,75 @@ class UDOTPoller {
         }
       }
     });
+  }
+
+  updateWeatherChips(stations) {
+    for (const [cameraId, ws] of Object.entries(stations)) {
+      const feed = document.querySelector(`camera-feed[data-camera-id="${cameraId}"]`);
+      if (!feed) continue;
+
+      const footer = feed.querySelector('.camera-footer');
+      if (!footer) continue;
+
+      const actions = footer.querySelector('.camera-actions');
+      const stale = this.isWeatherStale(ws.LastUpdated);
+      const cls = stale ? ' stale' : '';
+
+      // Remove existing weather chips
+      for (const el of footer.querySelectorAll('.camera-temp, .camera-weather-chip')) {
+        el.remove();
+      }
+
+      const chips = [];
+
+      if (ws.AirTemperature) {
+        chips.push(`<span class="camera-temp${cls}">${this.roundTemp(ws.AirTemperature)}°F</span>`);
+      }
+      if (ws.WindSpeedAvg) {
+        const dir = ws.WindDirection ? ` ${this.escapeHtml(ws.WindDirection)}` : '';
+        chips.push(`<span class="camera-weather-chip${cls}">${this.roundTemp(ws.WindSpeedAvg)} mph${dir}</span>`);
+      }
+      if (ws.SurfaceStatus) {
+        chips.push(`<span class="camera-weather-chip${cls}">${this.escapeHtml(ws.SurfaceStatus)}</span>`);
+      }
+      if (ws.Precipitation) {
+        chips.push(`<span class="camera-weather-chip${cls}">${this.precipIcon(ws.AirTemperature)}</span>`);
+      }
+
+      // Insert chips before camera-actions
+      if (chips.length > 0) {
+        const frag = document.createRange().createContextualFragment(chips.join(''));
+        if (actions) {
+          footer.insertBefore(frag, actions);
+        } else {
+          footer.appendChild(frag);
+        }
+      }
+    }
+  }
+
+  roundTemp(value) {
+    const n = parseFloat(value);
+    return isNaN(n) ? value : Math.round(n).toString();
+  }
+
+  isWeatherStale(timestamp) {
+    if (!timestamp) return true;
+    const age = Date.now() / 1000 - timestamp;
+    return age > 1800; // stale after 30 minutes (matches server)
+  }
+
+  precipIcon(airTemp) {
+    const svgSnow = '<svg class="precip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>';
+    const svgRain = '<svg class="precip-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>';
+    const svgMixed = '<svg class="precip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="2" x2="6" y2="12"/><line x1="1" y1="7" x2="11" y2="7"/><line x1="3" y1="4" x2="9" y2="10"/><line x1="9" y1="4" x2="3" y2="10"/><path d="M17 11l4 4a5.5 5.5 0 1 1-8 0z" fill="currentColor" stroke="none"/></svg>';
+
+    if (!airTemp) return svgRain;
+    const temp = parseFloat(airTemp);
+    if (isNaN(temp)) return svgRain;
+    if (temp < 35) return svgSnow;
+    if (temp <= 40) return svgMixed;
+    return svgRain;
   }
 
   escapeHtml(text) {

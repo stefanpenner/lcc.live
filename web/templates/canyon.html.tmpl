@@ -179,8 +179,9 @@
         aria-label="{{if eq .Name "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}} camera feeds">
         {{- range $index, $c := .Cameras -}}
         {{- if ne $c.Kind "roadstatus" -}}
-        <camera-feed 
-          tabindex="0" 
+        <camera-feed
+          data-camera-id="{{$c.ID}}"
+          tabindex="0"
           role="article"
           aria-label="{{$c.Alt}} camera feed">
           

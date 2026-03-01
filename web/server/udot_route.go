@@ -9,8 +9,9 @@ import (
 )
 
 type UDOTData struct {
-	RoadConditions []store.RoadCondition `json:"roadConditions"`
-	LastUpdated    int64                 `json:"lastUpdated"`
+	RoadConditions  []store.RoadCondition          `json:"roadConditions"`
+	WeatherStations map[string]*store.WeatherStation `json:"weatherStations,omitempty"`
+	LastUpdated     int64                           `json:"lastUpdated"`
 }
 
 func UDOTRoute(s *store.Store) func(c echo.Context) error {
@@ -28,6 +29,10 @@ func UDOTRoute(s *store.Store) func(c echo.Context) error {
 		// Sort road conditions for stable JSON hashing
 		sortedRoadConditions := SortRoadConditions(filteredRoadConditions)
 
+		// Get weather stations for all cameras in this canyon
+		canyon := s.Canyon(canyonID)
+		weatherStations := s.GetWeatherStationsForCanyon(canyon)
+
 		// Calculate LastUpdated as max of all timestamps, or current time if no data
 		lastUpdated := time.Now().Unix()
 		for _, cond := range sortedRoadConditions {
@@ -37,8 +42,9 @@ func UDOTRoute(s *store.Store) func(c echo.Context) error {
 		}
 
 		data := UDOTData{
-			RoadConditions: sortedRoadConditions,
-			LastUpdated:    lastUpdated,
+			RoadConditions:  sortedRoadConditions,
+			WeatherStations: weatherStations,
+			LastUpdated:     lastUpdated,
 		}
 
 		// Set Content-Type before calling SetCacheHeaders
