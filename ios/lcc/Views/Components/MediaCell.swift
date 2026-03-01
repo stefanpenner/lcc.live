@@ -112,7 +112,7 @@ struct MediaCell: View {
             // Caption + weather footer — single row
             VStack(spacing: 0) {
                 Spacer()
-                HStack(spacing: 5) {
+                HStack(spacing: 6) {
                     if let caption = mediaItem.caption {
                         Text(caption)
                             .font(.caption2)
@@ -136,8 +136,8 @@ struct MediaCell: View {
 
                     Spacer(minLength: 0)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     LinearGradient(
@@ -159,10 +159,10 @@ struct MediaCell: View {
     private func weatherChip(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 10, weight: .medium))
-            .foregroundStyle(.white.opacity(0.7))
-            .padding(.horizontal, 4)
-            .padding(.vertical, 1)
-            .background(.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 3))
+            .foregroundStyle(.white.opacity(0.75))
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
             .lineLimit(1)
             .fixedSize()
     }

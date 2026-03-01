@@ -116,13 +116,13 @@ struct GalleryFullScreenView: View {
         let hasContent = item.caption != nil || ws != nil
 
         if hasContent {
-            VStack(alignment: .leading, spacing: isLandscape ? 4 : 6) {
+            VStack(alignment: .leading, spacing: isLandscape ? 5 : 8) {
                 Spacer()
 
                 if let caption = item.caption {
                     Text(caption)
                         .font(isLandscape ? .caption : .subheadline)
-                        .fontWeight(.medium)
+                        .fontWeight(.semibold)
                         .foregroundColor(.white)
                         .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)
                 }
@@ -157,7 +157,7 @@ struct GalleryFullScreenView: View {
     // Landscape: single horizontal row of compact chips
     @ViewBuilder
     private func weatherChipsRow(_ ws: WeatherStation) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             if let temp = ws.AirTemperature {
                 weatherChip("thermometer", "\(temp)\u{00B0}F")
             }
@@ -188,30 +188,30 @@ struct GalleryFullScreenView: View {
 
     @ViewBuilder
     private func weatherChip(_ icon: String, _ value: String) -> some View {
-        HStack(spacing: 3) {
+        HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 9))
+                .font(.system(size: 10))
                 .foregroundStyle(.white.opacity(0.6))
             Text(value)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.white.opacity(0.8))
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.white.opacity(0.85))
                 .lineLimit(1)
         }
-        .padding(.horizontal, 5)
-        .padding(.vertical, 2)
-        .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 5))
         .fixedSize()
     }
 
     // Portrait: 2-column grid
     private let weatherColumns = [
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8)
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10)
     ]
 
     @ViewBuilder
     private func weatherDetailsGrid(_ ws: WeatherStation) -> some View {
-        LazyVGrid(columns: weatherColumns, alignment: .leading, spacing: 4) {
+        LazyVGrid(columns: weatherColumns, alignment: .leading, spacing: 8) {
             if let temp = ws.AirTemperature {
                 weatherDetail("thermometer", "\(temp)\u{00B0}F")
             }
@@ -242,14 +242,14 @@ struct GalleryFullScreenView: View {
 
     @ViewBuilder
     private func weatherDetail(_ icon: String, _ value: String) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 5) {
             Image(systemName: icon)
-                .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.6))
-                .frame(width: 14)
+                .font(.system(size: 12))
+                .foregroundStyle(.white.opacity(0.55))
+                .frame(width: 16)
             Text(value)
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.85))
+                .font(.callout)
+                .foregroundStyle(.white.opacity(0.9))
                 .lineLimit(1)
         }
     }

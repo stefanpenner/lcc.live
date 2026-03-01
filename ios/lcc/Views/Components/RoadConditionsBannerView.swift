@@ -5,13 +5,13 @@ struct RoadConditionsBannerView: View {
 
     var body: some View {
         if !conditions.isEmpty {
-            VStack(spacing: 8) {
+            VStack(spacing: 14) {
                 ForEach(conditions) { condition in
                     RoadConditionRow(condition: condition)
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.vertical, 18)
             .transition(.opacity.combined(with: .move(edge: .top)))
         }
     }
@@ -21,27 +21,27 @@ private struct RoadConditionRow: View {
     let condition: RoadCondition
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(condition.RoadwayName)
-                    .font(.subheadline)
+                    .font(.callout)
                     .fontWeight(.semibold)
                     .foregroundStyle(.white)
                     .lineLimit(1)
 
-                Spacer()
+                Spacer(minLength: 4)
 
                 Text(condition.timeAgo)
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundStyle(.white.opacity(0.35))
             }
 
-            HStack(spacing: 12) {
+            HStack(spacing: 16) {
                 badge(label: "Road", value: condition.RoadCondition,
                       color: ConditionColors.roadConditionColor(condition.RoadCondition))
 
                 if !condition.WeatherCondition.isEmpty {
-                    badge(label: "Weather", value: condition.WeatherCondition,
+                    badge(label: "Wthr", value: condition.WeatherCondition,
                           color: ConditionColors.weatherConditionColor(condition.WeatherCondition))
                 }
 
@@ -57,12 +57,12 @@ private struct RoadConditionRow: View {
 
     @ViewBuilder
     private func badge(label: String, value: String, color: Color, bold: Bool = false) -> some View {
-        HStack(spacing: 3) {
+        HStack(spacing: 5) {
             Text(label)
-                .font(.caption2)
+                .font(.caption)
                 .foregroundStyle(.white.opacity(0.4))
             Text(value)
-                .font(.caption)
+                .font(.subheadline)
                 .fontWeight(bold ? .semibold : .medium)
                 .foregroundStyle(color)
                 .lineLimit(1)
