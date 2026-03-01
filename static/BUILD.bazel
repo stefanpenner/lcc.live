@@ -15,24 +15,24 @@ binary_dir(
 image_from_png(
     name = "favicon",
     output = "favicon.png",
-    script = "//scripts:generate-favicon",
     png_src = "//assets:app_icon",
+    script = "//scripts:generate-favicon",
 )
 
 # Generate og-image.png from app icon for social media sharing
 image_from_png(
     name = "og_image",
     output = "og-image.png",
-    script = "//scripts:generate-share-image",
     png_src = "//assets:app_icon",
+    script = "//scripts:generate-share-image",
 )
 
 # Generate apple-touch-icon.png from app icon for iOS homescreen
 image_from_png(
     name = "apple_touch_icon",
     output = "apple-touch-icon.png",
-    script = "//scripts:generate-apple-touch-icon",
     png_src = "//assets:app_icon",
+    script = "//scripts:generate-apple-touch-icon",
 )
 
 filegroup(
