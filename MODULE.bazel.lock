@@ -185,34 +185,6 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
-    "//tools:http_binary.bzl%http_binaries_ext": {
-      "general": {
-        "bzlTransitiveDigest": "K+ZaxCTN2Qgze8R9N/reufLLGOtJfEaFFzTKuT3tk3w=",
-        "usagesDigest": "yqR+ZRc87G3G6tSvhXPG+y0Pd1WDlbqrs63QQn6qBY8=",
-        "recordedFileInputs": {
-          "@@//tools/external_repos.json": "86e53dc0caba39de747bfee5805d6fa838c9b799dad0d998c0247ef1e7e8f0cf"
-        },
-        "recordedDirentsInputs": {},
-        "envVariables": {},
-        "generatedRepoSpecs": {
-          "tools_rsvg_convert": {
-            "repoRuleId": "@@//tools:http_binary.bzl%http_binary",
-            "attributes": {
-              "config_file": "@@//tools:external_repos.json",
-              "tool_name": "rsvg-convert"
-            }
-          },
-          "tools_magick": {
-            "repoRuleId": "@@//tools:http_binary.bzl%http_binary",
-            "attributes": {
-              "config_file": "@@//tools:external_repos.json",
-              "tool_name": "magick"
-            }
-          }
-        },
-        "recordedRepoMappingEntries": []
-      }
-    },
     "@@pybind11_bazel+//:python_configure.bzl%extension": {
       "general": {
         "bzlTransitiveDigest": "4rSUGWibZDYLhHR+8eMwTNwAwdIv+xjVrtQ+gHtWHq4=",

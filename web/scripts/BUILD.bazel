@@ -1,31 +1,4 @@
 sh_binary(
-    name = "generate-favicon",
-    srcs = ["generate-favicon.sh"],
-    data = [
-        "@tools_magick//:magick",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-sh_binary(
-    name = "generate-share-image",
-    srcs = ["generate-share-image.sh"],
-    data = [
-        "@tools_magick//:magick",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-sh_binary(
-    name = "generate-apple-touch-icon",
-    srcs = ["generate-apple-touch-icon.sh"],
-    data = [
-        "@tools_magick//:magick",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-sh_binary(
     name = "deploy",
     srcs = ["deploy.sh"],
     args = [

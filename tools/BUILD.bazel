@@ -1,12 +1,1 @@
 # This file contains the http_binary.bzl module extension and external_repos.json config
-
-load(":binary_dir.bzl", "binary_dir")
-
-# Create a directory containing all image processing tools
-binary_dir(
-    name = "image_tools",
-    binaries = [
-        "@tools_magick//:magick",
-        "@tools_rsvg_convert//:rsvg-convert",
-    ],
-)

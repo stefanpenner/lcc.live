@@ -1,51 +1,11 @@
-load("//tools:binary_dir.bzl", "binary_dir")
-load(":image_gen.bzl", "image_from_png", "image_from_svg")
-
-# Create a directory containing all image processing tools
-# This creates: image_tools, image_tools_magick, image_tools_rsvg-convert
-binary_dir(
-    name = "image_tools",
-    binaries = [
-        "@tools_magick//:magick",
-        "@tools_rsvg_convert//:rsvg-convert",
-    ],
-)
-
-# Generate favicon.png from app icon
-image_from_png(
-    name = "favicon",
-    output = "favicon.png",
-    png_src = "//web/assets:app_icon",
-    script = "//web/scripts:generate-favicon",
-)
-
-# Generate og-image.png from app icon for social media sharing
-image_from_png(
-    name = "og_image",
-    output = "og-image.png",
-    png_src = "//web/assets:app_icon",
-    script = "//web/scripts:generate-share-image",
-)
-
-# Generate apple-touch-icon.png from app icon for iOS homescreen
-image_from_png(
-    name = "apple_touch_icon",
-    output = "apple-touch-icon.png",
-    png_src = "//web/assets:app_icon",
-    script = "//web/scripts:generate-apple-touch-icon",
-)
-
 filegroup(
     name = "static_files",
     srcs = glob(
         ["**/*"],
         exclude = [
             "BUILD.bazel",
+            "image_gen.bzl",
         ],
-    ) + [
-        ":apple_touch_icon",
-        ":favicon",
-        ":og_image",
-    ],
+    ),
     visibility = ["//visibility:public"],
 )
