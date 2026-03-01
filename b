@@ -8,8 +8,8 @@ COMMAND="${1:-help}"
 case "$COMMAND" in
 build)
   echo "🔨 Building binary..."
-  bazel build //:lcc-live
-  echo "✅ Build complete: bazel-bin/lcc-live_/lcc-live"
+  bazel build //web:lcc-live
+  echo "✅ Build complete: bazel-bin/web/lcc-live_/lcc-live"
   ;;
 
 test)
@@ -20,7 +20,7 @@ test)
 run)
   export DEV_MODE=1
   echo "🚀 Running server in dev mode (hot reload enabled)..."
-  bazel run //:lcc-live
+  bazel run //web:lcc-live
   ;;
 
 clean)
@@ -43,37 +43,37 @@ deps)
 
 opt)
   echo "🚀 Building optimized binary..."
-  bazel build --config=opt //:lcc-live
-  echo "✅ Optimized build complete: bazel-bin/lcc-live_/lcc-live"
+  bazel build --config=opt //web:lcc-live
+  echo "✅ Optimized build complete: bazel-bin/web/lcc-live_/lcc-live"
   ;;
 
 deploy)
   echo "🧪 Running tests..."
   bazel test //...
   echo "🚀 Deploying..."
-  bazel run --config=opt //scripts:deploy
+  bazel run --config=opt //web/scripts:deploy
   ;;
 
 deploy:local)
   echo "🚀 Deploying... locally"
-  bazel run --config=opt //scripts:deploy -- local
+  bazel run --config=opt //web/scripts:deploy -- local
   ;;
 
 deploy:clean)
   echo "🧹 Cleaning up before deployment..."
-  ./scripts/cleanup.sh
+  ./web/scripts/cleanup.sh
   echo "🚀 Deploying... locally"
-  bazel run --config=opt //scripts:deploy -- local
+  bazel run --config=opt //web/scripts:deploy -- local
   ;;
 
 cleanup)
   echo "🧹 Cleaning up Docker containers and images..."
-  ./scripts/cleanup.sh
+  ./web/scripts/cleanup.sh
   ;;
 
 cleanup:aggressive)
   echo "🧹 Aggressive cleanup of Docker resources..."
-  ./scripts/cleanup.sh --aggressive
+  ./web/scripts/cleanup.sh --aggressive
   ;;
 
 logs)

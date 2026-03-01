@@ -1,0 +1,41 @@
+sh_binary(
+    name = "generate-favicon",
+    srcs = ["generate-favicon.sh"],
+    data = [
+        "@tools_magick//:magick",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "generate-share-image",
+    srcs = ["generate-share-image.sh"],
+    data = [
+        "@tools_magick//:magick",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "generate-apple-touch-icon",
+    srcs = ["generate-apple-touch-icon.sh"],
+    data = [
+        "@tools_magick//:magick",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "deploy",
+    srcs = ["deploy.sh"],
+    args = [
+        "$(location //web:image_load)",
+    ],
+    data = [
+        "//web:fly.toml",
+        "//web:image_load",
+    ],
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
+)

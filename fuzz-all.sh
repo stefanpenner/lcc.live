@@ -38,7 +38,7 @@ run_fuzz_test() {
     echo -e "  Duration: $fuzz_time"
     echo ""
     
-    if go test -fuzz=$fuzz_func -fuzztime=$fuzz_time ./$package 2>&1 | \
+    if go test -fuzz=$fuzz_func -fuzztime=$fuzz_time ./web/$package 2>&1 | \
        grep -v "^📸" | \
        grep -v "^  ✨" | \
        grep -v "^  ✅" | \
