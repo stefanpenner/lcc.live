@@ -42,7 +42,7 @@ type Config struct {
 }
 
 // keepCamerasInSync keeps the local store in-sync with image origins
-func keepCamerasInSync(ctx context.Context, store *store.Store, interval time.Duration, totalSyncs *int) error {
+func keepCamerasInSync(ctx context.Context, store *store.Store, interval time.Duration, totalSyncs *atomic.Int64) error {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -52,7 +52,7 @@ func keepCamerasInSync(ctx context.Context, store *store.Store, interval time.Du
 			return ctx.Err()
 		case <-ticker.C:
 			logger.Muted("Syncing cameras...")
-			*totalSyncs++
+			totalSyncs.Add(1)
 			store.FetchImages(ctx)
 		}
 	}
@@ -331,11 +331,12 @@ func main() {
 	}
 
 	// Track total syncs and requests
-	totalSyncs := 0
+	var totalSyncs atomic.Int64
 	var requestCount int64
 	var errorCount int64
-	var lastRequestCount int64
-	var lastCheckTime = time.Now()
+	var lastRequestCount atomic.Int64
+	var lastCheckUnix atomic.Int64
+	lastCheckUnix.Store(time.Now().UnixNano())
 
 	// Set up store callbacks to update UI stats
 	store.SetSyncCallback(func(duration time.Duration, changed, unchanged, errors int) {
@@ -345,13 +346,13 @@ func main() {
 
 		// Calculate requests/sec
 		currentReqs := atomic.LoadInt64(&requestCount)
-		elapsed := time.Since(lastCheckTime).Seconds()
+		prevReqs := lastRequestCount.Swap(currentReqs)
+		prevCheck := lastCheckUnix.Swap(time.Now().UnixNano())
+		elapsed := float64(time.Now().UnixNano()-prevCheck) / 1e9
 		reqPerSec := 0.0
 		if elapsed > 0 {
-			reqPerSec = float64(currentReqs-lastRequestCount) / elapsed
+			reqPerSec = float64(currentReqs-prevReqs) / elapsed
 		}
-		lastRequestCount = currentReqs
-		lastCheckTime = time.Now()
 
 		// Get memory stats
 		var m runtime.MemStats
@@ -365,7 +366,7 @@ func main() {
 			Changed:         changed,
 			Unchanged:       unchanged,
 			Errors:          errors,
-			TotalSyncs:      totalSyncs,
+			TotalSyncs:      int(totalSyncs.Load()),
 			RequestsTotal:   int(currentReqs),
 			RequestsPerSec:  reqPerSec,
 			MemoryUsageMB:   memMB,

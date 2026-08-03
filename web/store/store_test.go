@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -313,3 +314,188 @@ func TestStore_FetchImages_SkipsIframes(t *testing.T) {
 	// Image should be empty since we skip iframes
 	assert.Empty(t, entry.Image.Bytes)
 }
+
+// Overlapping FetchImages before first ready must not panic (WaitGroup double-Done).
+func TestStore_FetchImages_ConcurrentReadyNoPanic(t *testing.T) {
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-release
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.Header().Set("ETag", "\"e\"")
+		if r.Method == "GET" {
+			_, _ = w.Write([]byte("img"))
+		}
+	}))
+	defer server.Close()
+
+	store := NewStore(&Canyons{
+		LCC: Canyon{
+			Name: "LCC",
+			Cameras: []Camera{
+				{Kind: "webcam", Src: server.URL + "/c.jpg", Alt: "Cam", Canyon: "LCC"},
+			},
+		},
+		BCC: Canyon{Name: "BCC"},
+	})
+
+	assert.False(t, store.IsReady())
+	assert.False(t, store.HasAnyLiveImage())
+
+	ctx := context.Background()
+	var wg sync.WaitGroup
+	const n = 16
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			store.FetchImages(ctx)
+		}()
+	}
+
+	// Let goroutines contend on ready gate / single-flight
+	time.Sleep(50 * time.Millisecond)
+	close(release)
+	wg.Wait()
+
+	assert.True(t, store.IsReady())
+	assert.True(t, store.HasAnyLiveImage())
+	assert.True(t, store.IsReady(), "IsReady sticky")
+}
+
+// While a fetch is in flight, additional FetchImages calls skip (single-flight).
+func TestStore_FetchImages_SingleFlightSkips(t *testing.T) {
+	entered := make(chan struct{}, 1)
+	release := make(chan struct{})
+	var getCount int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			select {
+			case entered <- struct{}{}:
+			default:
+			}
+			<-release
+			atomic.AddInt32(&getCount, 1)
+			w.Header().Set("Content-Type", "image/jpeg")
+			_, _ = w.Write([]byte("img"))
+			return
+		}
+		w.Header().Set("ETag", "\"x\"")
+	}))
+	defer server.Close()
+
+	store := NewStore(&Canyons{
+		LCC: Canyon{
+			Name: "LCC",
+			Cameras: []Camera{
+				{Kind: "webcam", Src: server.URL + "/c.jpg", Alt: "Cam", Canyon: "LCC"},
+			},
+		},
+		BCC: Canyon{Name: "BCC"},
+	})
+
+	ctx := context.Background()
+	done := make(chan struct{})
+	go func() {
+		store.FetchImages(ctx)
+		close(done)
+	}()
+
+	select {
+	case <-entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first fetch did not reach GET")
+	}
+
+	// Contending calls while first is blocked must not start more GETs
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			store.FetchImages(ctx)
+		}()
+	}
+	wg.Wait()
+	assert.Equal(t, int32(0), atomic.LoadInt32(&getCount), "skippers must not complete GET while first holds flight")
+
+	close(release)
+	<-done
+	assert.Equal(t, int32(1), atomic.LoadInt32(&getCount))
+}
+
+func TestStore_ContentLengthMatchesBytes(t *testing.T) {
+	body := []byte("mock image data")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.Header().Set("ETag", "\"e\"")
+		if r.Method == "GET" {
+			// No Content-Length header → client sees ContentLength -1; store must use len(bytes)
+			_, _ = w.Write(body)
+		}
+	}))
+	defer server.Close()
+
+	store := NewStore(&Canyons{
+		LCC: Canyon{
+			Name: "LCC",
+			Cameras: []Camera{
+				{Kind: "webcam", Src: server.URL + "/c.jpg", Alt: "Cam", Canyon: "LCC"},
+			},
+		},
+		BCC: Canyon{Name: "BCC"},
+	})
+	store.FetchImages(context.Background())
+
+	entry, ok := store.Get(store.entries[0].Camera.ID)
+	require.True(t, ok)
+	require.NotNil(t, entry.Image)
+	assert.Equal(t, body, entry.Image.Bytes)
+	assert.Equal(t, int64(len(body)), entry.HTTPHeaders.ContentLength,
+		"ContentLength must be len(bytes), not upstream Content-Length (-1 when omitted)")
+}
+
+func TestStore_WeatherStationReturnsCopy(t *testing.T) {
+	store := NewStore(&Canyons{
+		LCC: Canyon{
+			Name: "LCC",
+			Cameras: []Camera{
+				{
+					Kind:             "webcam",
+					Src:              "http://example.com/c.jpg",
+					Alt:              "Cam",
+					Canyon:           "LCC",
+					WeatherStationId: intPtr(42),
+				},
+			},
+		},
+		BCC: Canyon{Name: "BCC"},
+	})
+	// Unblock GetWeatherStation (waits on first image ready)
+	store.FetchImages(context.Background())
+
+	name := "Station A"
+	store.StoreWeatherStationsById([]WeatherStation{
+		{Id: 42, StationName: name},
+	})
+
+	got := store.GetWeatherStation(store.entries[0].Camera.ID)
+	require.NotNil(t, got)
+	assert.Equal(t, "Station A", got.StationName)
+	got.StationName = "MUTATED"
+
+	got2 := store.GetWeatherStation(store.entries[0].Camera.ID)
+	require.NotNil(t, got2)
+	assert.Equal(t, "Station A", got2.StationName, "store must not expose mutable alias")
+
+	byCanyon := store.GetWeatherStationsForCanyon(store.Canyon("LCC"))
+	require.Len(t, byCanyon, 1)
+	for _, st := range byCanyon {
+		st.StationName = "MUTATED2"
+	}
+	got3 := store.GetWeatherStation(store.entries[0].Camera.ID)
+	require.NotNil(t, got3)
+	assert.Equal(t, "Station A", got3.StationName)
+}
+
+func intPtr(i int) *int { return &i }

@@ -195,6 +195,30 @@ func TestHealthCheckStates(t *testing.T) {
 			expectedBody:   "OK",
 		},
 		{
+			name: "ready but all cameras failed - no live images",
+			setupStore: func() *store.Store {
+				imageServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusInternalServerError)
+				}))
+				t.Cleanup(imageServer.Close)
+
+				canyons := &store.Canyons{
+					LCC: store.Canyon{
+						Name: "Little Cottonwood Canyon",
+						Cameras: []store.Camera{
+							{Kind: "webcam", Src: imageServer.URL + "/test.jpg", Alt: "Test Camera", Canyon: "LCC"},
+						},
+					},
+					BCC: store.Canyon{Name: "Big Cottonwood Canyon"},
+				}
+				testStore := store.NewStore(canyons)
+				testStore.FetchImages(context.Background())
+				return testStore
+			},
+			expectedStatus: http.StatusServiceUnavailable,
+			expectedBody:   "No live camera images",
+		},
+		{
 			name: "no cameras configured",
 			setupStore: func() *store.Store {
 				canyons := &store.Canyons{

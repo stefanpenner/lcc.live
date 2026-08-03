@@ -12,8 +12,7 @@ import (
 
 func HealthCheckRoute(store *store.Store) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		// Verify that the store is initialized and has completed
-		// its initial image fetch before declaring the service healthy
+		// First fetch cycle not finished — still booting
 		if !store.IsReady() {
 			return c.String(http.StatusServiceUnavailable, "Service starting up - images not ready yet")
 		}
@@ -21,9 +20,14 @@ func HealthCheckRoute(store *store.Store) func(c echo.Context) error {
 		// Verify store has cameras loaded (basic sanity check)
 		lcc := store.Canyon("LCC")
 		bcc := store.Canyon("BCC")
-		
+
 		if len(lcc.Cameras) == 0 && len(bcc.Cameras) == 0 {
 			return c.String(http.StatusServiceUnavailable, "No cameras configured")
+		}
+
+		// Strict: no live image ⇒ unhealthy (no traffic until ≥1 camera OK)
+		if !store.HasAnyLiveImage() {
+			return c.String(http.StatusServiceUnavailable, "No live camera images")
 		}
 
 		// Smoke test: verify that LCC and BCC routes can render HTML

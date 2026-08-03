@@ -31,7 +31,8 @@ func ImageRoute(store *store.Store) func(c echo.Context) error {
 				// See web/docs/caching.md for analysis of max-age tradeoffs.
 				c.Response().Header().Set("Cache-Control", "public, max-age=3, stale-while-revalidate=120")
 				c.Response().Header().Set("ETag", entry.Image.ETag)
-				c.Response().Header().Set("Content-Length", fmt.Sprintf("%d", headers.ContentLength))
+				// Body length is SSOT (store also sets HTTPHeaders.ContentLength = len(bytes))
+				c.Response().Header().Set("Content-Length", fmt.Sprintf("%d", len(entry.Image.Bytes)))
 				if !entry.FetchedAt.IsZero() {
 					c.Response().Header().Set("Last-Modified", entry.FetchedAt.UTC().Format(time.RFC1123))
 				}

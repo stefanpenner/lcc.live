@@ -34,16 +34,25 @@ const (
 	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 
-// Store manages camera images and provides concurrent access
+// Store manages camera images and provides concurrent access.
+//
+// Concurrency model:
+//   - Camera index maps are immutable after NewStore.
+//   - Each Entry has its own RWMutex; values are replaced (pointer swap), not mutated in place.
+//   - Readers use ShallowSnapshot / Get; treat snapshots as frozen.
+//   - FetchImages is single-flight: overlapping calls skip.
+//   - Ready gate: CAS on isWaitingOnFirstImageReady then imagesReady.Done() at most once.
+//   - Dual ETag: HTTPHeaders.ETag = upstream HEAD validator (skip GET);
+//     Image.ETag = content hash (served to clients).
 type Store struct {
 	client                     *http.Client
 	canyons                    *Canyons
 	index                      map[string]*Entry // Maps camera ID -> Entry
 	nameIndex                  map[string]*Entry // Maps camera slug -> Entry
 	entries                    []*Entry
-	mu                         sync.RWMutex
 	imagesReady                sync.WaitGroup
 	isWaitingOnFirstImageReady atomic.Bool
+	fetchInFlight              atomic.Bool
 	syncCallback               func(duration time.Duration, changed, unchanged, errors int)
 	syncCallbackMu             sync.Mutex
 	roadConditions             map[string][]RoadCondition // Maps canyon -> road conditions
@@ -119,20 +128,6 @@ func (e *Entry) Write(fn func(*Entry)) {
 	defer e.mu.Unlock()
 
 	fn(e)
-}
-
-func (s *Store) Read(fn func(*Store)) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	fn(s)
-}
-
-func (s *Store) Write(fn func(*Store)) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	fn(s)
 }
 
 // NewStoreFromFile creates a new store by loading canyon data from a file
@@ -263,12 +258,18 @@ func (s *Store) Canyon(canyon string) *Canyon {
 	}
 }
 
-// FetchImages fetches images for all cameras concurrently
+// FetchImages fetches images for all cameras concurrently.
+// Single-flight: if a fetch is already running, this call returns immediately.
 // TODO: this should return a more detailed summary of what changed, so that we can:
 // 1. provide a /status endpoint
 // 2. provide "camera down" or "camera live" UI
 // 3. provide image updates via push of some sort
 func (s *Store) FetchImages(ctx context.Context) {
+	if !s.fetchInFlight.CompareAndSwap(false, true) {
+		return
+	}
+	defer s.fetchInFlight.Store(false)
+
 	// Start timing for metrics
 	timer := metrics.ImageFetchDuration
 	startTime := time.Now()
@@ -413,7 +414,6 @@ func (s *Store) FetchImages(ctx context.Context) {
 			}
 
 			contentType := resp.Header.Get("Content-Type")
-			contentLength := resp.ContentLength
 
 			imageBytes, err := io.ReadAll(io.LimitReader(resp.Body, maxImageSize))
 			if err != nil {
@@ -424,6 +424,10 @@ func (s *Store) FetchImages(ctx context.Context) {
 				metrics.CameraAvailability.WithLabelValues(cameraName, canyon).Set(0)
 				return
 			}
+			// Always use actual body length — upstream Content-Length can be wrong or -1.
+			contentLength := int64(len(imageBytes))
+			// Image.ETag = content hash (clients / If-None-Match).
+			// HTTPHeaders.ETag = upstream HEAD ETag (next-cycle skip).
 			etag := "\"" + strconv.FormatUint(xxhash.Sum64(imageBytes), 10) + "\""
 			entry.Write(func(entry *Entry) {
 				// Only update FetchedAt when image content actually changed
@@ -462,8 +466,8 @@ func (s *Store) FetchImages(ctx context.Context) {
 		}(entry)
 	}
 	wg.Wait()
-	if s.isWaitingOnFirstImageReady.Load() {
-		s.isWaitingOnFirstImageReady.Store(false)
+	// CAS: Done() at most once (see web/tla/StoreReady.tla)
+	if s.isWaitingOnFirstImageReady.CompareAndSwap(true, false) {
 		s.imagesReady.Done()
 		metrics.ImagesReady.Set(1)
 	}
@@ -505,11 +509,29 @@ func (s *Store) SetSyncCallback(cb func(duration time.Duration, changed, unchang
 	s.syncCallbackMu.Unlock()
 }
 
-// IsReady returns true if the store has completed its initial image fetch
-// and is ready to serve requests. This is used by the healthcheck endpoint
-// to ensure the application is fully initialized before accepting traffic.
+// IsReady returns true if the store has completed its initial image fetch cycle
+// (success or total failure). Get() unblocks when ready.
+// Healthcheck also requires HasAnyLiveImage() — see server health route.
 func (s *Store) IsReady() bool {
 	return !s.isWaitingOnFirstImageReady.Load()
+}
+
+// HasAnyLiveImage reports whether any non-iframe camera has a successful image.
+func (s *Store) HasAnyLiveImage() bool {
+	for _, entry := range s.entries {
+		if entry.Camera != nil && entry.Camera.Kind == "iframe" {
+			continue
+		}
+		live := false
+		entry.Read(func(e *Entry) {
+			live = e.HTTPHeaders != nil && e.HTTPHeaders.Status == http.StatusOK &&
+				e.Image != nil && len(e.Image.Bytes) > 0
+		})
+		if live {
+			return true
+		}
+	}
+	return false
 }
 
 // Get retrieves a snapshot of the camera entry with the given ID
@@ -567,20 +589,23 @@ func (s *Store) GetRoadConditions(canyon string) []RoadCondition {
 	return result
 }
 
-// StoreWeatherStationsById indexes weather stations by their Id for lookup by cameras
+// StoreWeatherStationsById indexes weather stations by their Id for lookup by cameras.
+// Each station is copied so the caller's slice can be discarded safely.
 func (s *Store) StoreWeatherStationsById(stations []WeatherStation) {
 	s.weatherStationsMu.Lock()
 	defer s.weatherStationsMu.Unlock()
 
 	m := make(map[int]*WeatherStation, len(stations))
 	for i := range stations {
-		m[stations[i].Id] = &stations[i]
+		cp := stations[i]
+		m[cp.Id] = &cp
 	}
 	s.weatherStationsById = m
 	logger.Muted("Indexed %d weather stations by Id", len(m))
 }
 
-// GetWeatherStation returns the weather station data for a camera by its ID
+// GetWeatherStation returns a copy of the weather station for a camera, or nil.
+// The returned pointer is not aliased into the store map.
 func (s *Store) GetWeatherStation(cameraID string) *WeatherStation {
 	s.imagesReady.Wait()
 
@@ -606,10 +631,15 @@ func (s *Store) GetWeatherStation(cameraID string) *WeatherStation {
 
 	s.weatherStationsMu.RLock()
 	defer s.weatherStationsMu.RUnlock()
-	return s.weatherStationsById[*stationId]
+	station, ok := s.weatherStationsById[*stationId]
+	if !ok || station == nil {
+		return nil
+	}
+	cp := *station
+	return &cp
 }
 
-// GetWeatherStationsForCanyon returns weather stations for all cameras in a canyon,
+// GetWeatherStationsForCanyon returns copies of weather stations for cameras in a canyon,
 // acquiring the lock once instead of per-camera.
 func (s *Store) GetWeatherStationsForCanyon(canyon *Canyon) map[string]*WeatherStation {
 	if canyon == nil {
@@ -640,8 +670,9 @@ func (s *Store) GetWeatherStationsForCanyon(canyon *Canyon) map[string]*WeatherS
 
 	result := make(map[string]*WeatherStation)
 	for _, l := range lookups {
-		if station, exists := s.weatherStationsById[l.stationId]; exists {
-			result[l.cameraID] = station
+		if station, exists := s.weatherStationsById[l.stationId]; exists && station != nil {
+			cp := *station
+			result[l.cameraID] = &cp
 		}
 	}
 	return result
