@@ -964,7 +964,7 @@ class UDOTPoller {
       : 'road-chip road-chip-muted';
 
     return `
-      <h3 class="road-condition-title">${name}</h3>
+      <h3 class="road-condition-title" title="${name}">${name}</h3>
       <div class="road-condition-content">
         <span class="road-chip" data-kind="road" data-condition="${road}" aria-label="Road: ${road}">${road}</span>
         <span class="road-chip" data-kind="weather" data-condition="${weather}" aria-label="Weather: ${weather}">${weather}</span>
@@ -1034,6 +1034,7 @@ class UDOTPoller {
       const title = card.querySelector('.road-condition-title');
       if (title && title.textContent !== cond.RoadwayName) {
         title.textContent = cond.RoadwayName;
+        title.setAttribute('title', cond.RoadwayName);
       }
 
       this.updateRoadChip(card, 'road', cond.RoadCondition, 'Road');

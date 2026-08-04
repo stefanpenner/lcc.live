@@ -140,10 +140,10 @@
         </div>
       </nav>
 
-      <section class="road-conditions-banner" role="region" aria-label="Road conditions"{{if not .RoadConditions}} hidden{{end}}>
+      <section class="road-conditions-banner road-conditions-banner--stack" role="region" aria-label="Road conditions"{{if not .RoadConditions}} hidden{{end}}>
         {{- range $i, $cond := .RoadConditions -}}
         <div class="road-conditions-card" data-condition-id="{{$cond.Id}}">
-          <h3 class="road-condition-title">{{$cond.RoadwayName}}</h3>
+          <h3 class="road-condition-title" title="{{$cond.RoadwayName}}">{{$cond.RoadwayName}}</h3>
           <div class="road-condition-content">
             <span class="road-chip" data-kind="road" data-condition="{{$cond.RoadCondition}}" aria-label="Road: {{$cond.RoadCondition}}">{{$cond.RoadCondition}}</span>
             <span class="road-chip" data-kind="weather" data-condition="{{$cond.WeatherCondition}}" aria-label="Weather: {{$cond.WeatherCondition}}">{{$cond.WeatherCondition}}</span>
