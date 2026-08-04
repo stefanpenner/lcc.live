@@ -931,6 +931,13 @@ class UDOTPoller {
         this.updateWeatherChips(data.weatherStations);
       }
 
+      // UDOT events, UAC danger, Alta parking
+      if (Array.isArray(data.events)) {
+        this.updateEvents(data.events);
+      }
+      this.updateAvalancheDanger(data.avalancheDanger || null);
+      this.updateAltaStatus(data.altaStatus || null);
+
       // Schedule next poll
       this.pollTimer = setTimeout(() => this.poll(), this.interval);
     } catch (error) {
@@ -1086,6 +1093,210 @@ class UDOTPoller {
         timeAgoSpan.textContent = ago;
       }
     });
+  }
+
+  ensureTopBarChips() {
+    let chips = document.querySelector('.top-bar-chips');
+    if (chips) return chips;
+    const topBar = document.querySelector('.top-bar');
+    if (!topBar) return null;
+    chips = document.createElement('div');
+    chips.className = 'top-bar-chips';
+    chips.setAttribute('role', 'group');
+    chips.setAttribute('aria-label', 'Status chips');
+    const banner = topBar.querySelector('.road-conditions-banner');
+    if (banner) {
+      topBar.insertBefore(chips, banner);
+    } else {
+      topBar.appendChild(chips);
+    }
+    return chips;
+  }
+
+  eventLabel(ev) {
+    const raw = (ev.Name && String(ev.Name).trim()) || (ev.Description && String(ev.Description).trim()) || 'Event';
+    if (raw.length <= 40) return raw;
+    return raw.slice(0, 39) + '…';
+  }
+
+  eventIsWarn(ev) {
+    if (ev.IsFullClosure) return true;
+    const s = String(ev.Severity || '').trim().toLowerCase();
+    return s === 'high' || s === 'severe' || s === 'critical' || s === 'major';
+  }
+
+  updateEvents(events) {
+    const host = this.ensureTopBarChips();
+    if (!host) return;
+
+    let strip = document.getElementById('events-strip');
+    if (!strip) {
+      strip = document.createElement('div');
+      strip.id = 'events-strip';
+      strip.className = 'events-strip';
+      strip.setAttribute('role', 'list');
+      strip.setAttribute('aria-label', 'Traffic events');
+      host.appendChild(strip);
+    }
+
+    if (!events || events.length === 0) {
+      strip.innerHTML = '';
+      strip.hidden = true;
+      strip.setAttribute('data-event-count', '0');
+      return;
+    }
+
+    strip.hidden = false;
+    strip.setAttribute('data-event-count', String(events.length));
+
+    const maxShow = 3;
+    const shown = events.slice(0, maxShow);
+    const parts = shown.map((ev) => {
+      const label = this.escapeHtml(this.eventLabel(ev));
+      const full = this.escapeHtml((ev.Name && String(ev.Name).trim()) || (ev.Description && String(ev.Description).trim()) || 'Event');
+      const warn = this.eventIsWarn(ev) ? ' road-chip-warn' : '';
+      const aria = full + (ev.IsFullClosure ? ' (full closure)' : '');
+      return `<span class="status-chip event-chip${warn}" role="listitem" data-event-id="${this.escapeHtml(String(ev.ID || ''))}" title="${full}" aria-label="${aria}">${label}</span>`;
+    });
+
+    if (events.length > maxShow) {
+      const more = events.length - maxShow;
+      parts.push(`<span class="status-chip event-chip event-chip-more" id="events-more" role="listitem" aria-label="${more} more events">+${more}</span>`);
+    }
+
+    strip.innerHTML = parts.join('');
+  }
+
+  uacDangerClass(level, danger) {
+    const d = String(danger || '').trim().toLowerCase();
+    if ((level == null || level <= 0) && (!d || d === 'no rating' || d === 'none' || d === 'n/a')) {
+      return 'uac-none';
+    }
+    switch (Number(level)) {
+      case 1: return 'uac-low';
+      case 2: return 'uac-moderate';
+      case 3: return 'uac-considerable';
+      case 4:
+      case 5: return 'uac-high';
+      default:
+        if (d === 'low') return 'uac-low';
+        if (d === 'moderate') return 'uac-moderate';
+        if (d === 'considerable') return 'uac-considerable';
+        if (d === 'high' || d === 'extreme') return 'uac-high';
+        return 'uac-none';
+    }
+  }
+
+  uacDangerLabel(danger) {
+    const d = String(danger || '').trim();
+    if (!d || d.toLowerCase() === 'no rating') return 'No rating';
+    return d.replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  updateAvalancheDanger(ad) {
+    const host = this.ensureTopBarChips();
+    if (!host) return;
+
+    let chip = document.getElementById('uac-chip');
+    if (!chip) {
+      chip = document.createElement('a');
+      chip.id = 'uac-chip';
+      chip.className = 'status-chip uac-chip uac-none';
+      chip.target = '_blank';
+      chip.rel = 'noopener noreferrer';
+      chip.href = 'https://utahavalanchecenter.org/forecast/salt-lake';
+      host.insertBefore(chip, host.firstChild);
+    }
+
+    if (!ad) {
+      chip.hidden = true;
+      return;
+    }
+
+    const label = this.uacDangerLabel(ad.danger);
+    const level = ad.dangerLevel;
+    const link = ad.link || 'https://utahavalanchecenter.org/forecast/salt-lake';
+    const cls = this.uacDangerClass(level, ad.danger);
+    chip.hidden = false;
+    chip.href = link;
+    chip.className = `status-chip uac-chip ${cls}`;
+    chip.setAttribute('data-danger-level', String(level ?? ''));
+    const advice = ad.travelAdvice ? `. ${ad.travelAdvice}` : '';
+    chip.setAttribute('aria-label', `Utah Avalanche Center Salt Lake: ${label}${advice}`);
+    chip.textContent = `UAC: ${label}`;
+  }
+
+  altaParkingWarn(status) {
+    const s = String(status || '').trim().toLowerCase();
+    return s === 'full' || s === 'closed' || s === 'limited' || s.includes('full') || s.includes('closed');
+  }
+
+  updateAltaStatus(st) {
+    // Alta chips only exist on LCC; if SSR omitted them, skip
+    if (this.canyonName !== 'LCC') return;
+
+    const host = this.ensureTopBarChips();
+    if (!host) return;
+
+    let parking = document.getElementById('alta-parking-chip');
+    let road = document.getElementById('alta-road-chip');
+
+    if (!parking) {
+      parking = document.createElement('span');
+      parking.id = 'alta-parking-chip';
+      parking.className = 'status-chip alta-chip';
+      parking.hidden = true;
+      // Insert after UAC chip when present
+      const uac = document.getElementById('uac-chip');
+      if (uac && uac.nextSibling) {
+        host.insertBefore(parking, uac.nextSibling);
+      } else {
+        host.appendChild(parking);
+      }
+    }
+    if (!road) {
+      road = document.createElement('span');
+      road.id = 'alta-road-chip';
+      road.className = 'status-chip alta-chip alta-road-chip';
+      road.hidden = true;
+      if (parking.nextSibling) {
+        host.insertBefore(road, parking.nextSibling);
+      } else {
+        host.appendChild(road);
+      }
+    }
+
+    if (!st) {
+      parking.hidden = true;
+      road.hidden = true;
+      return;
+    }
+
+    if (st.parkingStatus) {
+      parking.hidden = false;
+      parking.textContent = `Alta park: ${st.parkingStatus}`;
+      parking.setAttribute('data-status', st.parkingStatus);
+      const msg = st.parkingMessage ? `. ${st.parkingMessage}` : '';
+      parking.setAttribute('aria-label', `Alta parking: ${st.parkingStatus}${msg}`);
+      parking.className = this.altaParkingWarn(st.parkingStatus)
+        ? 'status-chip alta-chip road-chip-warn'
+        : 'status-chip alta-chip';
+    } else {
+      parking.hidden = true;
+    }
+
+    if (st.roadStatus) {
+      road.hidden = false;
+      road.textContent = `Alta road: ${st.roadStatus}`;
+      road.setAttribute('data-status', st.roadStatus);
+      const msg = st.roadMessage ? `. ${st.roadMessage}` : '';
+      road.setAttribute('aria-label', `Alta road: ${st.roadStatus}${msg}`);
+      road.className = this.altaParkingWarn(st.roadStatus)
+        ? 'status-chip alta-chip alta-road-chip road-chip-warn'
+        : 'status-chip alta-chip alta-road-chip';
+    } else {
+      road.hidden = true;
+    }
   }
 
   updateWeatherChips(stations) {

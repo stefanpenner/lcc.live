@@ -429,6 +429,112 @@ road-status img:hover {
    One roadway per full-width row so multi-segment
    canyons (e.g. BCC) stay readable on iPhone.
    ======================================== */
+/* Compact status chips row (events, UAC, Alta) */
+.top-bar-chips {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.top-bar-chips:empty {
+  display: none;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 12rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-tertiary);
+  text-decoration: none;
+  border: none;
+}
+
+a.status-chip:hover {
+  filter: brightness(1.05);
+  text-decoration: none;
+}
+
+a.status-chip:focus-visible {
+  outline: 2px solid var(--color-accent-focus);
+  outline-offset: 2px;
+}
+
+.events-strip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.events-strip[hidden] {
+  display: none !important;
+}
+
+.event-chip {
+  font-weight: 500;
+  max-width: 11rem;
+}
+
+.event-chip-more {
+  font-weight: 600;
+  opacity: 0.85;
+  max-width: none;
+}
+
+/* UAC danger levels */
+.uac-chip.uac-none {
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-tertiary);
+  font-weight: 500;
+}
+.uac-chip.uac-low {
+  color: #059669;
+  background: color-mix(in srgb, #10b981 18%, transparent);
+}
+.uac-chip.uac-moderate {
+  color: #ca8a04;
+  background: color-mix(in srgb, #eab308 22%, transparent);
+}
+.uac-chip.uac-considerable {
+  color: #ea580c;
+  background: color-mix(in srgb, #f97316 22%, transparent);
+}
+.uac-chip.uac-high {
+  color: #dc2626;
+  background: color-mix(in srgb, #ef4444 22%, transparent);
+  font-weight: 700;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .uac-chip.uac-low { color: #34d399; }
+  :root:not([data-theme="light"]) .uac-chip.uac-moderate { color: #fbbf24; }
+  :root:not([data-theme="light"]) .uac-chip.uac-considerable { color: #fb923c; }
+  :root:not([data-theme="light"]) .uac-chip.uac-high { color: #f87171; }
+}
+:root[data-theme="dark"] .uac-chip.uac-low { color: #34d399; }
+:root[data-theme="dark"] .uac-chip.uac-moderate { color: #fbbf24; }
+:root[data-theme="dark"] .uac-chip.uac-considerable { color: #fb923c; }
+:root[data-theme="dark"] .uac-chip.uac-high { color: #f87171; }
+
+.alta-chip[hidden] {
+  display: none !important;
+}
+
 .road-conditions-banner {
   flex: 1 1 100%;
   min-width: 0;
@@ -475,8 +581,9 @@ road-status img:hover {
   gap: 0.3rem;
   flex-wrap: wrap;
   justify-content: flex-end;
+  /* Chips keep natural width; title takes leftover and ellipsizes only if tight */
+  flex: 0 0 auto;
   min-width: 0;
-  flex: 1 1 auto;
 }
 
 .road-condition-title {
@@ -485,9 +592,10 @@ road-status img:hover {
   color: var(--color-text-primary);
   margin: 0;
   text-align: left;
-  flex: 0 0 auto;
-  width: 7.5rem; /* fixed name column — scannable multi-segment */
-  max-width: 42%;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  max-width: none;
   line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1120,10 +1228,6 @@ the-overlay:hover .overlay-hint {
 
   .top-bar {
     margin-bottom: var(--space-sm);
-  }
-
-  .road-condition-title {
-    width: 6.75rem;
   }
 
   camera-feed {

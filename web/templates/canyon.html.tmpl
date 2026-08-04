@@ -140,6 +140,70 @@
         </div>
       </nav>
 
+      <div class="top-bar-chips" role="group" aria-label="Status chips">
+        {{- /* UAC Salt Lake (both canyons) */ -}}
+        {{- if .AvalancheDanger -}}
+        <a class="status-chip uac-chip {{uacDangerClass .AvalancheDanger.DangerLevel .AvalancheDanger.Danger}}"
+           id="uac-chip"
+           href="{{if .AvalancheDanger.Link}}{{.AvalancheDanger.Link}}{{else}}https://utahavalanchecenter.org/forecast/salt-lake{{end}}"
+           target="_blank"
+           rel="noopener noreferrer"
+           data-danger-level="{{.AvalancheDanger.DangerLevel}}"
+           aria-label="Utah Avalanche Center Salt Lake: {{uacDangerLabel .AvalancheDanger.Danger}}{{if .AvalancheDanger.TravelAdvice}}. {{.AvalancheDanger.TravelAdvice}}{{end}}">
+          UAC: {{uacDangerLabel .AvalancheDanger.Danger}}
+        </a>
+        {{- else -}}
+        <a class="status-chip uac-chip uac-none" id="uac-chip" href="https://utahavalanchecenter.org/forecast/salt-lake" target="_blank" rel="noopener noreferrer" hidden aria-label="Utah Avalanche Center Salt Lake forecast">UAC: —</a>
+        {{- end -}}
+
+        {{- /* Alta parking / road — LCC only */ -}}
+        {{- if eq .Name "LCC" -}}
+        {{- if .AltaStatus -}}
+        {{- if .AltaStatus.ParkingStatus -}}
+        <span class="status-chip alta-chip{{if altaParkingWarn .AltaStatus.ParkingStatus}} road-chip-warn{{end}}"
+              id="alta-parking-chip"
+              data-status="{{.AltaStatus.ParkingStatus}}"
+              aria-label="Alta parking: {{.AltaStatus.ParkingStatus}}{{if .AltaStatus.ParkingMessage}}. {{.AltaStatus.ParkingMessage}}{{end}}">
+          Alta park: {{.AltaStatus.ParkingStatus}}
+        </span>
+        {{- else -}}
+        <span class="status-chip alta-chip" id="alta-parking-chip" hidden></span>
+        {{- end -}}
+        {{- if .AltaStatus.RoadStatus -}}
+        <span class="status-chip alta-chip alta-road-chip{{if altaParkingWarn .AltaStatus.RoadStatus}} road-chip-warn{{end}}"
+              id="alta-road-chip"
+              data-status="{{.AltaStatus.RoadStatus}}"
+              aria-label="Alta road: {{.AltaStatus.RoadStatus}}{{if .AltaStatus.RoadMessage}}. {{.AltaStatus.RoadMessage}}{{end}}">
+          Alta road: {{.AltaStatus.RoadStatus}}
+        </span>
+        {{- else -}}
+        <span class="status-chip alta-chip alta-road-chip" id="alta-road-chip" hidden></span>
+        {{- end -}}
+        {{- else -}}
+        <span class="status-chip alta-chip" id="alta-parking-chip" hidden></span>
+        <span class="status-chip alta-chip alta-road-chip" id="alta-road-chip" hidden></span>
+        {{- end -}}
+        {{- end -}}
+
+        {{- /* UDOT events (cap 3 + overflow); client may rebuild */ -}}
+        <div class="events-strip" id="events-strip" role="list" aria-label="Traffic events" data-event-count="{{len .Events}}"{{if not .Events}} hidden{{end}}>
+          {{- range $i, $ev := .Events -}}
+          {{- if lt $i 3 -}}
+          <span class="status-chip event-chip{{if eventIsWarn $ev.IsFullClosure $ev.Severity}} road-chip-warn{{end}}"
+                role="listitem"
+                data-event-id="{{$ev.ID}}"
+                title="{{if $ev.Name}}{{$ev.Name}}{{else}}{{$ev.Description}}{{end}}"
+                aria-label="{{if $ev.Name}}{{$ev.Name}}{{else}}{{$ev.Description}}{{end}}{{if $ev.IsFullClosure}} (full closure){{end}}">
+            {{eventLabel $ev.Name $ev.Description}}
+          </span>
+          {{- end -}}
+          {{- end -}}
+          {{- if gt (len .Events) 3 -}}
+          <span class="status-chip event-chip event-chip-more" id="events-more" role="listitem" aria-label="{{printf "%d more events" (sub (len .Events) 3)}}">+{{sub (len .Events) 3}}</span>
+          {{- end -}}
+        </div>
+      </div>
+
       <section class="road-conditions-banner road-conditions-banner--stack" role="region" aria-label="Road conditions"{{if not .RoadConditions}} hidden{{end}}>
         {{- range $i, $cond := .RoadConditions -}}
         <div class="road-conditions-card" data-condition-id="{{$cond.Id}}">

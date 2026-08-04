@@ -128,6 +128,91 @@ func hasActiveRestriction(restriction string) bool {
 	return r != "" && r != "none" && r != "no restrictions" && r != "n/a"
 }
 
+// eventLabel prefers Name, falls back to Description; truncates for chip UI.
+func eventLabel(name, description string) string {
+	label := strings.TrimSpace(name)
+	if label == "" {
+		label = strings.TrimSpace(description)
+	}
+	const max = 40
+	if len(label) <= max {
+		return label
+	}
+	// Prefer rune-safe truncate
+	r := []rune(label)
+	if len(r) <= max {
+		return label
+	}
+	return string(r[:max-1]) + "…"
+}
+
+func eventIsWarn(isFullClosure bool, severity string) bool {
+	if isFullClosure {
+		return true
+	}
+	s := strings.ToLower(strings.TrimSpace(severity))
+	return s == "high" || s == "severe" || s == "critical" || s == "major"
+}
+
+func uacDangerClass(level int, danger string) string {
+	d := strings.ToLower(strings.TrimSpace(danger))
+	if level <= 0 && (d == "" || d == "no rating" || d == "none" || d == "n/a") {
+		return "uac-none"
+	}
+	switch level {
+	case 1:
+		return "uac-low"
+	case 2:
+		return "uac-moderate"
+	case 3:
+		return "uac-considerable"
+	case 4, 5:
+		return "uac-high"
+	default:
+		// Fall back on danger string
+		switch d {
+		case "low":
+			return "uac-low"
+		case "moderate":
+			return "uac-moderate"
+		case "considerable":
+			return "uac-considerable"
+		case "high", "extreme":
+			return "uac-high"
+		default:
+			return "uac-none"
+		}
+	}
+}
+
+func uacDangerLabel(danger string) string {
+	d := strings.TrimSpace(danger)
+	if d == "" {
+		return "No rating"
+	}
+	// Title-case common values lightly
+	if strings.EqualFold(d, "no rating") {
+		return "No rating"
+	}
+	if len(d) == 0 {
+		return "No rating"
+	}
+	// Capitalize first letter of each word
+	parts := strings.Fields(d)
+	for i, p := range parts {
+		if p == "" {
+			continue
+		}
+		parts[i] = strings.ToUpper(p[:1]) + strings.ToLower(p[1:])
+	}
+	return strings.Join(parts, " ")
+}
+
+func altaParkingWarn(status string) bool {
+	s := strings.ToLower(strings.TrimSpace(status))
+	return s == "full" || s == "closed" || s == "limited" || strings.Contains(s, "full") || strings.Contains(s, "closed")
+}
+
 var templateFuncs = template.FuncMap{
 	"slugify":              slugify,
 	"formatUnixTime":       formatUnixTime,
@@ -137,6 +222,12 @@ var templateFuncs = template.FuncMap{
 	"precipIcon":           precipIcon,
 	"version":              GetVersionString,
 	"hasActiveRestriction": hasActiveRestriction,
+	"eventLabel":           eventLabel,
+	"eventIsWarn":          eventIsWarn,
+	"uacDangerClass":       uacDangerClass,
+	"uacDangerLabel":       uacDangerLabel,
+	"altaParkingWarn":      altaParkingWarn,
+	"sub":                  func(a, b int) int { return a - b },
 }
 
 // Render renders a template with the given data

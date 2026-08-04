@@ -20,9 +20,11 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/stefanpenner/lcc-live/web/alta"
 	"github.com/stefanpenner/lcc-live/web/logger"
 	"github.com/stefanpenner/lcc-live/web/server"
 	"github.com/stefanpenner/lcc-live/web/store"
+	"github.com/stefanpenner/lcc-live/web/uac"
 	"github.com/stefanpenner/lcc-live/web/udot"
 	"github.com/stefanpenner/lcc-live/web/ui"
 	"golang.org/x/sync/errgroup"
@@ -393,6 +395,12 @@ func main() {
 	g.Go(func() error { return udotPoller.StartRoadConditions(gCtx) })
 	g.Go(func() error { return udotPoller.StartWeatherStations(gCtx) })
 	g.Go(func() error { return udotPoller.StartEvents(gCtx) })
+
+	// Public HTTP pollers (no API keys)
+	uacPoller := uac.NewPoller(uac.NewClient(), store, 10*time.Minute)
+	g.Go(func() error { return uacPoller.Start(gCtx) })
+	altaPoller := alta.NewPoller(alta.NewClient(), store, 3*time.Minute)
+	g.Go(func() error { return altaPoller.Start(gCtx) })
 
 	// Configure server to use UI logger
 	server.LogWriter = ui.AddLog

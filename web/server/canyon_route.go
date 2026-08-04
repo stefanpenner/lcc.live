@@ -14,6 +14,8 @@ type CanyonPageData struct {
 	RoadConditions  []store.RoadCondition
 	Events          []store.Event
 	WeatherStations map[string]*store.WeatherStation
+	AvalancheDanger *store.AvalancheDanger
+	AltaStatus      *store.AltaStatus
 }
 
 func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
@@ -25,10 +27,16 @@ func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
 		roadConditions := s.GetRoadConditions(canyonID)
 		// Filter out unwanted road conditions
 		roadConditions = FilterRoadConditions(roadConditions)
-		events := s.GetEvents(canyonID)
+		events := SortEvents(s.GetEvents(canyonID))
 
 		// Get weather stations for all cameras (single lock acquisition)
 		weatherStations := s.GetWeatherStationsForCanyon(canyon)
+
+		avalancheDanger := s.GetAvalancheDanger()
+		var altaStatus *store.AltaStatus
+		if canyonID == "LCC" {
+			altaStatus = s.GetAltaStatus()
+		}
 
 		// Determine response format
 		isJSON := strings.HasSuffix(c.Request().URL.Path, ".json")
@@ -49,6 +57,9 @@ func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
 				canyon,          // Canyon data (cameras, etc.) - uses ETag() method
 				roadConditions,  // Road conditions - hashed with StableJSONHash
 				weatherStations, // Weather stations - hashed with StableJSONHash
+				events,          // UDOT events
+				avalancheDanger, // UAC Salt Lake
+				altaStatus,      // Alta parking (LCC only; nil for BCC)
 			},
 			DevMode: devMode,
 		}
@@ -87,6 +98,8 @@ func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
 			RoadConditions:  roadConditions,
 			Events:          events,
 			WeatherStations: weatherStations,
+			AvalancheDanger: avalancheDanger,
+			AltaStatus:      altaStatus,
 		}
 		return c.Render(http.StatusOK, "canyon.html.tmpl", pageData)
 	}

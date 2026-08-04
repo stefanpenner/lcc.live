@@ -49,6 +49,41 @@ func (p *Poller) seedDevRoadConditions() {
 	logger.Warn("UDOT_API_KEY not set — seeded dev road conditions for UI")
 }
 
+// seedDevEvents injects sample event chips so local UI work is visible without a UDOT key.
+func (p *Poller) seedDevEvents() {
+	now := time.Now().Unix()
+	p.store.UpdateEvents("LCC", []store.Event{{
+		ID:            "dev-lcc-1",
+		SourceId:      "dev",
+		RoadwayName:   "SR-210",
+		Name:          "Avalanche control",
+		Description:   "Intermittent delays due to avalanche mitigation work near White Pine",
+		IsFullClosure: false,
+		Severity:      "Moderate",
+		LastUpdated:   now,
+	}, {
+		ID:            "dev-lcc-2",
+		SourceId:      "dev",
+		RoadwayName:   "SR-210",
+		Name:          "Full canyon closure",
+		Description:   "SR-210 closed at mouth for emergency response",
+		IsFullClosure: true,
+		Severity:      "High",
+		LastUpdated:   now,
+	}})
+	p.store.UpdateEvents("BCC", []store.Event{{
+		ID:            "dev-bcc-1",
+		SourceId:      "dev",
+		RoadwayName:   "SR-190",
+		Name:          "Construction",
+		Description:   "Lane restrictions near Spruces campground",
+		IsFullClosure: false,
+		Severity:      "Low",
+		LastUpdated:   now,
+	}})
+	logger.Warn("UDOT_API_KEY not set — seeded dev events for UI")
+}
+
 // StartRoadConditions starts polling road conditions
 func (p *Poller) StartRoadConditions(ctx context.Context) error {
 	if !p.client.IsConfigured() {
@@ -102,6 +137,9 @@ func (p *Poller) StartWeatherStations(ctx context.Context) error {
 func (p *Poller) StartEvents(ctx context.Context) error {
 	if !p.client.IsConfigured() {
 		logger.Warn("UDOT_API_KEY not set. Skipping events fetching.")
+		if os.Getenv("DEV_MODE") == "1" || os.Getenv("DEV_MODE") == "true" {
+			p.seedDevEvents()
+		}
 		return nil
 	}
 
@@ -174,4 +212,3 @@ func (p *Poller) pollEvents(ctx context.Context) {
 	p.store.UpdateEvents("BCC", bccEvents)
 	logger.Muted("Updated events: LCC=%d, BCC=%d", len(lccEvents), len(bccEvents))
 }
-

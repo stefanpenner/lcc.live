@@ -9,9 +9,12 @@ import (
 )
 
 type UDOTData struct {
-	RoadConditions  []store.RoadCondition          `json:"roadConditions"`
+	RoadConditions  []store.RoadCondition            `json:"roadConditions"`
 	WeatherStations map[string]*store.WeatherStation `json:"weatherStations,omitempty"`
-	LastUpdated     int64                           `json:"lastUpdated"`
+	Events          []store.Event                    `json:"events"`
+	AvalancheDanger *store.AvalancheDanger           `json:"avalancheDanger,omitempty"`
+	AltaStatus      *store.AltaStatus                `json:"altaStatus,omitempty"`
+	LastUpdated     int64                            `json:"lastUpdated"`
 }
 
 func UDOTRoute(s *store.Store) func(c echo.Context) error {
@@ -29,9 +32,21 @@ func UDOTRoute(s *store.Store) func(c echo.Context) error {
 		// Sort road conditions for stable JSON hashing
 		sortedRoadConditions := SortRoadConditions(filteredRoadConditions)
 
+		// Events for this canyon
+		sortedEvents := SortEvents(s.GetEvents(canyonID))
+
 		// Get weather stations for all cameras in this canyon
 		canyon := s.Canyon(canyonID)
 		weatherStations := s.GetWeatherStationsForCanyon(canyon)
+
+		// Global UAC danger (both canyons)
+		avalancheDanger := s.GetAvalancheDanger()
+
+		// Alta parking only meaningful for LCC; omit for BCC
+		var altaStatus *store.AltaStatus
+		if canyonID == "LCC" {
+			altaStatus = s.GetAltaStatus()
+		}
 
 		// Calculate LastUpdated as max of all timestamps, or current time if no data
 		lastUpdated := time.Now().Unix()
@@ -40,10 +55,24 @@ func UDOTRoute(s *store.Store) func(c echo.Context) error {
 				lastUpdated = cond.LastUpdated
 			}
 		}
+		for _, ev := range sortedEvents {
+			if ev.LastUpdated > lastUpdated {
+				lastUpdated = ev.LastUpdated
+			}
+		}
+		if avalancheDanger != nil && avalancheDanger.Updated > lastUpdated {
+			lastUpdated = avalancheDanger.Updated
+		}
+		if altaStatus != nil && altaStatus.Updated > lastUpdated {
+			lastUpdated = altaStatus.Updated
+		}
 
 		data := UDOTData{
 			RoadConditions:  sortedRoadConditions,
 			WeatherStations: weatherStations,
+			Events:          sortedEvents,
+			AvalancheDanger: avalancheDanger,
+			AltaStatus:      altaStatus,
 			LastUpdated:     lastUpdated,
 		}
 

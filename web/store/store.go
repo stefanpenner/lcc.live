@@ -61,6 +61,10 @@ type Store struct {
 	weatherStationsMu          sync.RWMutex
 	events                     map[string][]Event // Maps canyon -> events
 	eventsMu                   sync.RWMutex
+	avalancheDanger            *AvalancheDanger
+	avalancheDangerMu          sync.RWMutex
+	altaStatus                 *AltaStatus
+	altaStatusMu               sync.RWMutex
 }
 
 // Entry represents a single camera's cached data
@@ -221,10 +225,10 @@ func NewStore(canyons *Canyons) *Store {
 	}
 
 	store := &Store{
-		entries:            entries,
-		index:              index,
-		nameIndex:          nameIndex,
-		canyons:            canyons,
+		entries:             entries,
+		index:               index,
+		nameIndex:           nameIndex,
+		canyons:             canyons,
 		roadConditions:      make(map[string][]RoadCondition),
 		weatherStationsById: make(map[int]*WeatherStation),
 		events:              make(map[string][]Event),
@@ -697,4 +701,42 @@ func (s *Store) GetEvents(canyon string) []Event {
 	result := make([]Event, len(events))
 	copy(result, events)
 	return result
+}
+
+// UpdateAvalancheDanger stores the global UAC Salt Lake danger rating.
+func (s *Store) UpdateAvalancheDanger(d AvalancheDanger) {
+	s.avalancheDangerMu.Lock()
+	defer s.avalancheDangerMu.Unlock()
+	cp := d
+	s.avalancheDanger = &cp
+}
+
+// GetAvalancheDanger returns a copy of the current avalanche danger, or nil.
+func (s *Store) GetAvalancheDanger() *AvalancheDanger {
+	s.avalancheDangerMu.RLock()
+	defer s.avalancheDangerMu.RUnlock()
+	if s.avalancheDanger == nil {
+		return nil
+	}
+	cp := *s.avalancheDanger
+	return &cp
+}
+
+// UpdateAltaStatus stores Alta parking/road status.
+func (s *Store) UpdateAltaStatus(st AltaStatus) {
+	s.altaStatusMu.Lock()
+	defer s.altaStatusMu.Unlock()
+	cp := st
+	s.altaStatus = &cp
+}
+
+// GetAltaStatus returns a copy of Alta status, or nil.
+func (s *Store) GetAltaStatus() *AltaStatus {
+	s.altaStatusMu.RLock()
+	defer s.altaStatusMu.RUnlock()
+	if s.altaStatus == nil {
+		return nil
+	}
+	cp := *s.altaStatus
+	return &cp
 }

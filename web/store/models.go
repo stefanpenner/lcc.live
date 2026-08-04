@@ -166,6 +166,24 @@ func (e *Event) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// AvalancheDanger is UAC Salt Lake forecast danger (global, not per-canyon).
+type AvalancheDanger struct {
+	Danger       string `json:"danger"`
+	DangerLevel  int    `json:"dangerLevel"`
+	Link         string `json:"link"`
+	TravelAdvice string `json:"travelAdvice,omitempty"`
+	Updated      int64  `json:"updated"`
+}
+
+// AltaStatus is Alta parking / road status from alta.com/weather (LCC sticky).
+type AltaStatus struct {
+	ParkingStatus  string `json:"parkingStatus"`
+	ParkingMessage string `json:"parkingMessage,omitempty"`
+	RoadStatus     string `json:"roadStatus,omitempty"`
+	RoadMessage    string `json:"roadMessage,omitempty"`
+	Updated        int64  `json:"updated"`
+}
+
 // Canyon represents a canyon with its cameras and status
 type Canyon struct {
 	Name    string   `json:"name"`

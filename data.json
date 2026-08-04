@@ -15,49 +15,49 @@
         },
         {
           "kind": "img",
-          "src": "https://udottraffic.utah.gov/map/Cctv/86277?t=1764447947",
+          "src": "https://udottraffic.utah.gov/map/Cctv/141829",
           "alt": "Mouth of LCC"
         },
         {
           "kind": "img",
-          "src": "https://udottraffic.utah.gov/map/Cctv/84836?t=1764447780",
+          "src": "https://udottraffic.utah.gov/map/Cctv/84836",
           "alt": "Powerhouse",
           "weatherStationId": 1650225
         },
         {
           "kind": "img",
-          "src": "https://udottraffic.utah.gov/map/Cctv/85948?t=1764447947",
+          "src": "https://udottraffic.utah.gov/map/Cctv/142227",
           "alt": "Upper Vault"
         },
         {
           "kind": "img",
-          "src": "https://udottraffic.utah.gov/map/Cctv/85255?t=1764447720",
-          "alt": "Lisa Falls"
+          "src": "https://udottraffic.utah.gov/map/Cctv/136332",
+          "alt": "Seven Turns"
         },
         {
           "kind": "img",
-          "src": "https://udottraffic.utah.gov/map/Cctv/85718?t=1764447720",
+          "src": "https://udottraffic.utah.gov/map/Cctv/85718",
           "alt": "Tanners Flat"
         },
         {
           "kind": "img",
-          "src": "https://udottraffic.utah.gov/map/Cctv/85930?t=1764447947",
+          "src": "https://udottraffic.utah.gov/map/Cctv/142232",
           "alt": "White Pine",
           "weatherStationId": 1650226
         },
         {
           "kind": "img",
-          "src": "https://udottraffic.utah.gov/map/Cctv/84862?t=1764447720",
+          "src": "https://udottraffic.utah.gov/map/Cctv/140390",
           "alt": "Upper White Pine"
         },
         {
           "kind": "img",
-          "src": "https://udottraffic.utah.gov/map/Cctv/84238?t=1764447600",
+          "src": "https://udottraffic.utah.gov/map/Cctv/142061",
           "alt": "Alta Bypass"
         },
         {
           "kind": "img",
-          "src": "https://udottraffic.utah.gov/map/Cctv/85183?t=1764447660",
+          "src": "https://udottraffic.utah.gov/map/Cctv/137940",
           "alt": "Alta",
           "weatherStationId": 1650091
         },
@@ -80,6 +80,16 @@
           "kind": "img",
           "src": "https://alta-webcams.sfo3.cdn.digitaloceanspaces.com/collins_dtc.jpg",
           "alt": "Salt Lake Valley"
+        },
+        {
+          "kind": "img",
+          "src": "https://app.prismcam.com/public/helpers/realtime_preview.php?c=65&s=720",
+          "alt": "Albion Basin"
+        },
+        {
+          "kind": "img",
+          "src": "https://alta-webcams.sfo3.cdn.digitaloceanspaces.com/Greeley.jpg",
+          "alt": "East Greeley"
         },
         {
           "kind": "img",
