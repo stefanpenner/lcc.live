@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>07 · Wicket-inspired · live data</title>
+  <style>
+    /* Tokens from wicket (sharing.html + sharing_view.html) */
+    @view-transition { navigation: auto; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f7f7f8; --surface: #fff; --fg: #15171a; --muted: #6b7280; --faint: #9ca3af;
+      --border: #e7e7ea; --hover: #eef0f2; --line: #ededf0;
+      --accent: #2563eb; --accent-fg: #fff; --chip: #fff;
+      --radius: 6px;
+      --shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 14px rgba(0,0,0,.05);
+      --green: #10b981; --amber: #f59e0b; --blue: #3b82f6;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0c0d0f; --surface: #16181c; --fg: #e8eaed; --muted: #9aa0a8; --faint: #666c75;
+        --border: #262930; --hover: #1c1f24; --line: #212429;
+        --accent: #4b8bf5; --accent-fg: #fff; --chip: #17191e;
+        --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.4);
+      }
+    }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg); color: var(--fg); line-height: 1.5; min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    body.viewer-open { overflow: hidden; }
+
+    .mock-banner {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+      padding: .4rem .75rem;
+      background: color-mix(in srgb, var(--surface) 90%, transparent);
+      backdrop-filter: blur(10px); border-bottom: 1px solid var(--border);
+      font-size: .75rem; color: var(--muted);
+    }
+    .mock-banner strong { color: var(--fg); }
+    .mock-banner a { color: var(--accent); text-decoration: none; }
+    .mock-banner nav { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .live-dot {
+      display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green); margin-right: .35rem; vertical-align: middle;
+      box-shadow: 0 0 0 0 rgba(16,185,129,.5); animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(16,185,129,.45); }
+      70% { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+      100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+    }
+    .idea-note {
+      max-width: 720px; margin: .75rem auto; padding: .6rem .85rem;
+      font-size: .8rem; color: var(--muted);
+      border-left: 3px solid var(--accent); background: var(--surface);
+      border-radius: 0 6px 6px 0;
+    }
+    .idea-note b { color: var(--fg); }
+    .idea-note code { font-size: .75rem; background: var(--hover); padding: .05rem .3rem; border-radius: 4px; }
+    .idea-note.err { border-left-color: #ef4444; }
+
+    .topbar {
+      position: sticky; top: 28px; z-index: 30;
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      backdrop-filter: saturate(180%) blur(14px);
+      -webkit-backdrop-filter: saturate(180%) blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: .85rem clamp(1rem, 4vw, 2.5rem) .7rem;
+      transition: transform .25s ease; will-change: transform;
+    }
+    .topbar.tucked { transform: translateY(calc(-100% - 28px)); }
+    h1 {
+      font-size: clamp(1.15rem, 2.6vw, 1.55rem);
+      font-weight: 660; letter-spacing: -.021em;
+    }
+    .meta-line {
+      color: var(--muted); font-size: .8rem; margin-top: .2rem;
+      display: flex; align-items: center; gap: .45rem; flex-wrap: wrap;
+    }
+    .meta-line b { font-weight: 600; color: var(--fg); }
+    .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--faint); }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; margin-top: .85rem; }
+    .seg {
+      display: inline-flex; background: var(--chip); border: 1px solid var(--border);
+      border-radius: 8px; padding: 3px; gap: 2px; box-shadow: var(--shadow);
+    }
+    .chip-btn {
+      display: inline-flex; align-items: center; gap: .32rem;
+      color: var(--muted); font-size: .78rem; font-weight: 520;
+      padding: .32rem .68rem; border-radius: 5px; text-decoration: none;
+      cursor: pointer; border: 0; background: transparent; font-family: inherit;
+      transition: background .15s, color .15s; white-space: nowrap;
+    }
+    .chip-btn:hover { color: var(--fg); background: var(--hover); }
+    .chip-btn.active { background: var(--accent); color: var(--accent-fg); }
+    .chip-btn.active:hover { background: var(--accent); color: var(--accent-fg); }
+    .spacer { flex: 1 1 auto; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: .35rem;
+      background: var(--chip); border: 1px solid var(--border); border-radius: 8px;
+      padding: .32rem .7rem; font-size: .75rem; font-weight: 520; box-shadow: var(--shadow);
+      color: var(--muted);
+    }
+    .status-pill .ok { color: var(--green); font-weight: 600; }
+    .status-pill .fair { color: var(--amber); font-weight: 600; }
+    .status-pill .warn { color: #ef4444; font-weight: 700; }
+
+    main.gallery { padding: clamp(.8rem, 2.5vw, 1.4rem) clamp(1rem, 4vw, 2.5rem) 5rem; }
+    .files {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+      gap: 8px;
+    }
+    .item {
+      position: relative;
+      aspect-ratio: 16 / 10;
+      border-radius: var(--radius); overflow: hidden; background: var(--hover);
+      cursor: zoom-in;
+    }
+    .item.is-iframe { cursor: pointer; }
+    .item .link {
+      display: block; width: 100%; height: 100%; text-decoration: none; color: inherit;
+      border: 0; background: none; padding: 0; cursor: inherit; font: inherit;
+    }
+    .thumb {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      opacity: 0; transition: transform .35s cubic-bezier(.2, .6, .2, 1), opacity .35s ease;
+      background: var(--hover);
+    }
+    .item iframe.thumb {
+      opacity: 1; border: 0; pointer-events: none;
+      background: #111;
+    }
+    .item.is-loaded .thumb { opacity: 1; }
+    .item.is-loaded:not(.is-iframe):hover .thumb { transform: scale(1.045); }
+    .thumb-skel {
+      position: absolute; inset: 0; z-index: 1; pointer-events: none;
+      opacity: 1; transition: opacity .3s ease;
+      background: var(--hover);
+    }
+    .thumb-skel::before {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(105deg, transparent 40%, color-mix(in srgb, var(--fg) 7%, transparent) 50%, transparent 60%);
+      background-size: 200% 100%;
+      animation: thumb-shimmer 1.5s ease-in-out infinite;
+    }
+    @keyframes thumb-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+    .item.is-loaded .thumb-skel { opacity: 0; }
+    .item::after {
+      content: ""; position: absolute; inset: auto 0 0 0; height: 50%;
+      background: linear-gradient(transparent, rgba(0,0,0,.65));
+      opacity: 1; pointer-events: none; z-index: 1;
+    }
+    .item .name {
+      position: absolute; left: .55rem; right: .55rem; bottom: .42rem;
+      color: #fff; font-size: .72rem; font-weight: 520; opacity: 1;
+      text-shadow: 0 1px 3px rgba(0,0,0,.6);
+      z-index: 2; pointer-events: none;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .item .facts {
+      position: absolute; top: .45rem; left: .45rem; z-index: 2;
+      display: flex; gap: .25rem; flex-wrap: wrap; max-width: calc(100% - 3.5rem);
+      opacity: 1;
+    }
+    .item .facts span, .item .age, .item .live-badge {
+      background: rgba(0,0,0,.55); color: #fff; font-size: .6rem; font-weight: 600;
+      padding: .18rem .42rem; border-radius: 4px;
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    }
+    .item .age { position: absolute; top: .45rem; right: .45rem; z-index: 2; }
+    .item .live-badge {
+      position: absolute; top: .45rem; right: .45rem; z-index: 2;
+      background: rgba(185, 28, 28, .75);
+    }
+    .item .open-hint {
+      position: absolute; top: .45rem; right: 2.6rem; z-index: 3;
+      display: flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 5px;
+      background: rgba(0,0,0,.5); color: #fff; opacity: 0;
+      transition: opacity .18s; backdrop-filter: blur(4px); pointer-events: none;
+    }
+    .item:hover .open-hint { opacity: 1; }
+    .item.is-iframe .open-hint { right: .45rem; top: auto; bottom: .4rem; opacity: .85; }
+    .item .open-hint svg { width: 14px; height: 14px; }
+
+    .empty, .loading-msg {
+      padding: 3rem 1rem; text-align: center; color: var(--muted); font-size: .9rem;
+      width: 100%;
+    }
+
+    @media (max-width: 560px) {
+      .topbar { padding: .5rem .9rem .45rem; }
+      h1 { font-size: 1.08rem; }
+      .toolbar { flex-wrap: nowrap; overflow-x: auto; gap: .4rem; margin-top: .5rem; scrollbar-width: none; }
+      .toolbar::-webkit-scrollbar { display: none; }
+      .spacer { display: none; }
+      .seg, .status-pill { flex-shrink: 0; }
+    }
+    @media (max-width: 380px) {
+      .files { grid-template-columns: 1fr; }
+    }
+
+    /* Viewer */
+    #viewer-shell {
+      position: fixed; inset: 0; z-index: 100;
+      background: #111; color: #e0e0e0;
+      display: none; flex-direction: column;
+    }
+    #viewer-shell.open { display: flex; }
+    #stage {
+      flex: 1; position: relative; overflow: hidden;
+      touch-action: none; cursor: grab;
+    }
+    #stage.dragging { cursor: grabbing; }
+    #stage .frame {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      transform-origin: center center;
+      will-change: transform;
+    }
+    #stage .frame img {
+      max-width: 100%; max-height: 100%;
+      width: auto; height: auto;
+      object-fit: contain;
+      user-select: none; -webkit-user-drag: none;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.04);
+    }
+    #stage.zoomed .frame img {
+      max-width: none; max-height: none;
+      width: min(180vw, 2400px); height: auto;
+    }
+    #stage .frame iframe {
+      width: min(100vw, 1400px); height: min(70vh, 720px);
+      max-width: 100%; max-height: 100%;
+      border: 0; background: #000;
+    }
+    #viewer-shell.is-iframe .v-toolbar .zoom-only { display: none; }
+    #viewer-shell.is-iframe #zoom-badge { display: none; }
+    #viewer-shell.is-iframe #stage { cursor: default; }
+
+    .v-back {
+      position: fixed; top: 1rem; left: 1rem; z-index: 120;
+      background: rgba(40,40,40,.85); color: #ccc; border: 1px solid rgba(255,255,255,.08);
+      font-size: 1.2rem; width: 2.5rem; height: 2.5rem; border-radius: 50%;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      transition: background .15s;
+    }
+    .v-back:hover { background: rgba(255,255,255,.2); }
+    .v-nav {
+      position: fixed; top: 50%; transform: translateY(-50%); z-index: 120;
+      background: rgba(255,255,255,.15); color: #fff; border: none;
+      font-size: 1.5rem; width: 3rem; height: 3rem; border-radius: 50%;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .v-nav:hover { background: rgba(255,255,255,.3); }
+    .v-nav.prev { left: 1rem; }
+    .v-nav.next { right: 1rem; }
+    .v-nav[hidden] { display: none; }
+
+    .zoom-badge {
+      position: fixed; top: 1rem; right: 1rem; z-index: 120;
+      background: rgba(40,40,40,.85); color: #ccc; font-size: .75rem;
+      padding: .3rem .7rem; border-radius: 9999px;
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,.08); font-variant-numeric: tabular-nums;
+    }
+
+    .v-toolbar {
+      position: fixed; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
+      display: flex; gap: .25rem; z-index: 120;
+      background: rgba(40,40,40,.85); padding: .35rem; border-radius: 9999px;
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .tbtn {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: transparent; color: #ccc; border: none; font-size: .75rem;
+      padding: .3rem .6rem; border-radius: 9999px; cursor: pointer; font-family: inherit;
+      transition: background .15s, color .15s; white-space: nowrap; line-height: 1;
+    }
+    .tbtn:hover { background: rgba(255,255,255,.15); }
+    .tbtn.active { background: #e0e0e0; color: #111; }
+    .sep { width: 1px; background: rgba(255,255,255,.15); margin: 0 .15rem; align-self: stretch; }
+    .tbtn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .info-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 120;
+      display: flex; justify-content: center; padding: .75rem; pointer-events: none;
+    }
+    .info-bar .info { color: rgba(255,255,255,.7); font-size: .75rem; text-align: center; }
+    .info-bar a { color: rgba(255,255,255,.85); }
+
+    .wx-panel {
+      position: fixed; bottom: 1rem; right: 1rem; z-index: 120;
+      background: rgba(40,40,40,.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-radius: 8px; border: 1px solid rgba(255,255,255,.08);
+      color: #fff; font-size: .8rem; min-width: 240px; max-width: 300px; overflow: hidden;
+      opacity: 0; pointer-events: none; transform: translateY(4px);
+      transition: opacity .2s, transform .2s;
+    }
+    .wx-panel.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+    .wx-panel .hdr { padding: .7rem .85rem; }
+    .wx-panel .cam-name { font-size: .85rem; font-weight: 500; color: rgba(255,255,255,.9); }
+    .wx-panel .cam-sub { font-size: .75rem; color: rgba(255,255,255,.55); margin-top: .1rem; }
+    .wx-panel .fields {
+      border-top: 1px solid rgba(255,255,255,.1); padding: .55rem .85rem;
+      display: grid; grid-template-columns: 1fr 1fr; gap: .3rem 1rem;
+    }
+    .wx-panel .lab { color: rgba(255,255,255,.45); font-size: .75rem; }
+    .wx-panel .val { color: rgba(255,255,255,.8); font-size: .75rem; text-align: right; }
+    .wx-panel .empty { padding: .7rem .85rem; color: rgba(255,255,255,.5); font-size: .75rem; }
+
+    .box-zoom-rect {
+      position: fixed; border: 1.5px solid rgba(255,255,255,.7);
+      background: rgba(255,255,255,.08); pointer-events: none; z-index: 200; display: none;
+    }
+
+    @media (max-width: 560px) {
+      .v-nav { width: 2.4rem; height: 2.4rem; font-size: 1.2rem; }
+      .v-toolbar { bottom: 3.2rem; max-width: calc(100vw - 1rem); overflow-x: auto; }
+      .wx-panel { left: 1rem; right: 1rem; max-width: none; bottom: 5.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="mock-banner">
+    <div><span class="live-dot" id="live-dot" hidden></span><strong>07 · Wicket</strong> · <span id="src-label">loading…</span></div>
+    <nav>
+      <a href="../06-all-tight/index.html">← 06</a>
+      <a href="../index.html">All</a>
+      <a href="https://lcc.live/" target="_blank" rel="noopener">lcc.live ↗</a>
+    </nav>
+  </div>
+
+  <p class="idea-note" id="note">
+    <b>Live data</b> from <code>lcc.live</code> (cameras + UDOT weather/road).
+    Run <code>python3 ui-mocks/07-wicket/serve.py</code> then open
+    <code>http://127.0.0.1:8765/07-wicket/</code> (proxy bypasses CORS).
+  </p>
+
+  <header class="topbar" id="topbar">
+    <h1 id="title">Little Cottonwood</h1>
+    <p class="meta-line" id="meta-line">
+      <b id="cam-count">…</b>&nbsp;cameras
+      <span class="dot"></span>
+      <span id="road-name">SR-210</span>
+      <span class="dot"></span>
+      <span id="updated">loading</span>
+    </p>
+    <div class="toolbar">
+      <div class="seg" id="canyon-seg">
+        <button type="button" class="chip-btn active" data-canyon="LCC">LCC</button>
+        <button type="button" class="chip-btn" data-canyon="BCC">BCC</button>
+      </div>
+      <span class="spacer"></span>
+      <div class="status-pill" id="status-pill">
+        Road <span class="ok" id="road-cond">…</span>
+        <span class="dot"></span>
+        Weather <span class="fair" id="wx-cond">…</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="gallery">
+    <ul class="files" id="files"><li class="loading-msg">Loading cameras…</li></ul>
+  </main>
+
+  <div id="viewer-shell" aria-modal="true" role="dialog" aria-label="Camera viewer">
+    <button type="button" class="v-back" id="v-back" title="Back (Esc)">&times;</button>
+    <button type="button" class="v-nav prev" id="v-prev" title="Previous (←)">‹</button>
+    <button type="button" class="v-nav next" id="v-next" title="Next (→)">›</button>
+    <div class="zoom-badge" id="zoom-badge">Fit</div>
+    <div class="box-zoom-rect" id="box-zoom-rect"></div>
+
+    <div id="stage">
+      <div class="frame" id="frame">
+        <img id="stage-img" alt="" decoding="async" hidden>
+        <iframe id="stage-iframe" title="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen hidden></iframe>
+      </div>
+    </div>
+
+    <div class="v-toolbar">
+      <button type="button" class="tbtn zoom-only" id="btn-zout" title="Zoom out (−)">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16" y1="16" x2="21" y2="21"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      </button>
+      <button type="button" class="tbtn zoom-only" id="btn-zin" title="Zoom in (+)">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16" y1="16" x2="21" y2="21"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      </button>
+      <button type="button" class="tbtn zoom-only active" id="btn-fit" title="Fit (0)">Fit</button>
+      <button type="button" class="tbtn zoom-only" id="btn-1x" title="1:1 (1)">1:1</button>
+      <div class="sep zoom-only"></div>
+      <button type="button" class="tbtn" id="btn-info" title="Weather (I)">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      </button>
+      <a class="tbtn" id="btn-open" href="#" target="_blank" rel="noopener" title="Open on lcc.live">↗</a>
+    </div>
+
+    <div class="info-bar"><div class="info" id="v-info"></div></div>
+    <div class="wx-panel" id="wx-panel"></div>
+  </div>
+
+  <script>
+  (function () {
+    /* Same-origin when served by serve.py; else try production (CORS may fail). */
+    var ORIGIN = (function () {
+      if (location.protocol === 'http:' || location.protocol === 'https:') {
+        if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') return '';
+      }
+      return 'https://lcc.live';
+    })();
+
+    var state = {
+      canyon: 'LCC',
+      cameras: [],
+      weather: {},
+      roads: [],
+      idx: 0
+    };
+
+    var files = document.getElementById('files');
+    var shell = document.getElementById('viewer-shell');
+    var stage = document.getElementById('stage');
+    var frame = document.getElementById('frame');
+    var stageImg = document.getElementById('stage-img');
+    var stageIframe = document.getElementById('stage-iframe');
+    var zoomBadge = document.getElementById('zoom-badge');
+    var wxPanel = document.getElementById('wx-panel');
+    var btnInfo = document.getElementById('btn-info');
+    var note = document.getElementById('note');
+    var infoOpen = false;
+    var scale = 1, tx = 0, ty = 0;
+    var stops = [1, 1.5, 2, 3, 4];
+    var drag = null, box = null;
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    function roundTemp(v) {
+      if (v == null || v === '') return null;
+      var n = parseFloat(v);
+      return isNaN(n) ? null : Math.round(n);
+    }
+
+    function roundNum(v, d) {
+      if (v == null || v === '') return null;
+      var n = parseFloat(v);
+      if (isNaN(n)) return null;
+      if (d == null) d = 0;
+      var f = Math.pow(10, d);
+      return Math.round(n * f) / f;
+    }
+
+    function isStale(ts) {
+      if (!ts) return true;
+      var now = Date.now() / 1000;
+      /* UDOT timestamps are unix seconds */
+      return (now - ts) > 6 * 3600;
+    }
+
+    function timeAgo(ts) {
+      if (!ts) return '';
+      var sec = Math.max(0, Math.floor(Date.now() / 1000 - ts));
+      if (sec < 60) return sec + 's';
+      if (sec < 3600) return Math.floor(sec / 60) + 'm';
+      if (sec < 86400) return Math.floor(sec / 3600) + 'h';
+      return Math.floor(sec / 86400) + 'd';
+    }
+
+    function slugify(s) {
+      return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    }
+
+    function imgURL(cam) {
+      if (cam.src && cam.src.indexOf('/image/') !== -1) {
+        /* Proxied absolute from JSON when hit via production; rewrite to our origin if local */
+        if (ORIGIN === '' && cam.src.indexOf('https://lcc.live') === 0) {
+          return cam.src.replace('https://lcc.live', '');
+        }
+        return cam.src;
+      }
+      return (ORIGIN || '') + '/image/' + encodeURIComponent(cam.id);
+    }
+
+    function wxFor(cam) {
+      return state.weather[cam.id] || null;
+    }
+
+    function chipFacts(wx) {
+      if (!wx || isStale(wx.LastUpdated)) return { temp: '', wind: '', status: '', age: '' };
+      var t = roundTemp(wx.AirTemperature);
+      var w = roundNum(wx.WindSpeedAvg, 0);
+      var dir = wx.WindDirection || '';
+      var wind = w != null ? (w + (dir ? ' ' + dir : '')) : '';
+      return {
+        temp: t != null ? t + '°' : '',
+        wind: wind,
+        status: wx.SurfaceStatus || '',
+        age: timeAgo(wx.LastUpdated)
+      };
+    }
+
+    function visible() {
+      return state.cameras.filter(function (c) {
+        return c.kind === 'img' || c.kind === 'iframe';
+      });
+    }
+
+    function renderGrid() {
+      var list = visible();
+      document.getElementById('cam-count').textContent = list.length;
+      if (!list.length) {
+        files.innerHTML = '<li class="empty">No cameras</li>';
+        return;
+      }
+      files.innerHTML = '';
+      list.forEach(function (c, i) {
+        var wx = wxFor(c);
+        var f = chipFacts(wx);
+        var isIframe = c.kind === 'iframe';
+        var li = document.createElement('li');
+        li.className = 'item' + (isIframe ? ' is-iframe is-loaded' : '');
+        var facts = '';
+        if (f.temp) facts += '<span>' + esc(f.temp) + '</span>';
+        if (f.wind) facts += '<span>' + esc(f.wind) + '</span>';
+        if (f.status) facts += '<span>' + esc(f.status) + '</span>';
+        var media = isIframe
+          ? '<iframe class="thumb" src="' + esc(c.src) + '" title="' + esc(c.alt) + '" loading="lazy" tabindex="-1" allow="autoplay; encrypted-media" referrerpolicy="strict-origin-when-cross-origin"></iframe>'
+          : '<img class="thumb" alt="" loading="lazy" decoding="async" src="' + esc(imgURL(c)) + '">';
+        var corner = isIframe
+          ? '<span class="live-badge">LIVE</span>'
+          : (f.age ? '<span class="age">' + esc(f.age) + '</span>' : '');
+        li.innerHTML =
+          '<button type="button" class="link" data-i="' + i + '" aria-label="Open ' + esc(c.alt) + '">' +
+            (isIframe ? '' : '<span class="thumb-skel"></span>') +
+            media +
+            (facts ? '<div class="facts">' + facts + '</div>' : '') +
+            corner +
+            '<span class="open-hint" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="16" y1="16" x2="21" y2="21"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg></span>' +
+            '<span class="name">' + esc(c.alt || 'Camera') + '</span>' +
+          '</button>';
+        if (!isIframe) {
+          var img = li.querySelector('img');
+          img.addEventListener('load', function () { li.classList.add('is-loaded'); });
+          img.addEventListener('error', function () { li.classList.add('is-loaded'); });
+        }
+        files.appendChild(li);
+      });
+    }
+
+    function renderRoad() {
+      var rc = state.roads[0];
+      if (!rc) {
+        document.getElementById('road-cond').textContent = '—';
+        document.getElementById('wx-cond').textContent = '—';
+        document.getElementById('updated').textContent = 'no road data';
+        return;
+      }
+      document.getElementById('road-name').textContent = rc.RoadwayName || 'SR-210';
+      document.getElementById('road-cond').textContent = rc.RoadCondition || '—';
+      document.getElementById('wx-cond').textContent = rc.WeatherCondition || '—';
+      document.getElementById('updated').textContent = 'updated ' + timeAgo(rc.LastUpdated) + ' ago';
+      var restr = (rc.Restriction || '').trim().toLowerCase();
+      var pill = document.getElementById('status-pill');
+      if (restr && restr !== 'none' && restr !== 'no restrictions' && restr !== 'n/a') {
+        pill.innerHTML =
+          'Road <span class="ok">' + esc(rc.RoadCondition) + '</span>' +
+          '<span class="dot"></span>Weather <span class="fair">' + esc(rc.WeatherCondition) + '</span>' +
+          '<span class="dot"></span><span class="warn">' + esc(rc.Restriction) + '</span>';
+      }
+    }
+
+    async function loadCanyon(id) {
+      state.canyon = id;
+      document.getElementById('title').textContent =
+        id === 'BCC' ? 'Big Cottonwood' : 'Little Cottonwood';
+      document.getElementById('src-label').textContent = 'fetching ' + id + '…';
+      files.innerHTML = '<li class="loading-msg">Loading ' + id + ' cameras…</li>';
+
+      var canyonURL = (ORIGIN || '') + '/' + id.toLowerCase() + '.json';
+      var udotURL = (ORIGIN || '') + '/api/canyon/' + id + '/udot';
+
+      try {
+        var results = await Promise.all([
+          fetch(canyonURL, { credentials: 'omit' }).then(function (r) {
+            if (!r.ok) throw new Error(canyonURL + ' → ' + r.status);
+            return r.json();
+          }),
+          fetch(udotURL, { credentials: 'omit' }).then(function (r) {
+            if (!r.ok) throw new Error(udotURL + ' → ' + r.status);
+            return r.json();
+          })
+        ]);
+        var canyon = results[0];
+        var udot = results[1];
+        state.cameras = canyon.cameras || [];
+        state.weather = udot.weatherStations || {};
+        state.roads = udot.roadConditions || [];
+        document.getElementById('live-dot').hidden = false;
+        note.classList.remove('err');
+        note.innerHTML =
+          '<b>Live</b> · ' + esc(id) + ' cameras (incl. streams) + UDOT weather/road from <code>lcc.live</code>. ' +
+          'Click a camera · scroll to zoom · Esc closes.';
+        renderRoad();
+        renderGrid();
+        document.getElementById('src-label').textContent =
+          'live · ' + visible().length + ' cams · ' + (ORIGIN || 'proxy → lcc.live');
+      } catch (err) {
+        document.getElementById('live-dot').hidden = true;
+        document.getElementById('src-label').textContent = 'load failed';
+        note.classList.add('err');
+        note.innerHTML =
+          '<b>Could not load live data.</b> ' + esc(err.message || err) +
+          '<br>From a terminal: <code>python3 ui-mocks/07-wicket/serve.py</code> → ' +
+          '<code>http://127.0.0.1:8765/07-wicket/</code>';
+        files.innerHTML = '<li class="empty">Failed to load. Start serve.py (CORS).</li>';
+      }
+    }
+
+    files.addEventListener('click', function (e) {
+      var btn = e.target.closest('.link');
+      if (!btn) return;
+      openViewer(+btn.dataset.i);
+    });
+
+    document.getElementById('canyon-seg').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-canyon]');
+      if (!b) return;
+      [].forEach.call(this.querySelectorAll('.chip-btn'), function (x) {
+        x.classList.toggle('active', x === b);
+      });
+      loadCanyon(b.dataset.canyon);
+    });
+
+    var topbar = document.getElementById('topbar');
+    var lastY = 0;
+    window.addEventListener('scroll', function () {
+      var y = window.scrollY || 0;
+      if (y > lastY && y > 80) topbar.classList.add('tucked');
+      else topbar.classList.remove('tucked');
+      lastY = y;
+    }, { passive: true });
+
+    /* viewer zoom/pan */
+    function applyTransform() {
+      frame.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
+      stage.classList.toggle('zoomed', scale > 1.05);
+      if (Math.abs(scale - 1) < 0.05) zoomBadge.textContent = 'Fit';
+      else zoomBadge.textContent = scale.toFixed(scale >= 2 ? 1 : 2) + '×';
+      document.getElementById('btn-fit').classList.toggle('active', scale <= 1.05);
+      document.getElementById('btn-1x').classList.toggle('active', Math.abs(scale - 2) < 0.15);
+    }
+
+    function setScale(s, cx, cy) {
+      var rect = stage.getBoundingClientRect();
+      cx = cx == null ? rect.width / 2 : cx - rect.left;
+      cy = cy == null ? rect.height / 2 : cy - rect.top;
+      var prev = scale;
+      scale = Math.max(1, Math.min(4, s));
+      if (scale === 1) { tx = 0; ty = 0; }
+      else {
+        var k = scale / prev;
+        tx = cx - k * (cx - tx);
+        ty = cy - k * (cy - ty);
+      }
+      applyTransform();
+    }
+
+    function stepZoom(dir) {
+      var best = scale;
+      if (dir > 0) {
+        for (var i = 0; i < stops.length; i++) if (stops[i] > scale * 1.03) { best = stops[i]; break; }
+        if (best === scale) best = stops[stops.length - 1];
+      } else {
+        for (var j = stops.length - 1; j >= 0; j--) if (stops[j] < scale * 0.97) { best = stops[j]; break; }
+        if (best === scale) best = 1;
+      }
+      setScale(best);
+    }
+
+    function showCam(i) {
+      var list = visible();
+      if (i < 0 || i >= list.length) return;
+      state.idx = i;
+      var c = list[i];
+      var wx = wxFor(c);
+      var f = chipFacts(wx);
+      var isIframe = c.kind === 'iframe';
+      shell.classList.toggle('is-iframe', isIframe);
+      if (isIframe) {
+        stageImg.hidden = true;
+        stageImg.removeAttribute('src');
+        stageIframe.hidden = false;
+        stageIframe.src = c.src;
+        stageIframe.title = c.alt || '';
+      } else {
+        stageIframe.hidden = true;
+        stageIframe.removeAttribute('src');
+        stageImg.hidden = false;
+        stageImg.src = imgURL(c);
+        stageImg.alt = c.alt || '';
+      }
+      var ago = f.age ? ' · updated ' + f.age + ' ago' : (isIframe ? ' · live stream' : '');
+      document.getElementById('v-info').textContent = (c.alt || 'Camera') + ago;
+      document.getElementById('v-prev').hidden = i <= 0;
+      document.getElementById('v-next').hidden = i >= list.length - 1;
+      document.getElementById('btn-open').href =
+        'https://lcc.live/camera/' + slugify(c.alt || c.id);
+
+      if (wx && !isStale(wx.LastUpdated)) {
+        var rows = '';
+        function row(lab, val) {
+          if (val == null || val === '') return;
+          rows += '<span class="lab">' + esc(lab) + '</span><span class="val">' + esc(val) + '</span>';
+        }
+        var air = roundTemp(wx.AirTemperature);
+        var surf = roundTemp(wx.SurfaceTemp);
+        var wind = roundNum(wx.WindSpeedAvg, 0);
+        var gust = roundNum(wx.WindSpeedGust, 0);
+        row('Air', air != null ? air + '°F' : null);
+        row('Surface', surf != null ? surf + '°F' : null);
+        row('Status', wx.SurfaceStatus);
+        row('Wind', wind != null ? wind + (wx.WindDirection ? ' ' + wx.WindDirection : '') : null);
+        row('Gust', gust != null ? String(gust) : null);
+        row('Humidity', wx.RelativeHumidity != null ? wx.RelativeHumidity + '%' : null);
+        row('Dew', roundTemp(wx.DewpointTemp) != null ? roundTemp(wx.DewpointTemp) + '°F' : null);
+        row('Station', wx.StationName);
+        wxPanel.innerHTML =
+          '<div class="hdr"><div class="cam-name">' + esc(c.alt) + '</div>' +
+          '<div class="cam-sub">' + esc(wx.StationName || 'Weather') + ' · ' + esc(f.age) + ' ago</div></div>' +
+          (rows ? '<div class="fields">' + rows + '</div>' : '<div class="empty">No readings</div>');
+      } else {
+        wxPanel.innerHTML =
+          '<div class="hdr"><div class="cam-name">' + esc(c.alt) + '</div>' +
+          '<div class="cam-sub">No linked weather station</div></div>' +
+          '<div class="empty">Weather only on cams with UDOT RWIS</div>';
+      }
+      scale = 1; tx = 0; ty = 0;
+      applyTransform();
+    }
+
+    function openViewer(i) {
+      shell.classList.add('open');
+      document.body.classList.add('viewer-open');
+      showCam(i);
+      if (infoOpen) wxPanel.classList.add('visible');
+    }
+    function closeViewer() {
+      shell.classList.remove('open');
+      shell.classList.remove('is-iframe');
+      document.body.classList.remove('viewer-open');
+      wxPanel.classList.remove('visible');
+      btnInfo.classList.remove('active');
+      infoOpen = false;
+      stageIframe.removeAttribute('src');
+    }
+
+    document.getElementById('v-back').onclick = closeViewer;
+    document.getElementById('v-prev').onclick = function () { showCam(state.idx - 1); };
+    document.getElementById('v-next').onclick = function () { showCam(state.idx + 1); };
+    document.getElementById('btn-zin').onclick = function () { stepZoom(1); };
+    document.getElementById('btn-zout').onclick = function () { stepZoom(-1); };
+    document.getElementById('btn-fit').onclick = function () { setScale(1); };
+    document.getElementById('btn-1x').onclick = function () { setScale(2); };
+    btnInfo.onclick = function () {
+      infoOpen = !infoOpen;
+      btnInfo.classList.toggle('active', infoOpen);
+      wxPanel.classList.toggle('visible', infoOpen);
+    };
+
+    stage.addEventListener('pointerdown', function (e) {
+      if (e.shiftKey) {
+        box = { x: e.clientX, y: e.clientY };
+        var r = document.getElementById('box-zoom-rect');
+        r.style.display = 'block';
+        r.style.left = e.clientX + 'px'; r.style.top = e.clientY + 'px';
+        r.style.width = '0'; r.style.height = '0';
+        e.preventDefault();
+        return;
+      }
+      if (scale <= 1) return;
+      drag = { x: e.clientX - tx, y: e.clientY - ty, id: e.pointerId };
+      stage.setPointerCapture(e.pointerId);
+      stage.classList.add('dragging');
+    });
+    stage.addEventListener('pointermove', function (e) {
+      if (box) {
+        var r = document.getElementById('box-zoom-rect');
+        var x = Math.min(box.x, e.clientX), y = Math.min(box.y, e.clientY);
+        var w = Math.abs(e.clientX - box.x), h = Math.abs(e.clientY - box.y);
+        r.style.left = x + 'px'; r.style.top = y + 'px';
+        r.style.width = w + 'px'; r.style.height = h + 'px';
+        return;
+      }
+      if (!drag || e.pointerId !== drag.id) return;
+      tx = e.clientX - drag.x;
+      ty = e.clientY - drag.y;
+      applyTransform();
+    });
+    function endPointer(e) {
+      if (box) {
+        var r = document.getElementById('box-zoom-rect');
+        var w = parseFloat(r.style.width) || 0;
+        var h = parseFloat(r.style.height) || 0;
+        r.style.display = 'none';
+        if (w > 24 && h > 24) {
+          var rect = stage.getBoundingClientRect();
+          var factor = Math.min(rect.width / w, rect.height / h, 4);
+          setScale(Math.min(4, scale * factor), box.x + w / 2, box.y + h / 2);
+        }
+        box = null;
+        return;
+      }
+      if (drag && e.pointerId === drag.id) {
+        drag = null;
+        stage.classList.remove('dragging');
+      }
+    }
+    stage.addEventListener('pointerup', endPointer);
+    stage.addEventListener('pointercancel', endPointer);
+    stage.addEventListener('wheel', function (e) {
+      if (shell.classList.contains('is-iframe')) return;
+      e.preventDefault();
+      var delta = e.deltaY > 0 ? -0.15 : 0.15;
+      setScale(scale * (1 + delta), e.clientX, e.clientY);
+    }, { passive: false });
+    stage.addEventListener('dblclick', function (e) {
+      if (shell.classList.contains('is-iframe')) return;
+      if (scale <= 1.05) setScale(2, e.clientX, e.clientY);
+      else setScale(1);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (!shell.classList.contains('open')) return;
+      if (e.key === 'Escape') closeViewer();
+      if (e.key === 'ArrowLeft') showCam(state.idx - 1);
+      if (e.key === 'ArrowRight') showCam(state.idx + 1);
+      if (shell.classList.contains('is-iframe')) {
+        if (e.key === 'i' || e.key === 'I') btnInfo.click();
+        return;
+      }
+      if (e.key === '+' || e.key === '=') stepZoom(1);
+      if (e.key === '-') stepZoom(-1);
+      if (e.key === '0') setScale(1);
+      if (e.key === '1') setScale(2);
+      if (e.key === 'i' || e.key === 'I') btnInfo.click();
+    });
+
+    loadCanyon('LCC');
+  })();
+  </script>
+</body>
+</html>

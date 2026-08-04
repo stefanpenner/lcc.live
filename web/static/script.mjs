@@ -343,8 +343,80 @@ class FullscreenViewer {
     this.touchStartX = 0;
     this.touchStartY = 0;
     this.scrollPosition = 0;
+    /** @type {Map<string, Promise<HTMLImageElement|null>>} */
+    this.preloadCache = new Map();
     this.setupOverlay();
     this.setupEventListeners();
+    this.setupHoverPreload();
+  }
+
+  /**
+   * Warm the browser image cache (and decode) so fullscreen open is instant.
+   * @param {string} src
+   * @returns {Promise<HTMLImageElement|null>}
+   */
+  preload(src) {
+    if (!src || src.startsWith('data:')) return Promise.resolve(null);
+    const existing = this.preloadCache.get(src);
+    if (existing) return existing;
+
+    const p = new Promise((resolve) => {
+      const im = new Image();
+      im.decoding = 'async';
+      const finish = async () => {
+        try {
+          if (im.decode) await im.decode();
+        } catch {
+          /* decode optional */
+        }
+        resolve(im.naturalWidth ? im : null);
+      };
+      im.onload = finish;
+      im.onerror = () => resolve(null);
+      im.src = src;
+      if (im.complete && im.naturalWidth) finish();
+    });
+
+    this.preloadCache.set(src, p);
+    // Bound cache — drop oldest when large (blob URLs rotate)
+    if (this.preloadCache.size > 40) {
+      const first = this.preloadCache.keys().next().value;
+      this.preloadCache.delete(first);
+    }
+    return p;
+  }
+
+  imageSrc(el) {
+    if (!el || el.tagName !== 'IMG') return '';
+    return el.dataset.src || el.currentSrc || el.src || '';
+  }
+
+  setupHoverPreload() {
+    // pointerover bubbles; skip when moving within the same feed
+    document.body.addEventListener(
+      'pointerover',
+      (e) => {
+        const feed = e.target.closest?.('camera-feed');
+        if (!feed || feed.closest('the-overlay')) return;
+        if (e.relatedTarget instanceof Node && feed.contains(e.relatedTarget)) return;
+        const img = feed.querySelector('img');
+        if (img) this.preload(this.imageSrc(img));
+      },
+      { passive: true }
+    );
+
+    // Touch: warm on press so the following click is more likely cached
+    document.body.addEventListener(
+      'pointerdown',
+      (e) => {
+        if (e.pointerType === 'mouse') return;
+        const feed = e.target.closest?.('camera-feed');
+        if (!feed || feed.closest('the-overlay')) return;
+        const img = feed.querySelector('img');
+        if (img) this.preload(this.imageSrc(img));
+      },
+      { passive: true }
+    );
   }
 
   setupOverlay() {
@@ -502,10 +574,51 @@ class FullscreenViewer {
     
     // Clone and display element (image, iframe, or video)
     if (sourceElement.tagName === 'IMG') {
+      const src = this.imageSrc(sourceElement);
+      this.preload(src); // ensure in-flight if hover missed
+
       const img = document.createElement('img');
-      img.src = sourceElement.src;
-      img.alt = sourceElement.alt;
+      img.alt = sourceElement.alt || '';
+      img.className = 'overlay-img';
+      img.decoding = 'async';
+
+      // Subtle spinner — only if load takes >120ms (no flash when warm)
+      const spinner = document.createElement('div');
+      spinner.className = 'overlay-spinner';
+      spinner.setAttribute('aria-hidden', 'true');
+      this.overlay.appendChild(spinner);
       this.overlay.appendChild(img);
+
+      let ready = false;
+      const spinnerTimer = setTimeout(() => {
+        if (!ready) spinner.classList.add('visible');
+      }, 120);
+
+      const markReady = () => {
+        if (ready) return;
+        ready = true;
+        clearTimeout(spinnerTimer);
+        spinner.classList.remove('visible');
+        // remove after fade so it doesn't linger
+        setTimeout(() => spinner.remove(), 200);
+        img.classList.add('is-ready');
+      };
+
+      img.addEventListener('load', async () => {
+        try {
+          if (img.decode) await img.decode();
+        } catch {
+          /* ignore */
+        }
+        markReady();
+      });
+      img.addEventListener('error', () => markReady());
+
+      img.src = src;
+      // Already cached / complete from grid or hover preload
+      if (img.complete && img.naturalWidth > 0) {
+        markReady();
+      }
     } else if (sourceElement.tagName === 'IFRAME') {
       const iframe = document.createElement('iframe');
       iframe.src = sourceElement.src;
@@ -616,22 +729,14 @@ class FullscreenViewer {
   }
 
   prefetchAdjacent() {
-    // Prefetch next and previous items (images only, iframes load on demand)
+    // Decode-prefetch next/prev images (stronger than <link rel=prefetch>)
     const indicesToPrefetch = [this.currentIndex - 1, this.currentIndex + 1]
       .filter(i => i >= 0 && i < this.items.length);
-    
+
     indicesToPrefetch.forEach(i => {
       const element = this.items[i];
-      // Only prefetch images, not iframes
       if (element.tagName === 'IMG') {
-        const link = document.createElement('link');
-        link.rel = 'prefetch';
-        link.as = 'image';
-        link.href = element.src;
-        document.head.appendChild(link);
-        
-        // Clean up after a short delay
-        setTimeout(() => link.remove(), 5000);
+        this.preload(this.imageSrc(element));
       }
     });
   }
@@ -1436,6 +1541,37 @@ class UDOTPoller {
 // Initialize
 // ========================================
 
+// Sticky top bar: tuck on scroll down, reveal on scroll up (wicket-style)
+function initTopBarTuck() {
+  const topBar = document.querySelector('.top-bar');
+  if (!topBar) return;
+
+  let lastY = window.scrollY || 0;
+  let ticking = false;
+
+  const update = () => {
+    const y = window.scrollY || 0;
+    if (y > lastY && y > 80) {
+      topBar.classList.add('tucked');
+    } else {
+      topBar.classList.remove('tucked');
+    }
+    lastY = y;
+    ticking = false;
+  };
+
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (!ticking) {
+        requestAnimationFrame(update);
+        ticking = true;
+      }
+    },
+    { passive: true }
+  );
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const reloader = new ImageReloader(3000);
   reloader.start();
@@ -1443,6 +1579,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const viewer = new FullscreenViewer();
   const shareHandler = new ShareHandler();
   const fullscreenHandler = new FullscreenButtonHandler(viewer);
+  initTopBarTuck();
 
   // Start UDOT polling if on canyon page
   const canyonNav = document.querySelector('.canyon-nav');
