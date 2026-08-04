@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>04 · Road chips (tokens)</title>
+  <link rel="stylesheet" href="../shared.css">
+  <style>
+    body { padding: 0.75rem; }
+    main { max-width: 720px; margin: 0 auto; }
+
+    h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin: 1.25rem 0 0.5rem;
+    }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.65rem;
+    }
+    .row:last-child { margin-bottom: 0; }
+    .label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      width: 5.5rem;
+      flex-shrink: 0;
+    }
+    .road-name {
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin-right: 0.25rem;
+    }
+    .vs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    @media (max-width: 600px) {
+      .vs { grid-template-columns: 1fr; }
+    }
+    .side h3 {
+      font-size: 0.8rem;
+      margin-bottom: 0.5rem;
+    }
+    .side.before .line {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .side.before b { color: var(--text); font-weight: 500; }
+    .side.before .g { color: var(--green); }
+    .side.before .a { color: var(--amber); }
+    .legend {
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .legend .chip { margin: 0.15rem 0.15rem 0.15rem 0; }
+  </style>
+</head>
+<body>
+  <div class="mock-banner">
+    <div><strong>04 · Road chips</strong> — tokens, not labels</div>
+    <nav>
+      <a href="../03-overlay-footer/index.html">← Prev</a>
+      <a href="../index.html">All</a>
+      <a href="../05-camera-detail/index.html">Next →</a>
+    </nav>
+  </div>
+
+  <main>
+    <p class="idea-note"><b>Change:</b> drop “Road: / Weather: / Restriction:” when values speak for themselves. Color = meaning. Restriction chip only when ≠ none.</p>
+
+    <h2>Side by side</h2>
+    <div class="vs">
+      <div class="panel side before">
+        <h3>Before</h3>
+        <div class="line">Little Cottonwood Canyon</div>
+        <div class="line">Road: <b class="g">Dry</b></div>
+        <div class="line">Weather: <b class="a">Fair</b></div>
+        <div class="line">Restriction: <b>none</b></div>
+        <div class="line">(3m ago)</div>
+      </div>
+      <div class="panel side after">
+        <h3>After</h3>
+        <div class="row">
+          <span class="road-name">SR-210</span>
+          <span class="chip dry">Dry</span>
+          <span class="chip" style="color:var(--amber);background:color-mix(in srgb,var(--amber) 15%,transparent)">Fair</span>
+          <span class="chip muted">3m</span>
+        </div>
+        <div class="row" style="opacity:0.7;font-size:0.75rem;color:var(--muted)">
+          no restriction chip (none → hidden)
+        </div>
+      </div>
+    </div>
+
+    <h2>States</h2>
+    <div class="panel">
+      <div class="row">
+        <span class="label">Good day</span>
+        <span class="road-name">SR-210</span>
+        <span class="chip dry">Dry</span>
+        <span class="chip" style="color:var(--amber);background:color-mix(in srgb,var(--amber) 15%,transparent)">Fair</span>
+        <span class="chip muted">1m</span>
+      </div>
+      <div class="row">
+        <span class="label">Storm</span>
+        <span class="road-name">SR-210</span>
+        <span class="chip snow">Snow</span>
+        <span class="chip snow">Snowy</span>
+        <span class="chip warn">Traction law</span>
+        <span class="chip muted">4m</span>
+      </div>
+      <div class="row">
+        <span class="label">Ice risk</span>
+        <span class="road-name">SR-190</span>
+        <span class="chip ice">Ice</span>
+        <span class="chip wet">Wet</span>
+        <span class="chip warn">Chains</span>
+        <span class="chip muted">2m</span>
+      </div>
+      <div class="row">
+        <span class="label">Stale</span>
+        <span class="road-name">SR-210</span>
+        <span class="chip dry" style="opacity:0.55">Dry</span>
+        <span class="chip muted">!</span>
+        <span class="chip muted">47m</span>
+      </div>
+    </div>
+
+    <p class="legend">
+      Chip legend:
+      <span class="chip dry">Dry</span>
+      <span class="chip wet">Wet</span>
+      <span class="chip snow">Snow</span>
+      <span class="chip ice">Ice</span>
+      <span class="chip warn">Restriction</span>
+      <span class="chip muted">age / stale</span>
+    </p>
+  </main>
+</body>
+</html>

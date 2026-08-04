@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UI mocks — tightened lcc.live</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    main { max-width: 720px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    h1 { font-size: 1.35rem; margin-bottom: 0.25rem; }
+    .lead { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+    ol { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+    a.card {
+      display: block;
+      padding: 0.85rem 1rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s;
+    }
+    a.card:hover { border-color: var(--focus); }
+    a.card .n {
+      display: inline-block;
+      width: 1.6rem;
+      height: 1.6rem;
+      line-height: 1.6rem;
+      text-align: center;
+      border-radius: 4px;
+      background: var(--border);
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-right: 0.5rem;
+    }
+    a.card .t { font-weight: 600; }
+    a.card p { margin: 0.35rem 0 0 2.1rem; font-size: 0.8rem; color: var(--muted); }
+    a.card.combo .n { background: var(--accent); color: var(--bg); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Tightened UI mocks</h1>
+    <p class="lead">Open each idea in a tab. Compare against <b>00 · Current</b>.</p>
+    <ol>
+      <li>
+        <a class="card" href="00-current/index.html">
+          <span class="n">00</span><span class="t">Current (baseline)</span>
+          <p>Approx today’s canyon page: airy header, road block, wide cards, under-image footer.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card" href="01-sticky-bar/index.html">
+          <span class="n">01</span><span class="t">Sticky chrome bar</span>
+          <p>Nav + road status one sticky row. Cameras start higher.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card" href="02-dense-grid/index.html">
+          <span class="n">02</span><span class="t">Dense camera grid</span>
+          <p>Smaller min column, tight gaps, 2-col mobile, no hover lift.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card" href="03-overlay-footer/index.html">
+          <span class="n">03</span><span class="t">Meta on the image</span>
+          <p>Title / temp / wind as gradient strip on the photo; actions on hover.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card" href="04-road-chips/index.html">
+          <span class="n">04</span><span class="t">Road chips (tokens)</span>
+          <p>Color chips without Road/Weather labels; restriction only when real.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card" href="05-camera-detail/index.html">
+          <span class="n">05</span><span class="t">Camera detail (image first)</span>
+          <p>One-line chrome, max image, dense weather row.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card combo" href="06-all-tight/index.html">
+          <span class="n">06</span><span class="t">All combined</span>
+          <p>Sticky bar + dense grid + overlay meta + token chips — full target.</p>
+        </a>
+      </li>
+    </ol>
+  </main>
+</body>
+</html>

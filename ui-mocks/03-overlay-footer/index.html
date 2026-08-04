@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>03 · Meta on the image</title>
+  <link rel="stylesheet" href="../shared.css">
+  <style>
+    body { padding: 0.5rem; }
+
+    header {
+      max-width: 1600px;
+      margin: 0 auto 0.75rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    #grid {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 0.75rem;
+    }
+    .card {
+      position: relative;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--card);
+      cursor: zoom-in;
+    }
+    .cam-img {
+      height: auto;
+      aspect-ratio: 16 / 10;
+    }
+    /* meta strip ON the image */
+    .meta {
+      position: absolute;
+      inset-inline: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 1.25rem 0.45rem 0.35rem;
+      background: linear-gradient(transparent, rgba(0,0,0,0.7));
+      color: #fff;
+      font-size: 0.7rem;
+    }
+    .meta h4 {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.7rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-transform: none;
+      color: #fff;
+    }
+    .meta .chip {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      font-size: 0.65rem;
+      padding: 1px 5px;
+    }
+    .meta .actions {
+      display: flex;
+      gap: 2px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .card:hover .actions,
+    .card:focus-within .actions { opacity: 1; }
+    .meta button {
+      border: none;
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      width: 1.4rem;
+      height: 1.4rem;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.7rem;
+    }
+    .age {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      font-size: 10px;
+      color: rgba(255,255,255,0.7);
+      background: rgba(0,0,0,0.35);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+    @media (max-width: 768px) {
+      .meta .actions { opacity: 0.85; } /* always show a bit on touch */
+    }
+  </style>
+</head>
+<body>
+  <div class="mock-banner">
+    <div><strong>03 · Overlay footer</strong> — meta on the photo</div>
+    <nav>
+      <a href="../02-dense-grid/index.html">← Prev</a>
+      <a href="../index.html">All</a>
+      <a href="../04-road-chips/index.html">Next →</a>
+    </nav>
+  </div>
+
+  <p class="idea-note"><b>Change:</b> no strip under the image. Name + temp live in a gradient on the photo. Share/fullscreen appear on hover (desktop).</p>
+
+  <header>
+    <div class="canyon-toggle">
+      <a href="#" class="active">LCC</a>
+      <a href="#">BCC</a>
+    </div>
+  </header>
+
+  <main id="grid">
+    <article class="card" tabindex="0">
+      <div class="cam-img" data-label="White Pine"></div>
+      <span class="age">2m</span>
+      <div class="meta">
+        <h4>White Pine Trailhead</h4>
+        <span class="chip">28°</span>
+        <span class="chip">12mph NW</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+    <article class="card" tabindex="0">
+      <div class="cam-img snow" data-label="Snowbird"></div>
+      <span class="age">1m</span>
+      <div class="meta">
+        <h4>Snowbird Entry 1</h4>
+        <span class="chip">24°</span>
+        <span class="chip">Snow</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+    <article class="card" tabindex="0">
+      <div class="cam-img night" data-label="Alta"></div>
+      <span class="age">4m</span>
+      <div class="meta">
+        <h4>Alta Bypass Road</h4>
+        <span class="chip">22°</span>
+        <span class="chip">8mph E</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+    <article class="card" tabindex="0">
+      <div class="cam-img" data-label="CC Base"></div>
+      <span class="age">3m</span>
+      <div class="meta">
+        <h4>Cottonwood Canyon Rd</h4>
+        <span class="chip">31°</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+    <article class="card" tabindex="0">
+      <div class="cam-img snow" data-label="MM 0.2"></div>
+      <span class="age">2m</span>
+      <div class="meta">
+        <h4>SR-210 @ MM 0.2</h4>
+        <span class="chip">30°</span>
+        <span class="chip">Wet</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+    <article class="card" tabindex="0">
+      <div class="cam-img" data-label="S-Curves"></div>
+      <span class="age">5m</span>
+      <div class="meta">
+        <h4>S-Curves</h4>
+        <span class="chip">27°</span>
+        <span class="chip">14mph</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

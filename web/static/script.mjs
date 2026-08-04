@@ -942,129 +942,147 @@ class UDOTPoller {
     }
   }
 
+  hasActiveRestriction(restriction) {
+    if (!restriction) return false;
+    const r = String(restriction).trim().toLowerCase();
+    return r !== '' && r !== 'none' && r !== 'no restrictions' && r !== 'n/a';
+  }
+
+  restrictionLabel(restriction) {
+    return restriction && String(restriction).trim() !== '' ? String(restriction).trim() : 'none';
+  }
+
+  roadCardInnerHTML(cond) {
+    const road = this.escapeHtml(cond.RoadCondition);
+    const weather = this.escapeHtml(cond.WeatherCondition);
+    const name = this.escapeHtml(cond.RoadwayName);
+    const ago = this.escapeHtml(this.formatTimeAgo(cond.LastUpdated));
+    const restriction = this.restrictionLabel(cond.Restriction);
+    const restrictionEsc = this.escapeHtml(restriction);
+    const restrictionClass = this.hasActiveRestriction(restriction)
+      ? 'road-chip road-chip-warn'
+      : 'road-chip road-chip-muted';
+
+    return `
+      <h3 class="road-condition-title">${name}</h3>
+      <div class="road-condition-content">
+        <span class="road-chip" data-kind="road" data-condition="${road}" aria-label="Road: ${road}">${road}</span>
+        <span class="road-chip" data-kind="weather" data-condition="${weather}" aria-label="Weather: ${weather}">${weather}</span>
+        <span class="${restrictionClass}" data-kind="restriction" aria-label="Restriction: ${restrictionEsc}">${restrictionEsc}</span>
+        <time class="road-chip road-chip-muted road-condition-updated" datetime="${cond.LastUpdated}" data-last-updated="${cond.LastUpdated}" aria-label="Updated ${ago} ago">
+          <span class="road-condition-time-ago">${ago}</span>
+        </time>
+      </div>
+    `;
+  }
+
+  updateRoadChip(card, kind, value, labelPrefix) {
+    const chip = card.querySelector(`.road-chip[data-kind="${kind}"]`);
+    if (!chip || value == null) return;
+    if (chip.textContent !== value) {
+      chip.textContent = value;
+      chip.setAttribute('data-condition', value);
+      chip.setAttribute('aria-label', `${labelPrefix}: ${value}`);
+    }
+  }
+
   updateRoadConditions(conditions) {
     const banner = document.querySelector('.road-conditions-banner');
     if (!banner) return;
 
     // Server already filters unwanted road conditions
     if (!conditions || conditions.length === 0) {
-      // Hide banner if no conditions
-      banner.style.display = 'none';
+      banner.hidden = true;
+      banner.style.display = '';
       return;
     }
 
+    banner.hidden = false;
     banner.style.display = '';
 
-    // Create a map of existing cards by condition ID
     const existingCards = new Map();
     banner.querySelectorAll('.road-conditions-card').forEach(card => {
       const id = card.getAttribute('data-condition-id');
       if (id) {
-        existingCards.set(parseInt(id), card);
+        existingCards.set(parseInt(id, 10), card);
       }
     });
 
-    // Create a map of new conditions by ID
     const newConditionsMap = new Map();
     conditions.forEach(cond => {
       newConditionsMap.set(cond.Id, cond);
     });
 
-    // Remove cards that no longer exist
     existingCards.forEach((card, id) => {
       if (!newConditionsMap.has(id)) {
         card.remove();
       }
     });
 
-    // Update or create cards for each condition
     conditions.forEach(cond => {
       let card = existingCards.get(cond.Id);
-      
+
       if (!card) {
-        // Create new card
         card = document.createElement('div');
         card.className = 'road-conditions-card';
         card.setAttribute('data-condition-id', cond.Id);
-        card.innerHTML = `
-          <h3 class="road-condition-title">${this.escapeHtml(cond.RoadwayName)}</h3>
-          <div class="road-condition-badge">
-            <span class="road-condition-badge-label">Road</span>
-            <span class="road-condition-badge-value" data-condition="${this.escapeHtml(cond.RoadCondition)}">${this.escapeHtml(cond.RoadCondition)}</span>
-          </div>
-          <div class="road-condition-badge">
-            <span class="road-condition-badge-label">Weather</span>
-            <span class="road-condition-badge-value" data-condition="${this.escapeHtml(cond.WeatherCondition)}">${this.escapeHtml(cond.WeatherCondition)}</span>
-          </div>
-          <div class="road-condition-badge${cond.Restriction !== 'none' ? ' road-condition-badge-warning' : ''}">
-            <span class="road-condition-badge-label">Restriction</span>
-            <span class="road-condition-badge-value">${this.escapeHtml(cond.Restriction)}</span>
-          </div>
-          <time class="road-condition-updated" datetime="${cond.LastUpdated}" data-last-updated="${cond.LastUpdated}">
-            (<span class="road-condition-time-ago">${this.escapeHtml(this.formatTimeAgo(cond.LastUpdated))}</span> ago)
-          </time>
-        `;
+        card.innerHTML = this.roadCardInnerHTML(cond);
         banner.appendChild(card);
-      } else {
-        // Update existing card
-        const title = card.querySelector('.road-condition-title');
-        const badges = card.querySelectorAll('.road-condition-badge');
-        const roadBadge = badges[0];
-        const weatherBadge = badges[1];
-        const restrictionBadge = badges[2];
-        
-        const roadValue = roadBadge?.querySelector('.road-condition-badge-value');
-        const weatherValue = weatherBadge?.querySelector('.road-condition-badge-value');
-        const restrictionValue = restrictionBadge?.querySelector('.road-condition-badge-value');
+        return;
+      }
 
-        if (title && title.textContent !== cond.RoadwayName) {
-          title.textContent = cond.RoadwayName;
-        }
-        if (roadValue && roadValue.textContent !== cond.RoadCondition) {
-          roadValue.textContent = cond.RoadCondition;
-          roadValue.setAttribute('data-condition', cond.RoadCondition);
-        }
-        if (weatherValue && weatherValue.textContent !== cond.WeatherCondition) {
-          weatherValue.textContent = cond.WeatherCondition;
-          weatherValue.setAttribute('data-condition', cond.WeatherCondition);
-        }
-        if (restrictionValue && restrictionValue.textContent !== cond.Restriction) {
-          restrictionValue.textContent = cond.Restriction;
-        }
-        
-        // Update restriction badge warning class
-        if (restrictionBadge) {
-          if (cond.Restriction !== 'none') {
-            restrictionBadge.classList.add('road-condition-badge-warning');
-          } else {
-            restrictionBadge.classList.remove('road-condition-badge-warning');
-          }
-        }
+      const title = card.querySelector('.road-condition-title');
+      if (title && title.textContent !== cond.RoadwayName) {
+        title.textContent = cond.RoadwayName;
+      }
 
-        // Update timestamp
-        let updatedTime = card.querySelector('.road-condition-updated');
-        if (!updatedTime) {
-          updatedTime = document.createElement('time');
-          updatedTime.className = 'road-condition-updated';
-          card.appendChild(updatedTime);
-        }
-        const currentTimestamp = parseInt(updatedTime.getAttribute('data-last-updated') || '0');
-        if (currentTimestamp !== cond.LastUpdated) {
-          updatedTime.setAttribute('datetime', cond.LastUpdated);
-          updatedTime.setAttribute('data-last-updated', cond.LastUpdated);
-          const timeAgoSpan = document.createElement('span');
-          timeAgoSpan.className = 'road-condition-time-ago';
-          timeAgoSpan.textContent = this.formatTimeAgo(cond.LastUpdated);
-          updatedTime.textContent = '(';
-          updatedTime.appendChild(timeAgoSpan);
-          updatedTime.appendChild(document.createTextNode(' ago)'));
+      this.updateRoadChip(card, 'road', cond.RoadCondition, 'Road');
+      this.updateRoadChip(card, 'weather', cond.WeatherCondition, 'Weather');
+
+      // Restriction chip always present (muted when none)
+      const content = card.querySelector('.road-condition-content');
+      let restrictionChip = card.querySelector('.road-chip[data-kind="restriction"]');
+      const restriction = this.restrictionLabel(cond.Restriction);
+      if (!restrictionChip && content) {
+        restrictionChip = document.createElement('span');
+        restrictionChip.setAttribute('data-kind', 'restriction');
+        const updatedTimeEl = content.querySelector('.road-condition-updated');
+        if (updatedTimeEl) {
+          content.insertBefore(restrictionChip, updatedTimeEl);
         } else {
-          // Update relative time even if timestamp hasn't changed (for "X minutes ago" updates)
-          const timeAgoSpan = updatedTime.querySelector('.road-condition-time-ago');
-          if (timeAgoSpan) {
-            timeAgoSpan.textContent = this.formatTimeAgo(cond.LastUpdated);
-          }
+          content.appendChild(restrictionChip);
         }
+      }
+      if (restrictionChip) {
+        restrictionChip.textContent = restriction;
+        restrictionChip.setAttribute('aria-label', `Restriction: ${restriction}`);
+        restrictionChip.className = this.hasActiveRestriction(restriction)
+          ? 'road-chip road-chip-warn'
+          : 'road-chip road-chip-muted';
+      }
+
+      let updatedTime = card.querySelector('.road-condition-updated');
+      if (!updatedTime && content) {
+        updatedTime = document.createElement('time');
+        updatedTime.className = 'road-chip road-chip-muted road-condition-updated';
+        content.appendChild(updatedTime);
+      }
+      if (!updatedTime) return;
+
+      const ago = this.formatTimeAgo(cond.LastUpdated);
+      updatedTime.setAttribute('datetime', cond.LastUpdated);
+      updatedTime.setAttribute('data-last-updated', cond.LastUpdated);
+      updatedTime.setAttribute('aria-label', `Updated ${ago} ago`);
+
+      let timeAgoSpan = updatedTime.querySelector('.road-condition-time-ago');
+      if (!timeAgoSpan) {
+        updatedTime.textContent = '';
+        timeAgoSpan = document.createElement('span');
+        timeAgoSpan.className = 'road-condition-time-ago';
+        updatedTime.appendChild(timeAgoSpan);
+      }
+      if (timeAgoSpan.textContent !== ago) {
+        timeAgoSpan.textContent = ago;
       }
     });
   }
@@ -1172,10 +1190,12 @@ class UDOTPoller {
       banner.querySelectorAll('.road-condition-updated').forEach(updatedTime => {
         const timestamp = parseInt(updatedTime.getAttribute('data-last-updated') || '0');
         if (timestamp > 0) {
+          const ago = this.formatTimeAgo(timestamp);
           const timeAgoSpan = updatedTime.querySelector('.road-condition-time-ago');
           if (timeAgoSpan) {
-            timeAgoSpan.textContent = this.formatTimeAgo(timestamp);
+            timeAgoSpan.textContent = ago;
           }
+          updatedTime.setAttribute('aria-label', `Updated ${ago} ago`);
         }
       });
     };

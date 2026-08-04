@@ -2,6 +2,7 @@ package udot
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/stefanpenner/lcc-live/web/logger"
@@ -24,10 +25,37 @@ func NewPoller(client *Client, s *store.Store, interval time.Duration) *Poller {
 	}
 }
 
+// seedDevRoadConditions injects sample chips so local UI work is visible without a UDOT key.
+func (p *Poller) seedDevRoadConditions() {
+	now := time.Now().Unix()
+	p.store.UpdateRoadConditions("LCC", []store.RoadCondition{{
+		Id:               205,
+		SourceId:         "dev",
+		RoadCondition:    "Dry",
+		WeatherCondition: "Fair",
+		Restriction:      "none",
+		RoadwayName:      "SR-210 Upper Little Cottonwood Canyon",
+		LastUpdated:      now,
+	}})
+	p.store.UpdateRoadConditions("BCC", []store.RoadCondition{{
+		Id:               206,
+		SourceId:         "dev",
+		RoadCondition:    "Wet",
+		WeatherCondition: "Cloudy",
+		Restriction:      "Traction law",
+		RoadwayName:      "SR-190 Big Cottonwood Canyon",
+		LastUpdated:      now,
+	}})
+	logger.Warn("UDOT_API_KEY not set — seeded dev road conditions for UI")
+}
+
 // StartRoadConditions starts polling road conditions
 func (p *Poller) StartRoadConditions(ctx context.Context) error {
 	if !p.client.IsConfigured() {
 		logger.Warn("UDOT_API_KEY not set. Skipping road conditions fetching.")
+		if os.Getenv("DEV_MODE") == "1" || os.Getenv("DEV_MODE") == "true" {
+			p.seedDevRoadConditions()
+		}
 		return nil
 	}
 

@@ -42,315 +42,280 @@
     <link rel="prefetch" href="{{.CanyonPath}}" as="document">
     
     <style>
-      /* Photo detail page specific styles */
-      .photo-container {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 1rem;
-      }
-      
-      .back-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: var(--color-accent-focus);
-        text-decoration: none;
-        font-size: 1rem;
-        margin-bottom: 1rem;
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        transition: background-color 0.2s ease;
-      }
-      
-      .back-link:hover {
-        background-color: var(--color-bg-tertiary);
-      }
-      
-      .back-link svg {
-        width: 20px;
-        height: 20px;
-      }
-      
-      .photo-header {
-        text-align: center;
-        margin-bottom: 1.5rem;
-      }
-      
-      .photo-header h1 {
-        font-size: 2rem;
-        margin: 0.5rem 0;
-        color: var(--color-text-primary);
-      }
-      
-      .photo-header .canyon-badge {
-        display: inline-block;
-        padding: 0.25rem 0.75rem;
-        background: var(--color-accent-focus);
-        color: white;
-        border-radius: 999px;
-        font-size: 0.875rem;
-        font-weight: 600;
-      }
-      
-      .photo-main {
+      /* Camera detail — image first, one chrome line */
+      body.camera-detail {
+        --body-pad: 0;
+        padding: 0;
+        min-height: 100vh;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        gap: 1rem;
-      }
-      
-      .photo-frame {
-        width: 100%;
-        max-width: 1200px;
-        background: var(--color-bg-primary);
-        border-radius: 12px;
-        box-shadow: var(--shadow-lg);
-        overflow: hidden;
-      }
-      
-      .photo-frame img {
-        width: 100%;
-        height: auto;
-        display: block;
-      }
-      
-      .share-section {
-        text-align: center;
-        padding: 1rem;
-      }
-      
-      .share-section p {
-        color: var(--color-text-tertiary);
-        font-size: 0.875rem;
-        margin-bottom: 0.5rem;
-      }
-      
-      .share-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-      }
-      
-      .share-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        text-decoration: none;
-        font-size: 0.875rem;
-        font-weight: 500;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-      }
-      
-      .share-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      }
-      
-      .share-btn.twitter {
-        background: #1DA1F2;
-        color: white;
-      }
-      
-      .share-btn.facebook {
-        background: #1877F2;
-        color: white;
-      }
-      
-      .share-btn.whatsapp {
-        background: #25D366;
-        color: white;
-      }
-      
-      .share-btn.telegram {
-        background: #0088cc;
-        color: white;
-      }
-      
-      .share-btn.copy {
-        background: var(--color-bg-tertiary);
-        color: var(--color-text-primary);
-        border: 1px solid var(--color-border-default);
-      }
-      
-      .weather-section {
-        max-width: 1200px;
-        margin: 1.5rem auto 0;
-        padding: 1rem;
-        background: var(--color-bg-primary);
-        border-radius: 12px;
-        box-shadow: var(--shadow-lg);
-      }
-      
-      .weather-section h2 {
-        font-size: 1.5rem;
-        margin: 0 0 1rem 0;
-        color: var(--color-text-primary);
-        display: flex;
-        align-items: baseline;
-        gap: 0.75rem;
-        flex-wrap: wrap;
       }
 
-      .weather-updated {
-        font-size: 0.875rem;
-        font-weight: 400;
+      .camera-chrome {
+        position: sticky;
+        top: 0;
+        z-index: var(--z-sticky);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        min-height: 2.5rem;
+        padding: max(0.35rem, env(safe-area-inset-top, 0px)) 0.6rem 0.35rem;
+        background: color-mix(in srgb, var(--color-bg-primary) 90%, transparent);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--color-border-default);
+        font-size: 0.8125rem;
+      }
+
+      @supports not (background: color-mix(in srgb, white 50%, transparent)) {
+        .camera-chrome {
+          background: var(--color-bg-primary);
+        }
+      }
+
+      .camera-chrome .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+        color: var(--color-accent-focus);
+        text-decoration: none;
+        font-weight: 600;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .camera-chrome .back:hover {
+        text-decoration: underline;
+      }
+
+      .camera-chrome .back:focus-visible {
+        outline: 2px solid var(--color-accent-focus);
+        outline-offset: 2px;
+        border-radius: 2px;
+      }
+
+      .camera-chrome .sep {
         color: var(--color-text-tertiary);
+        opacity: 0.5;
+        flex-shrink: 0;
+      }
+
+      .camera-chrome h1 {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+        max-width: min(40vw, 18rem);
+      }
+
+      .camera-chrome .facts {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        flex-wrap: wrap;
         margin-left: auto;
       }
 
-      .weather-updated.stale {
+      .camera-chrome .fact {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.12rem 0.45rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        background: var(--color-bg-tertiary);
+        white-space: nowrap;
+      }
+
+      .camera-chrome .fact.muted {
+        color: var(--color-text-tertiary);
+        background: transparent;
+        font-weight: 400;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .camera-chrome .fact.stale {
+        opacity: 0.7;
         color: #d97706;
       }
-      
-      .weather-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-      }
-      
-      .weather-item {
+
+      .photo-stage {
+        flex: 1;
         display: flex;
-        flex-direction: column;
-        padding: 0.75rem;
-        background: var(--color-bg-tertiary);
-        border-radius: 8px;
+        align-items: center;
+        justify-content: center;
+        background: #000;
+        min-height: 0;
+        width: 100%;
       }
-      
-      .weather-label {
-        font-size: 0.875rem;
+
+      .photo-stage img {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: min(78vh, 900px);
+        object-fit: contain;
+        background: #000;
+      }
+
+      .photo-stage iframe {
+        display: block;
+        width: 100%;
+        max-width: 1400px;
+        aspect-ratio: 16 / 9;
+        min-height: min(50vh, 400px);
+        max-height: min(78vh, 900px);
+        border: none;
+        background: #000;
+      }
+
+      .weather-dense {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.5rem 0.6rem max(0.75rem, env(safe-area-inset-bottom, 0px));
+        border-top: 1px solid var(--color-border-default);
+        background: var(--color-bg-secondary);
+      }
+
+      .weather-dense .wx-title {
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
         color: var(--color-text-tertiary);
-        margin-bottom: 0.25rem;
-        font-weight: 500;
+        margin-right: 0.15rem;
       }
-      
-      .weather-value {
-        font-size: 1.25rem;
+
+      .weather-dense .wx {
+        display: inline-flex;
+        flex-direction: column;
+        padding: 0.28rem 0.5rem;
+        background: var(--color-bg-primary);
+        border: 1px solid var(--color-border-default);
+        border-radius: 4px;
+        min-width: 3.75rem;
+        line-height: 1.15;
+      }
+
+      .weather-dense .wx .l {
+        font-size: 0.6rem;
+        color: var(--color-text-tertiary);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .weather-dense .wx .v {
+        font-size: 0.875rem;
         font-weight: 600;
         color: var(--color-text-primary);
       }
-      
-      .weather-value.null {
+
+      .weather-dense .wx-updated {
+        font-size: 0.7rem;
         color: var(--color-text-tertiary);
-        font-style: italic;
+        margin-left: auto;
+        font-variant-numeric: tabular-nums;
       }
-      
-      @media (max-width: 768px) {
-        .photo-header h1 {
-          font-size: 1.5rem;
+
+      .weather-dense .wx-updated.stale {
+        color: #d97706;
+      }
+
+      @media (max-width: 480px) {
+        .camera-chrome h1 {
+          max-width: 42vw;
+          font-size: 0.8rem;
         }
-        
-        .share-buttons {
-          flex-direction: column;
-          align-items: stretch;
-        }
-        
-        .share-btn {
-          justify-content: center;
-        }
-        
-        .weather-grid {
-          grid-template-columns: 1fr;
+
+        .photo-stage img {
+          max-height: min(70vh, 720px);
         }
       }
     </style>
   </head>
   
-  <body>
-    <main role="main">
-      <div class="photo-container">
-        <a href="{{.CanyonPath}}" class="back-link">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to {{.CanyonName}} Cameras
-        </a>
-        <div class="photo-main">
-          <div class="photo-frame">
-            {{- if eq .Camera.Kind "iframe" -}}
-            <!-- Embedded iframe camera -->
-            <iframe 
-              src="{{.Camera.Src}}" 
-              title="{{.Camera.Alt}}" 
-              frameborder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" 
-              referrerpolicy="strict-origin-when-cross-origin"
-              aria-label="{{.Camera.Alt}}"
-              style="width: 100%; aspect-ratio: 16/9; min-height: 400px;">
-            </iframe>
-            {{- else -}}
-            <!-- Standard image camera -->
-            <img 
-              src="{{.ImageURL}}" 
-              alt="{{.Camera.Alt}}"
-              loading="eager">
-            {{- end -}}
-          </div>
-        </div>
-        {{- if .WeatherStation -}}
-        <div class="weather-section">
-          <h2>Weather Conditions {{- if .WeatherStation.LastUpdated}} <span class="weather-updated{{if isStale .WeatherStation.LastUpdated}} stale{{end}}">Updated {{formatTimeAgo .WeatherStation.LastUpdated}} ago</span>{{- end}}</h2>
-          <div class="weather-grid">
-            {{- if .WeatherStation.AirTemperature -}}
-            <div class="weather-item">
-              <span class="weather-label">Air Temperature</span>
-              <span class="weather-value">{{roundTemp .WeatherStation.AirTemperature}}°F</span>
-            </div>
-            {{- end -}}
-            {{- if .WeatherStation.SurfaceTemp -}}
-            <div class="weather-item">
-              <span class="weather-label">Surface Temperature</span>
-              <span class="weather-value">{{roundTemp .WeatherStation.SurfaceTemp}}°F</span>
-            </div>
-            {{- end -}}
-            {{- if .WeatherStation.SurfaceStatus -}}
-            <div class="weather-item">
-              <span class="weather-label">Surface Status</span>
-              <span class="weather-value">{{.WeatherStation.SurfaceStatus}}</span>
-            </div>
-            {{- end -}}
-            {{- if .WeatherStation.WindSpeedAvg -}}
-            <div class="weather-item">
-              <span class="weather-label">Wind Speed</span>
-              <span class="weather-value">
-                {{.WeatherStation.WindSpeedAvg}} mph
-                {{- if .WeatherStation.WindDirection -}}
-                 {{.WeatherStation.WindDirection}}
-                {{- end -}}
-              </span>
-            </div>
-            {{- end -}}
-            {{- if .WeatherStation.WindSpeedGust -}}
-            <div class="weather-item">
-              <span class="weather-label">Wind Gust</span>
-              <span class="weather-value">{{.WeatherStation.WindSpeedGust}} mph</span>
-            </div>
-            {{- end -}}
-            {{- if .WeatherStation.Precipitation -}}
-            <div class="weather-item">
-              <span class="weather-label">Precipitation</span>
-              <span class="weather-value">{{precipIcon .WeatherStation.AirTemperature}}</span>
-            </div>
-            {{- end -}}
-            {{- if .WeatherStation.RelativeHumidity -}}
-            <div class="weather-item">
-              <span class="weather-label">Humidity</span>
-              <span class="weather-value">{{.WeatherStation.RelativeHumidity}}%</span>
-            </div>
-            {{- end -}}
-            {{- if .WeatherStation.DewpointTemp -}}
-            <div class="weather-item">
-              <span class="weather-label">Dew Point</span>
-              <span class="weather-value">{{roundTemp .WeatherStation.DewpointTemp}}°F</span>
-            </div>
-            {{- end -}}
-          </div>
-        </div>
+  <body class="camera-detail">
+    <header class="camera-chrome" role="banner">
+      <a href="{{.CanyonPath}}" class="back" aria-label="Back to {{.CanyonName}} cameras">← {{.CanyonName}}</a>
+      <span class="sep" aria-hidden="true">·</span>
+      <h1>{{.Camera.Alt}}</h1>
+      {{- if .WeatherStation -}}
+      <div class="facts">
+        {{- if .WeatherStation.AirTemperature -}}
+        <span class="fact{{if isStale .WeatherStation.LastUpdated}} stale{{end}}">{{roundTemp .WeatherStation.AirTemperature}}°</span>
+        {{- end -}}
+        {{- if .WeatherStation.SurfaceStatus -}}
+        <span class="fact{{if isStale .WeatherStation.LastUpdated}} stale{{end}}">{{.WeatherStation.SurfaceStatus}}</span>
+        {{- end -}}
+        {{- if .WeatherStation.WindSpeedAvg -}}
+        <span class="fact{{if isStale .WeatherStation.LastUpdated}} stale{{end}}">{{roundTemp .WeatherStation.WindSpeedAvg}} mph{{- if .WeatherStation.WindDirection}} {{.WeatherStation.WindDirection}}{{- end}}</span>
+        {{- end -}}
+        {{- if .WeatherStation.LastUpdated -}}
+        <span class="fact muted{{if isStale .WeatherStation.LastUpdated}} stale{{end}}">{{formatTimeAgo .WeatherStation.LastUpdated}}</span>
         {{- end -}}
       </div>
+      {{- end -}}
+    </header>
+
+    <main role="main" class="photo-stage">
+      {{- if eq .Camera.Kind "iframe" -}}
+      <iframe
+        src="{{.Camera.Src}}"
+        title="{{.Camera.Alt}}"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+        referrerpolicy="strict-origin-when-cross-origin"
+        aria-label="{{.Camera.Alt}}"
+        allowfullscreen>
+      </iframe>
+      {{- else -}}
+      <img
+        src="{{.ImageURL}}"
+        alt="{{.Camera.Alt}}"
+        loading="eager">
+      {{- end -}}
     </main>
+
+    {{- if .WeatherStation -}}
+    <section class="weather-dense" aria-label="Weather conditions">
+      <span class="wx-title">Weather</span>
+      {{- if .WeatherStation.AirTemperature -}}
+      <div class="wx"><span class="l">Air</span><span class="v">{{roundTemp .WeatherStation.AirTemperature}}°F</span></div>
+      {{- end -}}
+      {{- if .WeatherStation.SurfaceTemp -}}
+      <div class="wx"><span class="l">Surface</span><span class="v">{{roundTemp .WeatherStation.SurfaceTemp}}°F</span></div>
+      {{- end -}}
+      {{- if .WeatherStation.SurfaceStatus -}}
+      <div class="wx"><span class="l">Status</span><span class="v">{{.WeatherStation.SurfaceStatus}}</span></div>
+      {{- end -}}
+      {{- if .WeatherStation.WindSpeedAvg -}}
+      <div class="wx"><span class="l">Wind</span><span class="v">{{.WeatherStation.WindSpeedAvg}}{{- if .WeatherStation.WindDirection}} {{.WeatherStation.WindDirection}}{{- end}}</span></div>
+      {{- end -}}
+      {{- if .WeatherStation.WindSpeedGust -}}
+      <div class="wx"><span class="l">Gust</span><span class="v">{{.WeatherStation.WindSpeedGust}}</span></div>
+      {{- end -}}
+      {{- if .WeatherStation.Precipitation -}}
+      <div class="wx"><span class="l">Precip</span><span class="v">{{precipIcon .WeatherStation.AirTemperature}}</span></div>
+      {{- end -}}
+      {{- if .WeatherStation.RelativeHumidity -}}
+      <div class="wx"><span class="l">Humid</span><span class="v">{{.WeatherStation.RelativeHumidity}}%</span></div>
+      {{- end -}}
+      {{- if .WeatherStation.DewpointTemp -}}
+      <div class="wx"><span class="l">Dew</span><span class="v">{{roundTemp .WeatherStation.DewpointTemp}}°F</span></div>
+      {{- end -}}
+      {{- if .WeatherStation.LastUpdated -}}
+      <span class="wx-updated{{if isStale .WeatherStation.LastUpdated}} stale{{end}}">{{formatTimeAgo .WeatherStation.LastUpdated}} ago</span>
+      {{- end -}}
+    </section>
+    {{- end -}}
+
     {{template "analytics" .}}
   </body>
 </html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>00 · Current (baseline)</title>
+  <link rel="stylesheet" href="../shared.css">
+  <style>
+    body { padding: 0.75rem; }
+    header { max-width: 1600px; margin: 0 auto 1.25rem; }
+    .canyon-nav { display: flex; justify-content: center; margin-bottom: 1rem; }
+
+    .road-banner {
+      max-width: 1600px;
+      margin: 0 auto 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.75rem;
+      padding: 0 1rem;
+    }
+    .road-card {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 1rem;
+    }
+    .road-title {
+      font-size: 1rem;
+      font-weight: 600;
+      min-width: 200px;
+      text-align: right;
+    }
+    .badge {
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+    .badge b { font-weight: 500; color: var(--text); }
+    .badge .dry { color: var(--green); }
+    .badge .fair { color: var(--amber); }
+    .ago { font-size: 0.75rem; color: var(--muted); }
+
+    #grid {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: zoom-in;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      border-color: var(--border-strong);
+    }
+    .cam-img { height: 260px; }
+    .footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.375rem 0.5rem;
+      border-top: 1px solid var(--border);
+    }
+    .footer h4 {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.5rem;
+      font-weight: 400;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      text-align: center;
+    }
+    .pill {
+      font-size: 0.5rem;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #f1f5f9;
+      color: #475569;
+    }
+    @media (prefers-color-scheme: dark) {
+      .pill { background: #1a1a1a; color: #b4b4b4; }
+    }
+    .actions { display: flex; gap: 2px; margin-left: auto; }
+    .actions button {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      opacity: 0.4;
+      padding: 4px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    @media (max-width: 768px) {
+      #grid { grid-template-columns: 1fr; }
+      .cam-img { height: 320px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="mock-banner">
+    <div><strong>00 · Current</strong> — baseline (airy)</div>
+    <nav>
+      <a href="../index.html">All</a>
+      <a href="../01-sticky-bar/index.html">Next →</a>
+    </nav>
+  </div>
+
+  <p class="idea-note"><b>What you feel:</b> empty header band, road block before cams, ~3 wide cards, footers under every image, hover lift.</p>
+
+  <header>
+    <nav class="canyon-nav">
+      <div class="canyon-toggle">
+        <a href="#" class="active">LCC</a>
+        <a href="#">BCC</a>
+      </div>
+    </nav>
+  </header>
+
+  <section class="road-banner">
+    <div class="road-card">
+      <h3 class="road-title">Little Cottonwood Canyon</h3>
+      <span class="badge">Road: <b class="dry">Dry</b></span>
+      <span class="badge">Weather: <b class="fair">Fair</b></span>
+      <span class="badge">Restriction: <b>none</b></span>
+      <time class="ago">(3m ago)</time>
+    </div>
+  </section>
+
+  <main id="grid">
+    <article class="card">
+      <div class="cam-img" data-label="White Pine"></div>
+      <div class="footer">
+        <h4>White Pine Trailhead</h4>
+        <span class="pill">28°F</span>
+        <span class="pill">12 mph NW</span>
+        <span class="pill">Dry</span>
+        <div class="actions"><button aria-label="fs">⛶</button><button aria-label="share">↗</button></div>
+      </div>
+    </article>
+    <article class="card">
+      <div class="cam-img snow" data-label="Snowbird"></div>
+      <div class="footer">
+        <h4>Snowbird Entry 1</h4>
+        <span class="pill">24°F</span>
+        <span class="pill">18 mph</span>
+        <span class="pill">Snow</span>
+        <div class="actions"><button>⛶</button><button>↗</button></div>
+      </div>
+    </article>
+    <article class="card">
+      <div class="cam-img night" data-label="Alta"></div>
+      <div class="footer">
+        <h4>Alta Bypass Road</h4>
+        <span class="pill">22°F</span>
+        <span class="pill">8 mph E</span>
+        <div class="actions"><button>⛶</button><button>↗</button></div>
+      </div>
+    </article>
+    <article class="card">
+      <div class="cam-img" data-label="CC Base"></div>
+      <div class="footer">
+        <h4>Cottonwood Canyon Rd</h4>
+        <span class="pill">31°F</span>
+        <div class="actions"><button>⛶</button><button>↗</button></div>
+      </div>
+    </article>
+    <article class="card">
+      <div class="cam-img snow" data-label="LCC @ MM 0.2"></div>
+      <div class="footer">
+        <h4>SR-210 @ MM 0.2</h4>
+        <span class="pill">30°F</span>
+        <span class="pill">Wet</span>
+        <div class="actions"><button>⛶</button><button>↗</button></div>
+      </div>
+    </article>
+    <article class="card">
+      <div class="cam-img" data-label="S-Curves"></div>
+      <div class="footer">
+        <h4>S-Curves</h4>
+        <span class="pill">27°F</span>
+        <span class="pill">14 mph</span>
+        <div class="actions"><button>⛶</button><button>↗</button></div>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

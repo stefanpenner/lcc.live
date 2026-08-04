@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>02 · Dense camera grid</title>
+  <link rel="stylesheet" href="../shared.css">
+  <style>
+    body { padding: 0.25rem; }
+
+    header {
+      max-width: 1600px;
+      margin: 0.35rem auto 0.5rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    #grid {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: grid;
+      /* was minmax(340px) gap 1rem */
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.5rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      /* no shadow theater, no hover lift */
+      box-shadow: none;
+    }
+    .card:hover { border-color: var(--border-strong); }
+    .cam-img {
+      height: auto;
+      aspect-ratio: 16 / 10;
+    }
+    .footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0.35rem;
+      border-top: 1px solid var(--border);
+    }
+    .footer h4 {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .pill {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: #f1f5f9;
+      color: #475569;
+    }
+    @media (prefers-color-scheme: dark) {
+      .pill { background: #1a1a1a; color: #b4b4b4; }
+    }
+
+    /* 2-col mobile instead of 1-col full cards */
+    @media (max-width: 768px) {
+      #grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.375rem;
+      }
+    }
+    @media (max-width: 380px) {
+      #grid { grid-template-columns: 1fr; }
+    }
+
+    .compare {
+      max-width: 1600px;
+      margin: 0 auto 0.5rem;
+      padding: 0 0.25rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .compare code {
+      font-size: 0.7rem;
+      background: var(--card);
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="mock-banner">
+    <div><strong>02 · Dense grid</strong> — more columns, tight gaps</div>
+    <nav>
+      <a href="../01-sticky-bar/index.html">← Prev</a>
+      <a href="../index.html">All</a>
+      <a href="../03-overlay-footer/index.html">Next →</a>
+    </nav>
+  </div>
+
+  <p class="idea-note" style="margin:0.5rem"><b>Change:</b> <code>minmax(220px)</code>, gap 8px, aspect-ratio media, no lift/shadow. Mobile = 2 columns. Same card content as baseline — only density.</p>
+  <p class="compare">Desktop ~1200px: ~5 cols vs ~3 · resize the window to feel it</p>
+
+  <header>
+    <div class="canyon-toggle">
+      <a href="#" class="active">LCC</a>
+      <a href="#">BCC</a>
+    </div>
+  </header>
+
+  <main id="grid">
+    <article class="card"><div class="cam-img" data-label="White Pine"></div><div class="footer"><h4>White Pine Trailhead</h4><span class="pill">28°</span></div></article>
+    <article class="card"><div class="cam-img snow" data-label="Snowbird"></div><div class="footer"><h4>Snowbird Entry 1</h4><span class="pill">24°</span></div></article>
+    <article class="card"><div class="cam-img night" data-label="Alta"></div><div class="footer"><h4>Alta Bypass</h4><span class="pill">22°</span></div></article>
+    <article class="card"><div class="cam-img" data-label="CC Base"></div><div class="footer"><h4>Cottonwood Cyn</h4><span class="pill">31°</span></div></article>
+    <article class="card"><div class="cam-img snow" data-label="MM 0.2"></div><div class="footer"><h4>SR-210 MM 0.2</h4><span class="pill">30°</span></div></article>
+    <article class="card"><div class="cam-img" data-label="S-Curves"></div><div class="footer"><h4>S-Curves</h4><span class="pill">27°</span></div></article>
+    <article class="card"><div class="cam-img night" data-label="Gad Valley"></div><div class="footer"><h4>Gad Valley</h4><span class="pill">23°</span></div></article>
+    <article class="card"><div class="cam-img" data-label="Twin Lakes"></div><div class="footer"><h4>Twin Lakes</h4><span class="pill">21°</span></div></article>
+    <article class="card"><div class="cam-img snow" data-label="Albion"></div><div class="footer"><h4>Albion Base</h4><span class="pill">25°</span></div></article>
+    <article class="card"><div class="cam-img" data-label="Peruvian"></div><div class="footer"><h4>Peruvian Gulch</h4><span class="pill">26°</span></div></article>
+  </main>
+</body>
+</html>

@@ -123,14 +123,20 @@ func precipIcon(airTemp *string) template.HTML {
 	return template.HTML(svgRain)
 }
 
+func hasActiveRestriction(restriction string) bool {
+	r := strings.TrimSpace(strings.ToLower(restriction))
+	return r != "" && r != "none" && r != "no restrictions" && r != "n/a"
+}
+
 var templateFuncs = template.FuncMap{
-	"slugify":        slugify,
-	"formatUnixTime": formatUnixTime,
-	"formatTimeAgo":  formatTimeAgo,
-	"isStale":        isStale,
-	"roundTemp":      roundTemp,
-	"precipIcon":     precipIcon,
-	"version":        GetVersionString,
+	"slugify":              slugify,
+	"formatUnixTime":       formatUnixTime,
+	"formatTimeAgo":        formatTimeAgo,
+	"isStale":              isStale,
+	"roundTemp":            roundTemp,
+	"precipIcon":           precipIcon,
+	"version":              GetVersionString,
+	"hasActiveRestriction": hasActiveRestriction,
 }
 
 // Render renders a template with the given data

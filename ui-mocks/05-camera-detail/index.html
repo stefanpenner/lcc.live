@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>05 · Camera detail (image first)</title>
+  <link rel="stylesheet" href="../shared.css">
+  <style>
+    body { padding: 0; }
+
+    /* —— BEFORE (reference, collapsed) —— */
+    details.before-ref {
+      max-width: 900px;
+      margin: 0.5rem auto;
+      padding: 0 0.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    details.before-ref summary { cursor: pointer; color: var(--focus); }
+
+    /* —— AFTER —— */
+    .chrome {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+      font-size: 0.8rem;
+    }
+    .chrome a.back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: var(--focus);
+      text-decoration: none;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .chrome .sep { color: var(--muted); opacity: 0.5; }
+    .chrome .name { font-weight: 600; }
+    .chrome .facts {
+      display: flex;
+      gap: 0.3rem;
+      flex-wrap: wrap;
+      margin-left: auto;
+    }
+
+    .photo {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: #000;
+    }
+    .photo .cam-img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      max-height: min(70vh, 720px);
+      background:
+        linear-gradient(160deg, rgba(15,23,42,0.2), transparent 45%),
+        linear-gradient(0deg, #475569 0%, #94a3b8 40%, #bae6fd 70%, #38bdf8 100%);
+    }
+    .photo .cam-img::after {
+      font-size: 0.85rem;
+      content: 'White Pine Trailhead';
+    }
+
+    .weather {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0.5rem 0.6rem 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      align-items: center;
+    }
+    .weather .title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-right: 0.25rem;
+    }
+    .wx {
+      display: inline-flex;
+      flex-direction: column;
+      padding: 0.3rem 0.55rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      min-width: 4.5rem;
+    }
+    .wx span:first-child {
+      font-size: 0.6rem;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .wx span:last-child {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .updated {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-left: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="mock-banner">
+    <div><strong>05 · Camera detail</strong> — image first</div>
+    <nav>
+      <a href="../04-road-chips/index.html">← Prev</a>
+      <a href="../index.html">All</a>
+      <a href="../06-all-tight/index.html">Next →</a>
+    </nav>
+  </div>
+
+  <p class="idea-note" style="margin:0.5rem"><b>Change:</b> one chrome line (back · name · facts). Image takes the viewport. Weather = dense cells, not a card grid under a big H1.</p>
+
+  <details class="before-ref">
+    <summary>Show old layout sketch</summary>
+    <pre style="margin-top:0.5rem;font-size:0.7rem;line-height:1.4;color:var(--muted)">← Back to LCC Cameras
+
+         [LCC]
+    White Pine Trailhead
+
+┌────────────────────────────┐
+│          image             │
+└────────────────────────────┘
+
+Weather Conditions     Updated 5m ago
+[ Air Temp ] [ Surface ] [ Wind ] …</pre>
+  </details>
+
+  <div class="chrome">
+    <a class="back" href="../06-all-tight/index.html">← LCC</a>
+    <span class="sep">·</span>
+    <span class="name">White Pine Trailhead</span>
+    <div class="facts">
+      <span class="chip">28°</span>
+      <span class="chip dry">Dry</span>
+      <span class="chip muted">5m</span>
+    </div>
+  </div>
+
+  <div class="photo">
+    <div class="cam-img" data-label=""></div>
+  </div>
+
+  <div class="weather">
+    <span class="title">Weather</span>
+    <div class="wx"><span>Air</span><span>28°F</span></div>
+    <div class="wx"><span>Surface</span><span>26°F</span></div>
+    <div class="wx"><span>Status</span><span>Dry</span></div>
+    <div class="wx"><span>Wind</span><span>12 NW</span></div>
+    <div class="wx"><span>Gust</span><span>19</span></div>
+    <div class="wx"><span>Humid</span><span>42%</span></div>
+    <span class="updated">Updated 5m ago</span>
+  </div>
+</body>
+</html>

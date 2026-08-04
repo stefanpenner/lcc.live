@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>06 · All combined (target)</title>
+  <link rel="stylesheet" href="../shared.css">
+  <style>
+    body { padding: 0; }
+
+    .top-bar {
+      position: sticky;
+      top: 28px;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      min-height: 2.4rem;
+      padding: 0.2rem 0.4rem;
+      background: color-mix(in srgb, var(--card) 92%, transparent);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .canyon-toggle a {
+      padding: 0.3rem 0.85rem;
+      font-size: 0.75rem;
+    }
+    .road-inline {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      font-size: 0.75rem;
+    }
+    .road-inline .name {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .road-inline .chips {
+      display: flex;
+      gap: 0.25rem;
+      overflow: hidden;
+    }
+    .more {
+      border: 1px solid var(--border);
+      background: transparent;
+      border-radius: 4px;
+      padding: 0.15rem 0.4rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    #grid {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 0.35rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.4rem;
+    }
+    .card {
+      position: relative;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--card);
+      cursor: zoom-in;
+    }
+    .card:hover { border-color: var(--border-strong); }
+    .cam-img {
+      height: auto;
+      aspect-ratio: 16 / 10;
+    }
+    .age {
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      font-size: 9px;
+      color: rgba(255,255,255,0.65);
+      background: rgba(0,0,0,0.35);
+      padding: 1px 4px;
+      border-radius: 2px;
+      z-index: 1;
+    }
+    .meta {
+      position: absolute;
+      inset-inline: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 1rem 0.35rem 0.3rem;
+      background: linear-gradient(transparent, rgba(0,0,0,0.72));
+      color: #fff;
+    }
+    .meta h4 {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.65rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #fff;
+    }
+    .meta .chip {
+      background: rgba(255,255,255,0.14);
+      color: #fff;
+      font-size: 0.6rem;
+      padding: 0 4px;
+    }
+    .meta .actions {
+      display: flex;
+      gap: 2px;
+      opacity: 0;
+      transition: opacity 0.12s;
+    }
+    .card:hover .actions,
+    .card:focus-within .actions { opacity: 1; }
+    .meta button {
+      border: none;
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      width: 1.25rem;
+      height: 1.25rem;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.65rem;
+      line-height: 1;
+    }
+
+    @media (max-width: 768px) {
+      #grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.3rem;
+        padding: 0.25rem;
+      }
+      .meta .actions { opacity: 0.8; }
+      .road-inline .name { display: none; }
+    }
+    @media (max-width: 380px) {
+      #grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="mock-banner">
+    <div><strong>06 · All combined</strong> — target density</div>
+    <nav>
+      <a href="../05-camera-detail/index.html">← Prev</a>
+      <a href="../index.html">All</a>
+      <a href="../00-current/index.html">vs Current</a>
+    </nav>
+  </div>
+
+  <p class="idea-note" style="margin:0.4rem 0.5rem"><b>Full target:</b> sticky bar + token chips + dense grid + overlay meta. Compare with <a href="../00-current/index.html">00 Current</a>.</p>
+
+  <div class="top-bar">
+    <div class="canyon-toggle">
+      <a href="#" class="active">LCC</a>
+      <a href="#">BCC</a>
+    </div>
+    <div class="road-inline">
+      <span class="name">SR-210</span>
+      <div class="chips">
+        <span class="chip dry">Dry</span>
+        <span class="chip" style="color:var(--amber);background:color-mix(in srgb,var(--amber) 15%,transparent)">Fair</span>
+        <span class="chip muted">3m</span>
+      </div>
+    </div>
+    <button class="more" type="button">⋯</button>
+  </div>
+
+  <main id="grid">
+    <article class="card" tabindex="0">
+      <div class="cam-img" data-label="White Pine"></div>
+      <span class="age">2m</span>
+      <div class="meta">
+        <h4>White Pine Trailhead</h4>
+        <span class="chip">28°</span>
+        <span class="chip">12 NW</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+    <article class="card" tabindex="0">
+      <div class="cam-img snow" data-label="Snowbird"></div>
+      <span class="age">1m</span>
+      <div class="meta">
+        <h4>Snowbird Entry 1</h4>
+        <span class="chip">24°</span>
+        <span class="chip">Snow</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+    <article class="card" tabindex="0">
+      <div class="cam-img night" data-label="Alta"></div>
+      <span class="age">4m</span>
+      <div class="meta">
+        <h4>Alta Bypass</h4>
+        <span class="chip">22°</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+    <article class="card" tabindex="0">
+      <div class="cam-img" data-label="CC Base"></div>
+      <span class="age">3m</span>
+      <div class="meta">
+        <h4>Cottonwood Cyn Rd</h4>
+        <span class="chip">31°</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+    <article class="card" tabindex="0">
+      <div class="cam-img snow" data-label="MM 0.2"></div>
+      <span class="age">2m</span>
+      <div class="meta">
+        <h4>SR-210 @ MM 0.2</h4>
+        <span class="chip">30°</span>
+        <span class="chip">Wet</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+    <article class="card" tabindex="0">
+      <div class="cam-img" data-label="S-Curves"></div>
+      <span class="age">5m</span>
+      <div class="meta">
+        <h4>S-Curves</h4>
+        <span class="chip">27°</span>
+        <span class="chip">14mph</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+    <article class="card" tabindex="0">
+      <div class="cam-img night" data-label="Gad"></div>
+      <span class="age">3m</span>
+      <div class="meta">
+        <h4>Gad Valley</h4>
+        <span class="chip">23°</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+    <article class="card" tabindex="0">
+      <div class="cam-img" data-label="Twin Lakes"></div>
+      <span class="age">6m</span>
+      <div class="meta">
+        <h4>Twin Lakes</h4>
+        <span class="chip">21°</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+    <article class="card" tabindex="0">
+      <div class="cam-img snow" data-label="Albion"></div>
+      <span class="age">2m</span>
+      <div class="meta">
+        <h4>Albion Base</h4>
+        <span class="chip">25°</span>
+        <span class="chip">Snow</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+    <article class="card" tabindex="0">
+      <div class="cam-img" data-label="Peruvian"></div>
+      <span class="age">1m</span>
+      <div class="meta">
+        <h4>Peruvian Gulch</h4>
+        <span class="chip">26°</span>
+        <div class="actions"><button type="button">⛶</button><button type="button">↗</button></div>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

@@ -1,0 +1,145 @@
+/* Shared mock chrome — not production CSS */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f8fafc;
+  --card: #fff;
+  --text: #1e293b;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --accent: #0f172a;
+  --focus: #3b82f6;
+  --green: #10b981;
+  --blue: #3b82f6;
+  --amber: #f59e0b;
+  --indigo: #6366f1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000;
+    --card: #0a0a0a;
+    --text: #fff;
+    --muted: #737373;
+    --border: #2a2a2a;
+    --border-strong: #3a3a3a;
+    --accent: #fff;
+  }
+}
+
+html { -webkit-font-smoothing: antialiased; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.4;
+}
+
+.mock-banner {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.4rem 0.75rem;
+  background: color-mix(in srgb, var(--card) 90%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.mock-banner strong { color: var(--text); }
+.mock-banner a { color: var(--focus); text-decoration: none; }
+.mock-banner nav { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+/* Fake camera imagery */
+.cam-img {
+  display: block;
+  width: 100%;
+  background:
+    linear-gradient(160deg, rgba(15,23,42,0.15), transparent 40%),
+    linear-gradient(0deg, #64748b 0%, #94a3b8 35%, #cbd5e1 55%, #7dd3fc 75%, #38bdf8 100%);
+  position: relative;
+  overflow: hidden;
+}
+.cam-img::after {
+  content: attr(data-label);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+.cam-img.night {
+  background:
+    linear-gradient(160deg, rgba(0,0,0,0.4), transparent 50%),
+    linear-gradient(0deg, #0f172a 0%, #1e293b 40%, #334155 70%, #0ea5e9 100%);
+}
+.cam-img.snow {
+  background:
+    linear-gradient(180deg, #e2e8f0 0%, #f8fafc 40%, #94a3b8 100%);
+}
+.cam-img.snow::after { color: rgba(15,23,42,0.35); text-shadow: none; }
+
+/* Chips */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  background: var(--border);
+  color: var(--text);
+}
+.chip.dry { color: var(--green); background: color-mix(in srgb, var(--green) 15%, transparent); }
+.chip.wet { color: var(--blue); background: color-mix(in srgb, var(--blue) 15%, transparent); }
+.chip.ice { color: var(--indigo); background: color-mix(in srgb, var(--indigo) 18%, transparent); }
+.chip.snow { color: #60a5fa; background: color-mix(in srgb, #60a5fa 18%, transparent); }
+.chip.warn { color: var(--amber); background: color-mix(in srgb, var(--amber) 18%, transparent); font-weight: 700; }
+.chip.muted { color: var(--muted); opacity: 0.85; }
+
+/* Toggle */
+.canyon-toggle {
+  display: inline-flex;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px;
+}
+.canyon-toggle a {
+  padding: 0.35rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--muted);
+  border-radius: 4px;
+}
+.canyon-toggle a.active {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* Note callout */
+.idea-note {
+  max-width: 720px;
+  margin: 0.75rem auto;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  border-left: 3px solid var(--focus);
+  background: var(--card);
+  border-radius: 0 6px 6px 0;
+}
+.idea-note b { color: var(--text); }
