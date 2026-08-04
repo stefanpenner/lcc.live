@@ -1308,28 +1308,31 @@ class UDOTPoller {
       if (!footer) continue;
 
       const actions = footer.querySelector('.camera-actions');
-      const stale = this.isWeatherStale(ws.LastUpdated);
-      const cls = stale ? ' stale' : '';
 
       // Remove existing weather chips
       for (const el of footer.querySelectorAll('.camera-temp, .camera-weather-chip')) {
         el.remove();
       }
 
+      // Hide temps older than 2h (matches server isStale) — kills dead multi-month feeds
+      if (this.isWeatherStale(ws.LastUpdated)) {
+        continue;
+      }
+
       const chips = [];
 
       if (ws.AirTemperature) {
-        chips.push(`<span class="camera-temp${cls}">${this.roundTemp(ws.AirTemperature)}°F</span>`);
+        chips.push(`<span class="camera-temp">${this.roundTemp(ws.AirTemperature)}°F</span>`);
       }
       if (ws.WindSpeedAvg) {
         const dir = ws.WindDirection ? ` ${this.escapeHtml(ws.WindDirection)}` : '';
-        chips.push(`<span class="camera-weather-chip${cls}">${this.roundTemp(ws.WindSpeedAvg)} mph${dir}</span>`);
+        chips.push(`<span class="camera-weather-chip">${this.roundTemp(ws.WindSpeedAvg)} mph${dir}</span>`);
       }
       if (ws.SurfaceStatus) {
-        chips.push(`<span class="camera-weather-chip${cls}">${this.escapeHtml(ws.SurfaceStatus)}</span>`);
+        chips.push(`<span class="camera-weather-chip">${this.escapeHtml(ws.SurfaceStatus)}</span>`);
       }
       if (ws.Precipitation) {
-        chips.push(`<span class="camera-weather-chip${cls}">${this.precipIcon(ws.AirTemperature)}</span>`);
+        chips.push(`<span class="camera-weather-chip">${this.precipIcon(ws.AirTemperature)}</span>`);
       }
 
       // Insert chips before camera-actions
@@ -1352,7 +1355,7 @@ class UDOTPoller {
   isWeatherStale(timestamp) {
     if (!timestamp) return true;
     const age = Date.now() / 1000 - timestamp;
-    return age > 1800; // stale after 30 minutes (matches server)
+    return age > 7200; // 2h — matches server isStale (UDOT RWIS cadence)
   }
 
   precipIcon(airTemp) {

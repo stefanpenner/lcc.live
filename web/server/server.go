@@ -85,8 +85,11 @@ func formatTimeAgo(timestamp int64) string {
 	}
 }
 
+// isStale marks weather/road samples older than 2h as unusable for display.
+// UDOT RWIS often updates on a ~15–60m cadence; 30m was too aggressive and
+// hid nearly everything. Multi-day/month-old Alta ADX feeds stay hidden.
 func isStale(timestamp int64) bool {
-	return timestamp == 0 || time.Now().Unix()-timestamp > 1800
+	return timestamp == 0 || time.Now().Unix()-timestamp > 7200
 }
 
 func roundTemp(temp *string) string {

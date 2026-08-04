@@ -247,19 +247,19 @@
       <a href="{{.CanyonPath}}" class="back" aria-label="Back to {{.CanyonName}} cameras">← {{.CanyonName}}</a>
       <span class="sep" aria-hidden="true">·</span>
       <h1>{{.Camera.Alt}}</h1>
-      {{- if .WeatherStation -}}
+      {{- if and .WeatherStation (not (isStale .WeatherStation.LastUpdated)) -}}
       <div class="facts">
         {{- if .WeatherStation.AirTemperature -}}
-        <span class="fact{{if isStale .WeatherStation.LastUpdated}} stale{{end}}">{{roundTemp .WeatherStation.AirTemperature}}°</span>
+        <span class="fact">{{roundTemp .WeatherStation.AirTemperature}}°</span>
         {{- end -}}
         {{- if .WeatherStation.SurfaceStatus -}}
-        <span class="fact{{if isStale .WeatherStation.LastUpdated}} stale{{end}}">{{.WeatherStation.SurfaceStatus}}</span>
+        <span class="fact">{{.WeatherStation.SurfaceStatus}}</span>
         {{- end -}}
         {{- if .WeatherStation.WindSpeedAvg -}}
-        <span class="fact{{if isStale .WeatherStation.LastUpdated}} stale{{end}}">{{roundTemp .WeatherStation.WindSpeedAvg}} mph{{- if .WeatherStation.WindDirection}} {{.WeatherStation.WindDirection}}{{- end}}</span>
+        <span class="fact">{{roundTemp .WeatherStation.WindSpeedAvg}} mph{{- if .WeatherStation.WindDirection}} {{.WeatherStation.WindDirection}}{{- end}}</span>
         {{- end -}}
         {{- if .WeatherStation.LastUpdated -}}
-        <span class="fact muted{{if isStale .WeatherStation.LastUpdated}} stale{{end}}">{{formatTimeAgo .WeatherStation.LastUpdated}}</span>
+        <span class="fact muted">{{formatTimeAgo .WeatherStation.LastUpdated}}</span>
         {{- end -}}
       </div>
       {{- end -}}
@@ -283,7 +283,7 @@
       {{- end -}}
     </main>
 
-    {{- if .WeatherStation -}}
+    {{- if and .WeatherStation (not (isStale .WeatherStation.LastUpdated)) -}}
     <section class="weather-dense" aria-label="Weather conditions">
       <span class="wx-title">Weather</span>
       {{- if .WeatherStation.AirTemperature -}}
@@ -311,7 +311,7 @@
       <div class="wx"><span class="l">Dew</span><span class="v">{{roundTemp .WeatherStation.DewpointTemp}}°F</span></div>
       {{- end -}}
       {{- if .WeatherStation.LastUpdated -}}
-      <span class="wx-updated{{if isStale .WeatherStation.LastUpdated}} stale{{end}}">{{formatTimeAgo .WeatherStation.LastUpdated}} ago</span>
+      <span class="wx-updated">{{formatTimeAgo .WeatherStation.LastUpdated}} ago</span>
       {{- end -}}
     </section>
     {{- end -}}

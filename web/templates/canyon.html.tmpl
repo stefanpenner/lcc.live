@@ -267,17 +267,19 @@
           <div class="camera-footer">
             <h4>{{$c.Alt}}</h4>
             {{- $station := index $.WeatherStations $c.ID -}}
-            {{- if and $station $station.AirTemperature -}}
-            <span class="camera-temp{{if isStale $station.LastUpdated}} stale{{end}}">{{roundTemp $station.AirTemperature}}°F</span>
+            {{- if and $station (not (isStale $station.LastUpdated)) -}}
+            {{- if $station.AirTemperature -}}
+            <span class="camera-temp">{{roundTemp $station.AirTemperature}}°F</span>
             {{- end -}}
-            {{- if and $station $station.WindSpeedAvg -}}
-            <span class="camera-weather-chip{{if isStale $station.LastUpdated}} stale{{end}}">{{roundTemp $station.WindSpeedAvg}} mph{{if $station.WindDirection}} {{$station.WindDirection}}{{end}}</span>
+            {{- if $station.WindSpeedAvg -}}
+            <span class="camera-weather-chip">{{roundTemp $station.WindSpeedAvg}} mph{{if $station.WindDirection}} {{$station.WindDirection}}{{end}}</span>
             {{- end -}}
-            {{- if and $station $station.SurfaceStatus -}}
-            <span class="camera-weather-chip{{if isStale $station.LastUpdated}} stale{{end}}">{{$station.SurfaceStatus}}</span>
+            {{- if $station.SurfaceStatus -}}
+            <span class="camera-weather-chip">{{$station.SurfaceStatus}}</span>
             {{- end -}}
-            {{- if and $station $station.Precipitation -}}
-            <span class="camera-weather-chip{{if isStale $station.LastUpdated}} stale{{end}}">{{precipIcon $station.AirTemperature}}</span>
+            {{- if $station.Precipitation -}}
+            <span class="camera-weather-chip">{{precipIcon $station.AirTemperature}}</span>
+            {{- end -}}
             {{- end -}}
             <div class="camera-actions">
               <button class="fullscreen-button" 

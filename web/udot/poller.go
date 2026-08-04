@@ -110,10 +110,29 @@ func (p *Poller) StartRoadConditions(ctx context.Context) error {
 	}
 }
 
+// seedDevWeatherStations injects fresh sample temps for known data.json station IDs
+// so local UI (Powerhouse, White Pine, Baldy, S Curves, …) is visible without a UDOT key.
+func (p *Poller) seedDevWeatherStations() {
+	now := time.Now().Unix()
+	str := func(s string) *string { return &s }
+	p.store.StoreWeatherStationsById([]store.WeatherStation{
+		{Id: 1650225, StationName: "SR-210 @ Powerhouse", AirTemperature: str("72.4"), WindSpeedAvg: str("4.2"), WindDirection: str("SW"), Source: "dev", LastUpdated: now},
+		{Id: 1650226, StationName: "SR-210 @ White Pine", AirTemperature: str("68.1"), WindSpeedAvg: str("6.0"), WindDirection: str("W"), Source: "dev", LastUpdated: now},
+		{Id: 1650160, StationName: "Alta - Mt Baldy", AirTemperature: str("51.0"), WindSpeedAvg: str("12.0"), WindDirection: str("NW"), Source: "dev", LastUpdated: now},
+		{Id: 1650231, StationName: "Alta - Collins", AirTemperature: str("48.5"), WindSpeedAvg: str("3.1"), WindDirection: str("N"), Source: "dev", LastUpdated: now},
+		{Id: 1650091, StationName: "Alta - Base", AirTemperature: str("55.2"), WindSpeedAvg: str("2.0"), WindDirection: str("SE"), Source: "dev", LastUpdated: now},
+		{Id: 1650085, StationName: "SR-190 @ S-Turns", AirTemperature: str("74.0"), WindSpeedAvg: str("5.5"), WindDirection: str("S"), Source: "dev", LastUpdated: now},
+	})
+	logger.Warn("UDOT_API_KEY not set — seeded dev weather stations for UI")
+}
+
 // StartWeatherStations starts polling weather stations
 func (p *Poller) StartWeatherStations(ctx context.Context) error {
 	if !p.client.IsConfigured() {
 		logger.Warn("UDOT_API_KEY not set. Skipping weather stations fetching.")
+		if os.Getenv("DEV_MODE") == "1" || os.Getenv("DEV_MODE") == "true" {
+			p.seedDevWeatherStations()
+		}
 		return nil
 	}
 
