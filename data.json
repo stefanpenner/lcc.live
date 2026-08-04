@@ -9,7 +9,7 @@
         },
         {
           "kind": "img",
-          "src": "https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Collins_Snow_Stake.jpg",
+          "src": "https://alta-webcams.sfo3.cdn.digitaloceanspaces.com/Collins_Snow_Stake.jpg",
           "alt": "Alta Collins Snow Stake (12h)",
           "weatherStationId": 1650231
         },
@@ -63,22 +63,22 @@
         },
         {
           "kind": "img",
-          "src": "https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Superior.jpg",
+          "src": "https://alta-webcams.sfo3.cdn.digitaloceanspaces.com/Superior.jpg",
           "alt": "Mount Superior"
         },
         {
           "kind": "img",
-          "src": "https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Highrustler.jpg",
+          "src": "https://alta-webcams.sfo3.cdn.digitaloceanspaces.com/Highrustler.jpg",
           "alt": "High Rustler"
         },
         {
           "kind": "img",
-          "src": "https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/sugar_peak.jpg",
+          "src": "https://alta-webcams.sfo3.cdn.digitaloceanspaces.com/sugar_peak.jpg",
           "alt": "Sugarloaf Peak"
         },
         {
           "kind": "img",
-          "src": "https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/collins_dtc.jpg",
+          "src": "https://alta-webcams.sfo3.cdn.digitaloceanspaces.com/collins_dtc.jpg",
           "alt": "Salt Lake Valley"
         },
         {
