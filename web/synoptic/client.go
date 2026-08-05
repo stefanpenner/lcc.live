@@ -154,27 +154,39 @@ func ParseSynopticLatest(data []byte) ([]store.WeatherStation, error) {
 			CameraSourceId: strPtr(strings.ToUpper(st.Stid)),
 		}
 		obs := st.Observations
-		ws.AirTemperature = floatStr(obs, "air_temp_value_1")
-		ws.RelativeHumidity = floatStr(obs, "relative_humidity_value_1")
-		ws.WindSpeedAvg = floatStr(obs, "wind_speed_value_1")
-		ws.WindSpeedGust = floatStr(obs, "wind_gust_value_1")
-		ws.DewpointTemp = floatStr(obs, "dew_point_temperature_value_1")
-		if dir := floatStr(obs, "wind_direction_value_1"); dir != nil {
-			// degrees → compass when possible
+		now := time.Now().Unix()
+		ws.AirTemperature = floatStrFresh(obs, "air_temp_value_1", now)
+		ws.RelativeHumidity = floatStrFresh(obs, "relative_humidity_value_1", now)
+		ws.DewpointTemp = floatStrFresh(obs, "dew_point_temperature_value_1", now)
+		// Wind: drop if that variable's timestamp is stale (don't mix old wind with fresh temp)
+		ws.WindSpeedAvg = floatStrFresh(obs, "wind_speed_value_1", now)
+		ws.WindSpeedGust = floatStrFresh(obs, "wind_gust_value_1", now)
+		if dir := floatStrFresh(obs, "wind_direction_value_1", now); dir != nil {
 			if deg, err := strconv.ParseFloat(*dir, 64); err == nil {
 				ws.WindDirection = strPtr(degreesToCompass(deg))
 			}
+		} else {
+			// No fresh wind direction without fresh wind
+			ws.WindDirection = nil
 		}
-		ws.LastUpdated = latestObsUnix(obs)
+		// If wind was dropped as stale, clear direction too when speed missing
+		if ws.WindSpeedAvg == nil {
+			ws.WindDirection = nil
+			ws.WindSpeedGust = nil
+		}
+		ws.LastUpdated = latestFreshObsUnix(obs, now)
 		if ws.LastUpdated == 0 {
-			ws.LastUpdated = time.Now().Unix()
+			ws.LastUpdated = now
 		}
 		out = append(out, ws)
 	}
 	return out, nil
 }
 
-func floatStr(obs map[string]obsVal, key string) *string {
+// obsStaleSec: same 2h window as server isStale — older samples are dropped.
+const obsStaleSec int64 = 7200
+
+func floatStrFresh(obs map[string]obsVal, key string, now int64) *string {
 	if obs == nil {
 		return nil
 	}
@@ -182,25 +194,34 @@ func floatStr(obs map[string]obsVal, key string) *string {
 	if !ok || v.Value == nil {
 		return nil
 	}
+	if ts := parseObsTime(v.DateTime); ts > 0 && now-ts > obsStaleSec {
+		return nil // stale field — omit
+	}
 	s := strconv.FormatFloat(*v.Value, 'f', 1, 64)
 	return &s
 }
 
-func latestObsUnix(obs map[string]obsVal) int64 {
+func parseObsTime(s string) int64 {
+	if s == "" {
+		return 0
+	}
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		t, err = time.Parse("2006-01-02T15:04:05Z", s)
+	}
+	if err != nil {
+		return 0
+	}
+	return t.Unix()
+}
+
+func latestFreshObsUnix(obs map[string]obsVal, now int64) int64 {
 	var best int64
 	for _, v := range obs {
-		if v.DateTime == "" {
+		u := parseObsTime(v.DateTime)
+		if u == 0 || now-u > obsStaleSec {
 			continue
 		}
-		// RFC3339 or "2006-01-02T15:04:05Z"
-		t, err := time.Parse(time.RFC3339, v.DateTime)
-		if err != nil {
-			t, err = time.Parse("2006-01-02T15:04:05Z", v.DateTime)
-		}
-		if err != nil {
-			continue
-		}
-		u := t.Unix()
 		if u > best {
 			best = u
 		}
@@ -337,31 +358,67 @@ func ParseNWSObservation(stid string, data []byte) (*store.WeatherStation, error
 		ws.LastUpdated = time.Now().Unix()
 	}
 
-	// Temperature: NWS uses °C
+	// Whole-observation staleness (NWS has one timestamp for all fields)
+	if ws.LastUpdated > 0 && time.Now().Unix()-ws.LastUpdated > obsStaleSec {
+		// Keep structure but strip weather values — caller may still want station id
+		return &ws, nil
+	}
+
+	// Temperature: typically °C
 	if p.Temperature.Value != nil {
-		f := *p.Temperature.Value*9/5 + 32
+		f := nwsTempToF(*p.Temperature.Value, p.Temperature.UnitCode)
 		ws.AirTemperature = strPtr(fmt.Sprintf("%.1f", f))
 	}
 	if p.Dewpoint.Value != nil {
-		f := *p.Dewpoint.Value*9/5 + 32
+		f := nwsTempToF(*p.Dewpoint.Value, p.Dewpoint.UnitCode)
 		ws.DewpointTemp = strPtr(fmt.Sprintf("%.1f", f))
 	}
 	if p.RelativeHumidity.Value != nil {
 		ws.RelativeHumidity = strPtr(fmt.Sprintf("%.0f", *p.RelativeHumidity.Value))
 	}
-	// Wind: m/s → mph
+	// Wind: honor unitCode (NWS often sends km_h-1, not m_s-1)
 	if p.WindSpeed.Value != nil {
-		mph := *p.WindSpeed.Value * 2.236936
+		mph := nwsSpeedToMPH(*p.WindSpeed.Value, p.WindSpeed.UnitCode)
 		ws.WindSpeedAvg = strPtr(fmt.Sprintf("%.1f", mph))
 	}
 	if p.WindGust.Value != nil {
-		mph := *p.WindGust.Value * 2.236936
+		mph := nwsSpeedToMPH(*p.WindGust.Value, p.WindGust.UnitCode)
 		ws.WindSpeedGust = strPtr(fmt.Sprintf("%.1f", mph))
 	}
-	if p.WindDirection.Value != nil {
+	if p.WindDirection.Value != nil && ws.WindSpeedAvg != nil {
 		ws.WindDirection = strPtr(degreesToCompass(*p.WindDirection.Value))
 	}
 	return &ws, nil
+}
+
+// nwsTempToF converts NWS temperature to °F using unitCode when present.
+func nwsTempToF(v float64, unit string) float64 {
+	u := strings.ToLower(unit)
+	switch {
+	case strings.Contains(u, "degf") || strings.Contains(u, "fahrenheit"):
+		return v
+	default: // degC / kelvin rare here
+		if strings.Contains(u, "kelvin") || strings.Contains(u, "degk") {
+			return (v-273.15)*9/5 + 32
+		}
+		return v*9/5 + 32 // degC
+	}
+}
+
+// nwsSpeedToMPH converts NWS wind to mph. NWS mountain stations commonly use km_h-1.
+func nwsSpeedToMPH(v float64, unit string) float64 {
+	u := strings.ToLower(unit)
+	switch {
+	case strings.Contains(u, "km_h") || strings.Contains(u, "km/h") || strings.Contains(u, "kilometr"):
+		return v * 0.621371
+	case strings.Contains(u, "mi_h") || strings.Contains(u, "mph") || strings.Contains(u, "mile"):
+		return v
+	case strings.Contains(u, "kn") || strings.Contains(u, "kt"):
+		return v * 1.15078
+	default:
+		// wmoUnit:m_s-1 and unspecified SI
+		return v * 2.236936
+	}
 }
 
 func degreesToCompass(deg float64) string {

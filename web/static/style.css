@@ -1168,13 +1168,26 @@ the-overlay video {
   cursor: default;
 }
 
-/* Fullscreen image: fade in when decoded; spinner if slow */
+/* Fullscreen image: fade in; receive pinch/pan (pointer-events on) */
 the-overlay img.overlay-img {
   opacity: 0;
   transition: opacity 0.2s ease;
+  pointer-events: auto;
+  touch-action: none;
+  transform-origin: center center;
+  will-change: transform;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
 }
 the-overlay img.overlay-img.is-ready {
   opacity: 1;
+}
+the-overlay img.overlay-img.is-zoomed {
+  cursor: grab;
+}
+the-overlay img.overlay-img.is-zoomed:active {
+  cursor: grabbing;
 }
 
 .overlay-spinner {
