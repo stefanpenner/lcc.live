@@ -345,19 +345,22 @@ class FullscreenViewer {
     this.scrollPosition = 0;
     /** @type {Map<string, Promise<HTMLImageElement|null>>} */
     this.preloadCache = new Map();
-    // Overlay image zoom/pan (pinch, wheel, double-tap)
+    // Overlay image zoom/pan (pinch via Touch Events for iOS; wheel/mouse for desktop)
     this.zoomImg = null;
     this.scale = 1;
     this.tx = 0;
     this.ty = 0;
-    this.pointers = new Map(); // pointerId -> {x, y}
     this.pinchStartDist = 0;
     this.pinchStartScale = 1;
+    this.pinchStartTx = 0;
+    this.pinchStartTy = 0;
     this.panOrigin = null; // {x, y, tx, ty}
     this.lastTapAt = 0;
     this.lastTapX = 0;
     this.lastTapY = 0;
     this.moved = false;
+    this.gestureActive = false; // multi-touch session (suppress swipe)
+    this.mousePan = null; // desktop drag when zoomed
     this.setupOverlay();
     this.setupEventListeners();
     this.setupHoverPreload();
@@ -453,10 +456,9 @@ class FullscreenViewer {
       }
     });
 
-    // Swipe nav (single-finger, only when not zoomed)
-    this.setupTouchGestures();
-    // Pinch / pan / wheel / double-tap zoom on overlay image
-    this.setupZoomGestures();
+    // Touch Events = reliable multi-touch on iOS; mouse/wheel for desktop
+    this.setupTouchZoomGestures();
+    this.setupMouseZoomGestures();
   }
 
   isZoomed() {
@@ -467,9 +469,10 @@ class FullscreenViewer {
     this.scale = 1;
     this.tx = 0;
     this.ty = 0;
-    this.pointers.clear();
     this.pinchStartDist = 0;
     this.panOrigin = null;
+    this.mousePan = null;
+    this.gestureActive = false;
     this.applyZoomTransform();
     if (this.zoomImg) {
       this.zoomImg.classList.remove('is-zoomed');
@@ -487,7 +490,7 @@ class FullscreenViewer {
 
   setScaleAt(nextScale, clientX, clientY) {
     if (!this.zoomImg) return;
-    const prev = this.scale;
+    const prev = this.scale || 1;
     const scale = Math.min(5, Math.max(1, nextScale));
     if (scale === 1) {
       this.scale = 1;
@@ -507,45 +510,69 @@ class FullscreenViewer {
     this.applyZoomTransform();
   }
 
-  setupZoomGestures() {
-    const onPointerDown = (e) => {
-      if (!this.isOpen() || !this.zoomImg) return;
-      if (e.target !== this.zoomImg && e.target !== this.overlay) return;
-      // Only track on the image (or overlay bg for nothing)
-      if (e.target !== this.zoomImg) return;
+  touchDist(t0, t1) {
+    return Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+  }
 
-      this.moved = false;
-      this.zoomImg.setPointerCapture?.(e.pointerId);
-      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-      if (this.pointers.size === 2) {
-        const pts = [...this.pointers.values()];
-        this.pinchStartDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-        this.pinchStartScale = this.scale;
-        this.panOrigin = null;
-      } else if (this.pointers.size === 1 && this.isZoomed()) {
-        this.panOrigin = { x: e.clientX, y: e.clientY, tx: this.tx, ty: this.ty };
-      }
+  touchMid(t0, t1) {
+    return {
+      x: (t0.clientX + t1.clientX) / 2,
+      y: (t0.clientY + t1.clientY) / 2,
     };
+  }
 
-    const onPointerMove = (e) => {
-      if (!this.pointers.has(e.pointerId)) return;
-      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  /**
+   * iOS Safari: multi-touch Pointer Events are unreliable.
+   * Use Touch Events on the overlay (not only the img — fingers often land on padding).
+   */
+  setupTouchZoomGestures() {
+    const onStart = (e) => {
+      if (!this.isOpen() || !this.zoomImg) return;
 
-      if (this.pointers.size === 2 && this.pinchStartDist > 0) {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        this.gestureActive = true;
         this.moved = true;
-        const pts = [...this.pointers.values()];
-        const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-        const midX = (pts[0].x + pts[1].x) / 2;
-        const midY = (pts[0].y + pts[1].y) / 2;
-        const next = this.pinchStartScale * (dist / this.pinchStartDist);
-        this.setScaleAt(next, midX, midY);
+        this.panOrigin = null;
+        this.pinchStartDist = this.touchDist(e.touches[0], e.touches[1]);
+        this.pinchStartScale = this.scale;
+        this.pinchStartTx = this.tx;
+        this.pinchStartTy = this.ty;
         return;
       }
 
-      if (this.pointers.size === 1 && this.panOrigin && this.isZoomed()) {
-        const dx = e.clientX - this.panOrigin.x;
-        const dy = e.clientY - this.panOrigin.y;
+      if (e.touches.length === 1) {
+        const t = e.touches[0];
+        this.moved = false;
+        this.touchStartX = t.screenX;
+        this.touchStartY = t.screenY;
+        if (this.isZoomed()) {
+          this.panOrigin = { x: t.clientX, y: t.clientY, tx: this.tx, ty: this.ty };
+        } else {
+          this.panOrigin = null;
+        }
+      }
+    };
+
+    const onMove = (e) => {
+      if (!this.isOpen() || !this.zoomImg) return;
+
+      if (e.touches.length === 2 && this.pinchStartDist > 0) {
+        e.preventDefault();
+        this.gestureActive = true;
+        this.moved = true;
+        const dist = this.touchDist(e.touches[0], e.touches[1]);
+        const mid = this.touchMid(e.touches[0], e.touches[1]);
+        const next = this.pinchStartScale * (dist / this.pinchStartDist);
+        this.setScaleAt(next, mid.x, mid.y);
+        return;
+      }
+
+      if (e.touches.length === 1 && this.panOrigin && this.isZoomed()) {
+        e.preventDefault();
+        const t = e.touches[0];
+        const dx = t.clientX - this.panOrigin.x;
+        const dy = t.clientY - this.panOrigin.y;
         if (Math.abs(dx) > 3 || Math.abs(dy) > 3) this.moved = true;
         this.tx = this.panOrigin.tx + dx;
         this.ty = this.panOrigin.ty + dy;
@@ -553,53 +580,70 @@ class FullscreenViewer {
       }
     };
 
-    const onPointerUp = (e) => {
-      if (!this.pointers.has(e.pointerId)) return;
-      this.pointers.delete(e.pointerId);
+    const onEnd = (e) => {
+      if (!this.isOpen()) return;
 
-      if (this.pointers.size < 2) {
+      // Still one finger left after lifting one of a pinch → start pan if zoomed
+      if (e.touches.length === 1 && this.isZoomed()) {
         this.pinchStartDist = 0;
+        const t = e.touches[0];
+        this.panOrigin = { x: t.clientX, y: t.clientY, tx: this.tx, ty: this.ty };
+        return;
       }
-      if (this.pointers.size === 1 && this.isZoomed()) {
-        const remaining = [...this.pointers.entries()][0];
-        this.panOrigin = {
-          x: remaining[1].x,
-          y: remaining[1].y,
-          tx: this.tx,
-          ty: this.ty,
-        };
-      } else if (this.pointers.size === 0) {
+
+      if (e.touches.length === 0) {
+        const wasGesture = this.gestureActive;
+        this.pinchStartDist = 0;
         this.panOrigin = null;
-        // Double-tap → toggle 1x / 2.5x
-        if (!this.moved && e.target === this.zoomImg) {
+        this.gestureActive = false;
+
+        // Double-tap zoom (single finger, no real drag, not after pinch)
+        if (!wasGesture && !this.moved && e.changedTouches.length === 1 && this.zoomImg) {
+          const t = e.changedTouches[0];
+          // Only if lift roughly over the image bounds (or near it)
           const now = Date.now();
           const dt = now - this.lastTapAt;
-          const dist = Math.hypot(e.clientX - this.lastTapX, e.clientY - this.lastTapY);
-          if (dt < 300 && dist < 40) {
+          const dist = Math.hypot(t.clientX - this.lastTapX, t.clientY - this.lastTapY);
+          if (dt < 320 && dist < 50) {
+            e.preventDefault();
             if (this.isZoomed()) {
               this.resetZoom();
             } else {
-              this.setScaleAt(2.5, e.clientX, e.clientY);
+              this.setScaleAt(2.5, t.clientX, t.clientY);
             }
             this.lastTapAt = 0;
-          } else {
-            this.lastTapAt = now;
-            this.lastTapX = e.clientX;
-            this.lastTapY = e.clientY;
+            return;
+          }
+          this.lastTapAt = now;
+          this.lastTapX = t.clientX;
+          this.lastTapY = t.clientY;
+        }
+
+        // Swipe nav / close — only fit scale, single-finger, no pinch session
+        if (!wasGesture && !this.isZoomed() && e.changedTouches.length === 1) {
+          const t = e.changedTouches[0];
+          const deltaX = this.touchStartX - t.screenX;
+          const deltaY = this.touchStartY - t.screenY;
+          const minSwipe = 50;
+          if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipe) {
+            if (deltaX > 0) this.next();
+            else this.previous();
+          } else if (deltaY < 0 && Math.abs(deltaY) > minSwipe) {
+            this.close();
           }
         }
       }
     };
 
-    this.overlay.addEventListener('pointerdown', onPointerDown);
-    this.overlay.addEventListener('pointermove', onPointerMove);
-    this.overlay.addEventListener('pointerup', onPointerUp);
-    this.overlay.addEventListener('pointercancel', onPointerUp);
-    this.overlay.addEventListener('pointerleave', (e) => {
-      if (this.pointers.has(e.pointerId)) onPointerUp(e);
-    });
+    // passive:false so preventDefault works (blocks Safari page zoom / scroll)
+    this.overlay.addEventListener('touchstart', onStart, { passive: false });
+    this.overlay.addEventListener('touchmove', onMove, { passive: false });
+    this.overlay.addEventListener('touchend', onEnd, { passive: false });
+    this.overlay.addEventListener('touchcancel', onEnd, { passive: false });
+  }
 
-    // Desktop wheel / trackpad pinch
+  /** Desktop: wheel + click-drag pan when zoomed + double-click zoom */
+  setupMouseZoomGestures() {
     this.overlay.addEventListener(
       'wheel',
       (e) => {
@@ -610,40 +654,38 @@ class FullscreenViewer {
       },
       { passive: false }
     );
-  }
 
-  setupTouchGestures() {
-    this.overlay.addEventListener('touchstart', (e) => {
-      if (e.touches.length !== 1 || this.isZoomed()) return;
-      this.touchStartX = e.changedTouches[0].screenX;
-      this.touchStartY = e.changedTouches[0].screenY;
-    }, { passive: true });
-
-    this.overlay.addEventListener('touchend', (e) => {
-      // Don't swipe-nav while zoomed or multi-touch was in play
-      if (this.isZoomed() || this.pointers.size > 0) return;
-      if (e.changedTouches.length !== 1) return;
-
-      const touchEndX = e.changedTouches[0].screenX;
-      const touchEndY = e.changedTouches[0].screenY;
-      
-      const deltaX = this.touchStartX - touchEndX;
-      const deltaY = this.touchStartY - touchEndY;
-      const minSwipeDistance = 50;
-
-      // Horizontal swipe
-      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
-        if (deltaX > 0) {
-          this.next(); // Swipe left
-        } else {
-          this.previous(); // Swipe right
-        }
+    this.overlay.addEventListener('mousedown', (e) => {
+      if (!this.isOpen() || !this.zoomImg || e.button !== 0) return;
+      if (e.target !== this.zoomImg) return;
+      this.moved = false;
+      if (this.isZoomed()) {
+        this.mousePan = { x: e.clientX, y: e.clientY, tx: this.tx, ty: this.ty };
+        e.preventDefault();
       }
-      // Vertical swipe down to close (only when not zoomed)
-      else if (deltaY < 0 && Math.abs(deltaY) > minSwipeDistance) {
-        this.close();
-      }
-    }, { passive: true });
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!this.mousePan || !this.isOpen()) return;
+      const dx = e.clientX - this.mousePan.x;
+      const dy = e.clientY - this.mousePan.y;
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) this.moved = true;
+      this.tx = this.mousePan.tx + dx;
+      this.ty = this.mousePan.ty + dy;
+      this.applyZoomTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+      this.mousePan = null;
+    });
+
+    this.overlay.addEventListener('dblclick', (e) => {
+      if (!this.isOpen() || !this.zoomImg) return;
+      if (e.target !== this.zoomImg) return;
+      e.preventDefault();
+      if (this.isZoomed()) this.resetZoom();
+      else this.setScaleAt(2.5, e.clientX, e.clientY);
+    });
   }
 
   setupEventListeners() {
