@@ -335,6 +335,14 @@ class ImageReloader {
 // Fullscreen Image Viewer
 // ========================================
 
+/**
+ * Fullscreen camera viewer.
+ * Gesture policy verified in web/tla/OverlayGesture.tla (TLC Safe + NavSafe):
+ *   ClickThumb      — grid thumb → open fullscreen Fit
+ *   ClickFullscreen — click image → close (minimize)
+ *   PinchIn/Out     — zoom only; never change gallery idx
+ *   CanSwipe        — Fit ∧ ¬pinching ∧ ¬suppressNav ∧ fingers≤1
+ */
 class FullscreenViewer {
   constructor() {
     this.overlay = null;
@@ -354,15 +362,12 @@ class FullscreenViewer {
     this.pinchStartDist = 0;
     this.pinchStartScale = 1;
     this.panOrigin = null; // {x, y, tx, ty}
-    this.lastTapAt = 0;
-    this.lastTapX = 0;
-    this.lastTapY = 0;
     this.moved = false;
-    this.gestureActive = false;
+    this.gestureActive = false; // pinching (TLA: pinching)
     this.mousePan = null;
     /** @type {Map<number, {x:number,y:number}>} */
     this.activeTouches = new Map();
-    /** After a pinch, ignore swipe nav for a beat (iOS lifts fingers with a big delta). */
+    /** TLA suppressNav — after pinch, block swipe next/prev */
     this.suppressNavUntil = 0;
     this.setupOverlay();
     this.setupEventListeners();
@@ -451,11 +456,16 @@ class FullscreenViewer {
       document.body.appendChild(this.overlay);
     }
 
-    // Close on background click only (image uses double-tap zoom / pan;
-    // single-tap on image no longer closes — avoids fighting pinch & double-tap)
+    // TLA ClickFullscreen: click image (or chrome) → minimize, if not mid-pinch/drag
     this.overlay.addEventListener('click', (e) => {
       if (e.target.tagName === 'VIDEO' || e.target.tagName === 'IFRAME') return;
-      if (e.target === this.overlay || e.target.classList?.contains('overlay-footer')) {
+      if (this.gestureActive || Date.now() < this.suppressNavUntil) return;
+      if (this.moved) return; // pan drag, not a click
+      if (
+        e.target === this.overlay ||
+        e.target.classList?.contains('overlay-footer') ||
+        e.target.closest?.('.overlay-stage')
+      ) {
         this.close();
       }
     });
@@ -465,6 +475,17 @@ class FullscreenViewer {
 
   isZoomed() {
     return this.scale > 1.05;
+  }
+
+  /** TLA CanSwipe */
+  canSwipe() {
+    return (
+      this.isOpen() &&
+      !this.isZoomed() &&
+      !this.gestureActive &&
+      Date.now() >= this.suppressNavUntil &&
+      this.activeTouches.size <= 1
+    );
   }
 
   resetZoom() {
@@ -479,14 +500,14 @@ class FullscreenViewer {
     this.applyZoomTransform();
   }
 
-  /** Call when multi-touch / pinch is detected so finger-lift isn't a swipe. */
+  /** TLA: pinching' ∧ suppressNav' when multi-touch enters */
   markPinchSession() {
     this.gestureActive = true;
     this.moved = true;
     this.suppressNavUntil = Date.now() + 450;
   }
 
-  /** Snap nearly-fit pinches cleanly to 1× so swipe can resume later. */
+  /** Product settle: scale < 1.08 → Fit (TLA PinchOut / FingerUp snap) */
   settleZoomAfterGesture() {
     if (this.scale < 1.08) {
       this.scale = 1;
@@ -670,35 +691,17 @@ class FullscreenViewer {
         this.panOrigin = null;
         this.settleZoomAfterGesture();
         if (wasGesture) {
-          this.markPinchSession(); // keep suppress window alive past last finger-up
+          this.markPinchSession(); // keep suppressNav past last finger-up (TLA)
         }
         this.gestureActive = false;
 
-        // No double-tap / swipe immediately after pinch (finger deltas are huge)
+        // After pinch: no swipe (NavSafe). Click-to-close uses synthesized click separately.
         if (wasGesture || Date.now() < this.suppressNavUntil) {
-          this.lastTapAt = 0;
           return;
         }
 
-        if (!this.moved && e.changedTouches.length === 1) {
-          const t = e.changedTouches[0];
-          const now = Date.now();
-          const dt = now - this.lastTapAt;
-          const dist = Math.hypot(t.clientX - this.lastTapX, t.clientY - this.lastTapY);
-          if (dt < 320 && dist < 50) {
-            e.preventDefault();
-            if (this.isZoomed()) this.resetZoom();
-            else this.setScaleAt(2.5, t.clientX, t.clientY);
-            this.lastTapAt = 0;
-            return;
-          }
-          this.lastTapAt = now;
-          this.lastTapX = t.clientX;
-          this.lastTapY = t.clientY;
-        }
-
-        // Swipe next/prev/close only for single-finger gestures at fit (not after pinch)
-        if (!this.isZoomed() && e.changedTouches.length === 1) {
+        // TLA CanSwipe: Fit ∧ ¬pinching ∧ ¬suppressNav ∧ fingers≤1
+        if (this.canSwipe() && e.changedTouches.length === 1) {
           const t = e.changedTouches[0];
           const deltaX = this.touchStartX - t.screenX;
           const deltaY = this.touchStartY - t.screenY;
@@ -706,7 +709,10 @@ class FullscreenViewer {
           if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipe) {
             if (deltaX > 0) this.next();
             else this.previous();
-          } else if (deltaY < 0 && Math.abs(deltaY) > minSwipe) {
+            return;
+          }
+          // Vertical swipe down also minimizes (extra; ClickFullscreen covers tap)
+          if (deltaY < 0 && Math.abs(deltaY) > minSwipe) {
             this.close();
           }
         }
@@ -749,7 +755,7 @@ class FullscreenViewer {
     );
   }
 
-  /** Desktop: wheel + click-drag pan when zoomed + double-click zoom */
+  /** Desktop: wheel zoom + drag pan when zoomed. Click → close (overlay click handler). */
   setupMouseZoomGestures() {
     this.overlay.addEventListener(
       'wheel',
@@ -783,15 +789,8 @@ class FullscreenViewer {
     });
 
     window.addEventListener('mouseup', () => {
+      // leave this.moved set so click handler can ignore drag-as-click
       this.mousePan = null;
-    });
-
-    this.overlay.addEventListener('dblclick', (e) => {
-      if (!this.isOpen() || !this.zoomLayer) return;
-      if (!e.target.closest?.('.overlay-stage')) return;
-      e.preventDefault();
-      if (this.isZoomed()) this.resetZoom();
-      else this.setScaleAt(2.5, e.clientX, e.clientY);
     });
   }
 
