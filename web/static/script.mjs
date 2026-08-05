@@ -362,6 +362,8 @@ class FullscreenViewer {
     this.mousePan = null;
     /** @type {Map<number, {x:number,y:number}>} */
     this.activeTouches = new Map();
+    /** After a pinch, ignore swipe nav for a beat (iOS lifts fingers with a big delta). */
+    this.suppressNavUntil = 0;
     this.setupOverlay();
     this.setupEventListeners();
     this.setupHoverPreload();
@@ -477,6 +479,23 @@ class FullscreenViewer {
     this.applyZoomTransform();
   }
 
+  /** Call when multi-touch / pinch is detected so finger-lift isn't a swipe. */
+  markPinchSession() {
+    this.gestureActive = true;
+    this.moved = true;
+    this.suppressNavUntil = Date.now() + 450;
+  }
+
+  /** Snap nearly-fit pinches cleanly to 1× so swipe can resume later. */
+  settleZoomAfterGesture() {
+    if (this.scale < 1.08) {
+      this.scale = 1;
+      this.tx = 0;
+      this.ty = 0;
+      this.applyZoomTransform();
+    }
+  }
+
   applyZoomTransform() {
     const el = this.zoomLayer;
     if (!el) return;
@@ -556,8 +575,7 @@ class FullscreenViewer {
 
         if (this.activeTouches.size >= 2) {
           e.preventDefault();
-          this.gestureActive = true;
-          this.moved = true;
+          this.markPinchSession();
           this.panOrigin = null;
           const p = pinchPoints();
           if (p) {
@@ -568,6 +586,11 @@ class FullscreenViewer {
         }
 
         if (this.activeTouches.size === 1) {
+          // Don't start a "swipe" origin mid/after pinch — only pure single-finger
+          if (this.gestureActive || Date.now() < this.suppressNavUntil) {
+            this.panOrigin = null;
+            return;
+          }
           const t = e.changedTouches[0];
           this.moved = false;
           this.touchStartX = t.screenX;
@@ -595,8 +618,7 @@ class FullscreenViewer {
 
         if (this.activeTouches.size >= 2) {
           e.preventDefault();
-          this.gestureActive = true;
-          this.moved = true;
+          this.markPinchSession();
           const p = pinchPoints();
           if (!p) return;
           if (!(this.pinchStartDist > 0)) {
@@ -624,24 +646,41 @@ class FullscreenViewer {
 
     const onEnd = (e) => {
       const wasOpen = this.isOpen();
+      const hadPinch = this.gestureActive || this.activeTouches.size >= 2;
       syncTouches(e, 'end');
 
       if (!wasOpen || !this.zoomLayer) return;
 
-      if (this.activeTouches.size === 1 && this.isZoomed()) {
+      // One finger remains after a pinch — never treat as swipe start mid-lift
+      if (this.activeTouches.size === 1) {
         this.pinchStartDist = 0;
-        const pt = [...this.activeTouches.values()][0];
-        this.panOrigin = { x: pt.x, y: pt.y, tx: this.tx, ty: this.ty };
+        if (this.isZoomed()) {
+          const pt = [...this.activeTouches.values()][0];
+          this.panOrigin = { x: pt.x, y: pt.y, tx: this.tx, ty: this.ty };
+        } else {
+          this.panOrigin = null;
+        }
+        if (hadPinch) this.markPinchSession();
         return;
       }
 
       if (this.activeTouches.size === 0) {
-        const wasGesture = this.gestureActive;
+        const wasGesture = this.gestureActive || hadPinch || Date.now() < this.suppressNavUntil;
         this.pinchStartDist = 0;
         this.panOrigin = null;
+        this.settleZoomAfterGesture();
+        if (wasGesture) {
+          this.markPinchSession(); // keep suppress window alive past last finger-up
+        }
         this.gestureActive = false;
 
-        if (!wasGesture && !this.moved && e.changedTouches.length === 1) {
+        // No double-tap / swipe immediately after pinch (finger deltas are huge)
+        if (wasGesture || Date.now() < this.suppressNavUntil) {
+          this.lastTapAt = 0;
+          return;
+        }
+
+        if (!this.moved && e.changedTouches.length === 1) {
           const t = e.changedTouches[0];
           const now = Date.now();
           const dt = now - this.lastTapAt;
@@ -658,11 +697,12 @@ class FullscreenViewer {
           this.lastTapY = t.clientY;
         }
 
-        if (!wasGesture && !this.isZoomed() && e.changedTouches.length === 1) {
+        // Swipe next/prev/close only for single-finger gestures at fit (not after pinch)
+        if (!this.isZoomed() && e.changedTouches.length === 1) {
           const t = e.changedTouches[0];
           const deltaX = this.touchStartX - t.screenX;
           const deltaY = this.touchStartY - t.screenY;
-          const minSwipe = 50;
+          const minSwipe = 60;
           if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipe) {
             if (deltaX > 0) this.next();
             else this.previous();
@@ -682,8 +722,7 @@ class FullscreenViewer {
       (e) => {
         e.preventDefault();
         if (!this.isOpen() || !this.zoomLayer) return;
-        this.gestureActive = true;
-        this.moved = true;
+        this.markPinchSession();
         this.pinchStartScale = this.scale; // e.scale is relative to this moment
       },
       opts
@@ -693,8 +732,7 @@ class FullscreenViewer {
       (e) => {
         e.preventDefault();
         if (!this.isOpen() || !this.zoomLayer) return;
-        this.gestureActive = true;
-        this.moved = true;
+        this.markPinchSession();
         this.setScaleAt(this.pinchStartScale * (e.scale || 1), e.clientX, e.clientY);
       },
       opts
@@ -703,7 +741,9 @@ class FullscreenViewer {
       'gestureend',
       (e) => {
         e.preventDefault();
-        this.gestureActive = false;
+        // Do NOT clear gestureActive here — last touchend must still see the pinch
+        this.markPinchSession();
+        this.settleZoomAfterGesture();
       },
       opts
     );
