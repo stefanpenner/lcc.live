@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "synoptic",
+    srcs = [
+        "client.go",
+        "poller.go",
+    ],
+    importpath = "github.com/stefanpenner/lcc-live/web/synoptic",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//web/logger",
+        "//web/store",
+    ],
+)
+
+go_test(
+    name = "synoptic_test",
+    srcs = ["client_test.go"],
+    embed = [":synoptic"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

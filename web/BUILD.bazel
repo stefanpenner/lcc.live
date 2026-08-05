@@ -13,6 +13,7 @@ go_library(
         "//web/logger",
         "//web/server",
         "//web/store",
+        "//web/synoptic",
         "//web/uac",
         "//web/udot",
         "//web/ui",

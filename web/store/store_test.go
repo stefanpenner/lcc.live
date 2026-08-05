@@ -499,3 +499,52 @@ func TestStore_WeatherStationReturnsCopy(t *testing.T) {
 }
 
 func intPtr(i int) *int { return &i }
+
+func strPtr(s string) *string { return &s }
+
+func TestStore_WeatherPrefersSynopticStid(t *testing.T) {
+	store := NewStore(&Canyons{
+		LCC: Canyon{
+			Name: "LCC",
+			Cameras: []Camera{
+				{
+					Kind:             "webcam",
+					Src:              "http://example.com/c.jpg",
+					Alt:              "Peak",
+					Canyon:           "LCC",
+					WeatherStationId: intPtr(42),
+					SynopticStid:     strPtr("CLN"),
+				},
+				{
+					Kind:             "webcam",
+					Src:              "http://example.com/r.jpg",
+					Alt:              "Road",
+					Canyon:           "LCC",
+					WeatherStationId: intPtr(42),
+				},
+			},
+		},
+		BCC: Canyon{Name: "BCC"},
+	})
+	store.FetchImages(context.Background())
+
+	store.StoreWeatherStationsById([]WeatherStation{
+		{Id: 42, StationName: "UDOT Road", AirTemperature: strPtr("70")},
+	})
+	store.StoreWeatherStationsByStid([]WeatherStation{
+		{StationName: "ALTA - COLLINS", CameraSourceId: strPtr("CLN"), AirTemperature: strPtr("48"), Source: "nws"},
+	})
+
+	// Peak cam has both → mountain stid wins
+	peak := store.GetWeatherStation(store.entries[0].Camera.ID)
+	require.NotNil(t, peak)
+	assert.Equal(t, "ALTA - COLLINS", peak.StationName)
+
+	// Road-only → UDOT
+	road := store.GetWeatherStation(store.entries[1].Camera.ID)
+	require.NotNil(t, road)
+	assert.Equal(t, "UDOT Road", road.StationName)
+
+	stids := store.SynopticStids()
+	assert.Equal(t, []string{"CLN"}, stids)
+}

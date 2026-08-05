@@ -5,18 +5,22 @@
         {
           "kind": "img",
           "src": "https://manage.hdrelay.com/snapshot/8611e276-7ee5-42c0-b8cd-d9e1890e1cd4",
-          "alt": "Snowbird Snow Stake"
+          "alt": "Snowbird Snow Stake",
+          "weatherStationId": 1650160,
+          "synopticStid": "SBDU1"
         },
         {
           "kind": "img",
           "src": "https://alta-webcams.sfo3.cdn.digitaloceanspaces.com/Collins_Snow_Stake.jpg",
           "alt": "Alta Collins Snow Stake (12h)",
-          "weatherStationId": 1650231
+          "weatherStationId": 1650231,
+          "synopticStid": "CLN"
         },
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/141829",
-          "alt": "Mouth of LCC"
+          "alt": "Mouth of LCC",
+          "weatherStationId": 1650225
         },
         {
           "kind": "img",
@@ -27,17 +31,20 @@
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/142227",
-          "alt": "Upper Vault"
+          "alt": "Upper Vault",
+          "weatherStationId": 1650225
         },
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/136332",
-          "alt": "Seven Turns"
+          "alt": "Seven Turns",
+          "weatherStationId": 1650225
         },
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/85718",
-          "alt": "Tanners Flat"
+          "alt": "Tanners Flat",
+          "weatherStationId": 1650225
         },
         {
           "kind": "img",
@@ -48,74 +55,99 @@
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/140390",
-          "alt": "Upper White Pine"
+          "alt": "Upper White Pine",
+          "weatherStationId": 1650226
         },
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/142061",
-          "alt": "Alta Bypass"
+          "alt": "Alta Bypass",
+          "weatherStationId": 1650091,
+          "synopticStid": "AGD"
         },
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/137940",
           "alt": "Alta",
-          "weatherStationId": 1650091
+          "weatherStationId": 1650091,
+          "synopticStid": "ATB"
         },
         {
           "kind": "img",
           "src": "https://alta-webcams.sfo3.cdn.digitaloceanspaces.com/Superior.jpg",
-          "alt": "Mount Superior"
+          "alt": "Mount Superior",
+          "weatherStationId": 1650231,
+          "synopticStid": "CLN"
         },
         {
           "kind": "img",
           "src": "https://alta-webcams.sfo3.cdn.digitaloceanspaces.com/Highrustler.jpg",
-          "alt": "High Rustler"
+          "alt": "High Rustler",
+          "weatherStationId": 1650231,
+          "synopticStid": "CLN"
         },
         {
           "kind": "img",
           "src": "https://alta-webcams.sfo3.cdn.digitaloceanspaces.com/sugar_peak.jpg",
-          "alt": "Sugarloaf Peak"
+          "alt": "Sugarloaf Peak",
+          "weatherStationId": 1650231,
+          "synopticStid": "ALT"
         },
         {
           "kind": "img",
           "src": "https://alta-webcams.sfo3.cdn.digitaloceanspaces.com/collins_dtc.jpg",
-          "alt": "Salt Lake Valley"
+          "alt": "Salt Lake Valley",
+          "weatherStationId": 1650231,
+          "synopticStid": "CLN"
         },
         {
           "kind": "img",
           "src": "https://app.prismcam.com/public/helpers/realtime_preview.php?c=65&s=720",
-          "alt": "Albion Basin"
+          "alt": "Albion Basin",
+          "weatherStationId": 1650091,
+          "synopticStid": "ATB"
         },
         {
           "kind": "img",
           "src": "https://alta-webcams.sfo3.cdn.digitaloceanspaces.com/Greeley.jpg",
-          "alt": "East Greeley"
+          "alt": "East Greeley",
+          "weatherStationId": 1650091,
+          "synopticStid": "CLN"
         },
         {
           "kind": "img",
           "src": "https://app.prismcam.com/public/helpers/realtime_preview.php?c=88&s=720",
           "alt": "Mount Baldy",
-          "weatherStationId": 1650160
+          "weatherStationId": 1650160,
+          "synopticStid": "AMB"
         },
         {
           "kind": "img",
           "src": "https://backend.roundshot.com/cams/48fc223c0ed88474ecc2f884bf39de63/medium",
-          "alt": "Powder Paradise"
+          "alt": "Powder Paradise",
+          "weatherStationId": 1650160,
+          "synopticStid": "SBDU1"
         },
         {
           "kind": "img",
           "src": "https://backend.roundshot.com/cams/44cfff4ff2a218a1178dbb105d95846a/medium",
-          "alt": "Hidden Peak"
+          "alt": "Hidden Peak",
+          "weatherStationId": 1650160,
+          "synopticStid": "SBDU1"
         },
         {
           "kind": "img",
           "src": "https://manage.hdrelay.com/snapshot/db2a69c5-66e9-4c48-a713-919eaf191fc1",
-          "alt": "Little Cloud"
+          "alt": "Little Cloud",
+          "weatherStationId": 1650160,
+          "synopticStid": "SBDU1"
         },
         {
           "kind": "img",
           "src": "https://manage.hdrelay.com/snapshot/5780754f-8da1-4223-ab8a-6755d84cbc10",
-          "alt": "Mineral Basin"
+          "alt": "Mineral Basin",
+          "weatherStationId": 1650160,
+          "synopticStid": "SBDU1"
         }
       ]
     },
@@ -125,17 +157,20 @@
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/84748",
-          "alt": "6200 @ 3000 E"
+          "alt": "6200 @ 3000 E",
+          "weatherStationId": 1650085
         },
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/140971",
-          "alt": "Wasatch Blvd @ BCC"
+          "alt": "Wasatch Blvd @ BCC",
+          "weatherStationId": 1650085
         },
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/141425",
-          "alt": "Dogwood"
+          "alt": "Dogwood",
+          "weatherStationId": 1650085
         },
         {
           "kind": "img",
@@ -146,87 +181,106 @@
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/140718",
-          "alt": "Cardiff Fork"
+          "alt": "Cardiff Fork",
+          "weatherStationId": 1650085,
+          "synopticStid": "MLDU1"
         },
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/140719",
-          "alt": "Silver Fork"
+          "alt": "Silver Fork",
+          "weatherStationId": 1650085,
+          "synopticStid": "MLDU1"
         },
         {
           "kind": "img",
           "src": "https://manage.hdrelay.com/snapshot/68eec5b81434e653f179d7f6",
-          "alt": "Brighton Snow Stake"
+          "alt": "Brighton Snow Stake",
+          "synopticStid": "BRIU1"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/gfHReYIuydU?autoplay=1&mute=1&controls=0",
-          "alt": "Honeycomb Canyon"
+          "alt": "Honeycomb Canyon",
+          "synopticStid": "REY"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/fKLVbvQhPsc?autoplay=1&mute=1&controls=0",
-          "alt": "Powderhorn"
+          "alt": "Powderhorn",
+          "synopticStid": "REY"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/Lnznapxh2xM?autoplay=1&mute=1&controls=0",
-          "alt": "Sunshine Bowl"
+          "alt": "Sunshine Bowl",
+          "synopticStid": "BRC"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/QCqYmOGzULs?autoplay=1&mute=1&controls=0",
-          "alt": "Solitude Snow Stake"
+          "alt": "Solitude Snow Stake",
+          "synopticStid": "REY"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/ta-4QZbfMXc?autoplay=1&mute=1&controls=0",
-          "alt": "Moonbeam Parking Lot"
+          "alt": "Moonbeam Parking Lot",
+          "synopticStid": "BRIU1"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/NSiItCGabfo?autoplay=1&mute=1&controls=0",
-          "alt": "Moonbeam Lift Line"
+          "alt": "Moonbeam Lift Line",
+          "synopticStid": "BRIU1"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/l2X9DlRzX54?autoplay=1&mute=1&controls=0",
-          "alt": "Apex Express and Sunrise Lift Lines"
+          "alt": "Apex Express and Sunrise Lift Lines",
+          "synopticStid": "BRC"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/yeoBog_kSzc?autoplay=1&mute=1&controls=0",
-          "alt": "Powderhorn II Lift Line"
+          "alt": "Powderhorn II Lift Line",
+          "synopticStid": "REY"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/Yx3QmuKfwjY?autoplay=1&mute=1&controls=0",
-          "alt": "Link Lift Line"
+          "alt": "Link Lift Line",
+          "synopticStid": "BRIU1"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/rUXoOLxKKX4?autoplay=1&mute=1&controls=0",
-          "alt": "Summit Express Lift Line"
+          "alt": "Summit Express Lift Line",
+          "synopticStid": "BRC"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/XLzKPufaAts?autoplay=1&mute=1&controls=0",
-          "alt": "Bottom of Majestic Lift"
+          "alt": "Bottom of Majestic Lift",
+          "synopticStid": "BRIU1"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/4a-3iEM7bHk?autoplay=1&mute=1&controls=0",
-          "alt": "Brighton Lot"
+          "alt": "Brighton Lot",
+          "synopticStid": "BRIU1"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/HD1S-bdI1AA?autoplay=1&mute=1&controls=0",
-          "alt": "Molly Greens"
+          "alt": "Molly Greens",
+          "synopticStid": "BRIU1"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/Zv8HYwaXjBg?autoplay=1&mute=1&controls=0",
-          "alt": "Crest 6"
+          "alt": "Crest 6",
+          "synopticStid": "BRC"
         }
       ]
     }

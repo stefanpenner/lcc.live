@@ -57,7 +57,8 @@ type Store struct {
 	syncCallbackMu             sync.Mutex
 	roadConditions             map[string][]RoadCondition // Maps canyon -> road conditions
 	roadConditionsMu           sync.RWMutex
-	weatherStationsById        map[int]*WeatherStation // Maps station Id -> weather station
+	weatherStationsById        map[int]*WeatherStation    // UDOT station Id -> weather station
+	weatherStationsByStid      map[string]*WeatherStation // MesoWest/Synoptic/NWS stid -> weather station
 	weatherStationsMu          sync.RWMutex
 	events                     map[string][]Event // Maps canyon -> events
 	eventsMu                   sync.RWMutex
@@ -230,8 +231,9 @@ func NewStore(canyons *Canyons) *Store {
 		nameIndex:           nameIndex,
 		canyons:             canyons,
 		roadConditions:      make(map[string][]RoadCondition),
-		weatherStationsById: make(map[int]*WeatherStation),
-		events:              make(map[string][]Event),
+		weatherStationsById:   make(map[int]*WeatherStation),
+		weatherStationsByStid: make(map[string]*WeatherStation),
+		events:                make(map[string][]Event),
 		client: &http.Client{
 			Timeout:   httpClientTimeout,
 			Transport: transport,
@@ -593,7 +595,7 @@ func (s *Store) GetRoadConditions(canyon string) []RoadCondition {
 	return result
 }
 
-// StoreWeatherStationsById indexes weather stations by their Id for lookup by cameras.
+// StoreWeatherStationsById indexes UDOT weather stations by their Id for lookup by cameras.
 // Each station is copied so the caller's slice can be discarded safely.
 func (s *Store) StoreWeatherStationsById(stations []WeatherStation) {
 	s.weatherStationsMu.Lock()
@@ -608,12 +610,79 @@ func (s *Store) StoreWeatherStationsById(stations []WeatherStation) {
 	logger.Muted("Indexed %d weather stations by Id", len(m))
 }
 
+// StoreWeatherStationsByStid indexes MesoWest/Synoptic/NWS stations by stid.
+// Merges into the existing map so a partial poll does not wipe other stids.
+func (s *Store) StoreWeatherStationsByStid(stations []WeatherStation) {
+	s.weatherStationsMu.Lock()
+	defer s.weatherStationsMu.Unlock()
+
+	if s.weatherStationsByStid == nil {
+		s.weatherStationsByStid = make(map[string]*WeatherStation)
+	}
+	for i := range stations {
+		cp := stations[i]
+		// StationName carries stid for map key when Source tags it; prefer explicit
+		// Id=0 stations keyed via CameraSourceId or name prefix "STID:".
+		stid := ""
+		if cp.CameraSourceId != nil && *cp.CameraSourceId != "" {
+			stid = *cp.CameraSourceId
+		}
+		if stid == "" {
+			continue
+		}
+		s.weatherStationsByStid[stid] = &cp
+	}
+	logger.Muted("Indexed %d weather stations by stid (total %d)", len(stations), len(s.weatherStationsByStid))
+}
+
+// SynopticStids returns the unique non-empty synopticStid values from all cameras.
+func (s *Store) SynopticStids() []string {
+	s.imagesReady.Wait()
+	seen := make(map[string]struct{})
+	var out []string
+	for _, e := range s.entries {
+		e.Read(func(entry *Entry) {
+			if entry.Camera == nil || entry.Camera.SynopticStid == nil {
+				return
+			}
+			stid := *entry.Camera.SynopticStid
+			if stid == "" {
+				return
+			}
+			if _, ok := seen[stid]; ok {
+				return
+			}
+			seen[stid] = struct{}{}
+			out = append(out, stid)
+		})
+	}
+	return out
+}
+
+// resolveStation prefers mountain MesoWest/Synoptic/NWS when available, else UDOT RWIS.
+// Caller holds weatherStationsMu.
+func (s *Store) resolveStation(udotID *int, stid *string) *WeatherStation {
+	if stid != nil && *stid != "" {
+		if station, ok := s.weatherStationsByStid[*stid]; ok && station != nil {
+			cp := *station
+			return &cp
+		}
+	}
+	if udotID != nil {
+		if station, ok := s.weatherStationsById[*udotID]; ok && station != nil {
+			cp := *station
+			return &cp
+		}
+	}
+	return nil
+}
+
 // GetWeatherStation returns a copy of the weather station for a camera, or nil.
+// Prefers MesoWest/Synoptic/NWS stid when available; falls back to UDOT RWIS.
 // The returned pointer is not aliased into the store map.
 func (s *Store) GetWeatherStation(cameraID string) *WeatherStation {
 	s.imagesReady.Wait()
 
-	// Get the camera entry
 	entry, exists := s.index[cameraID]
 	if !exists {
 		entry, exists = s.nameIndex[cameraID]
@@ -622,29 +691,23 @@ func (s *Store) GetWeatherStation(cameraID string) *WeatherStation {
 		return nil
 	}
 
-	var stationId *int
+	var udotID *int
+	var stid *string
 	entry.Read(func(e *Entry) {
 		if e.Camera != nil {
-			stationId = e.Camera.WeatherStationId
+			udotID = e.Camera.WeatherStationId
+			stid = e.Camera.SynopticStid
 		}
 	})
 
-	if stationId == nil {
-		return nil
-	}
-
 	s.weatherStationsMu.RLock()
 	defer s.weatherStationsMu.RUnlock()
-	station, ok := s.weatherStationsById[*stationId]
-	if !ok || station == nil {
-		return nil
-	}
-	cp := *station
-	return &cp
+	return s.resolveStation(udotID, stid)
 }
 
 // GetWeatherStationsForCanyon returns copies of weather stations for cameras in a canyon,
 // acquiring the lock once instead of per-camera.
+// Prefers mountain stid when available; otherwise UDOT RWIS.
 func (s *Store) GetWeatherStationsForCanyon(canyon *Canyon) map[string]*WeatherStation {
 	if canyon == nil {
 		return nil
@@ -652,32 +715,17 @@ func (s *Store) GetWeatherStationsForCanyon(canyon *Canyon) map[string]*WeatherS
 
 	s.imagesReady.Wait()
 
-	// Collect weatherStationIds from cameras
-	type lookup struct {
-		cameraID  string
-		stationId int
-	}
-	var lookups []lookup
-	for _, cam := range canyon.Cameras {
-		if cam.WeatherStationId == nil {
-			continue
-		}
-		lookups = append(lookups, lookup{cameraID: cam.ID, stationId: *cam.WeatherStationId})
-	}
-
-	if len(lookups) == 0 {
-		return nil
-	}
-
 	s.weatherStationsMu.RLock()
 	defer s.weatherStationsMu.RUnlock()
 
 	result := make(map[string]*WeatherStation)
-	for _, l := range lookups {
-		if station, exists := s.weatherStationsById[l.stationId]; exists && station != nil {
-			cp := *station
-			result[l.cameraID] = &cp
+	for _, cam := range canyon.Cameras {
+		if st := s.resolveStation(cam.WeatherStationId, cam.SynopticStid); st != nil {
+			result[cam.ID] = st
 		}
+	}
+	if len(result) == 0 {
+		return nil
 	}
 	return result
 }

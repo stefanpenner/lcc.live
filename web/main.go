@@ -24,6 +24,7 @@ import (
 	"github.com/stefanpenner/lcc-live/web/logger"
 	"github.com/stefanpenner/lcc-live/web/server"
 	"github.com/stefanpenner/lcc-live/web/store"
+	"github.com/stefanpenner/lcc-live/web/synoptic"
 	"github.com/stefanpenner/lcc-live/web/uac"
 	"github.com/stefanpenner/lcc-live/web/udot"
 	"github.com/stefanpenner/lcc-live/web/ui"
@@ -33,14 +34,17 @@ import (
 const (
 	defaultSyncInterval      = 3 * time.Second
 	defaultUDOTFetchInterval = 75 * time.Second
+	defaultSynopticInterval  = 3 * time.Minute
 )
 
 type Config struct {
-	Port         string
-	SyncInterval time.Duration
-	DevMode      bool
-	UDOTAPIKey   string
-	UDOTInterval time.Duration
+	Port             string
+	SyncInterval     time.Duration
+	DevMode          bool
+	UDOTAPIKey       string
+	UDOTInterval     time.Duration
+	SynopticToken    string
+	SynopticInterval time.Duration
 }
 
 // keepCamerasInSync keeps the local store in-sync with image origins
@@ -88,12 +92,23 @@ func loadConfig() Config {
 	// Get UDOT API key from environment only
 	udotAPIKey := os.Getenv("UDOT_API_KEY")
 
+	// Optional Synoptic/MesoWest token; empty → free NWS station observations
+	synopticToken := os.Getenv("SYNOPTIC_TOKEN")
+	synopticInterval := defaultSynopticInterval
+	if s := os.Getenv("SYNOPTIC_FETCH_INTERVAL"); s != "" {
+		if d, err := time.ParseDuration(s); err == nil {
+			synopticInterval = d
+		}
+	}
+
 	return Config{
-		Port:         port,
-		SyncInterval: syncInterval,
-		DevMode:      devMode,
-		UDOTAPIKey:   udotAPIKey,
-		UDOTInterval: udotInterval,
+		Port:             port,
+		SyncInterval:     syncInterval,
+		DevMode:          devMode,
+		UDOTAPIKey:       udotAPIKey,
+		UDOTInterval:     udotInterval,
+		SynopticToken:    synopticToken,
+		SynopticInterval: synopticInterval,
 	}
 }
 
@@ -401,6 +416,11 @@ func main() {
 	g.Go(func() error { return uacPoller.Start(gCtx) })
 	altaPoller := alta.NewPoller(alta.NewClient(), store, 3*time.Minute)
 	g.Go(func() error { return altaPoller.Start(gCtx) })
+
+	// Mountain weather: Synoptic when SYNOPTIC_TOKEN set, else free NWS (same STIDs)
+	synopticClient := synoptic.NewClient(config.SynopticToken)
+	synopticPoller := synoptic.NewPoller(synopticClient, store, config.SynopticInterval)
+	g.Go(func() error { return synopticPoller.Start(gCtx) })
 
 	// Configure server to use UI logger
 	server.LogWriter = ui.AddLog

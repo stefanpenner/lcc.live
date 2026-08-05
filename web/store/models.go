@@ -27,12 +27,13 @@ type HTTPHeaders struct {
 
 // Camera represents a webcam with its configuration
 type Camera struct {
-	ID               string `json:"id"`
-	Kind             string `json:"kind"`
-	Src              string `json:"src"`
-	Alt              string `json:"alt"`
-	Canyon           string `json:"canyon"`
-	WeatherStationId *int   `json:"weatherStationId,omitempty"`
+	ID               string  `json:"id"`
+	Kind             string  `json:"kind"`
+	Src              string  `json:"src"`
+	Alt              string  `json:"alt"`
+	Canyon           string  `json:"canyon"`
+	WeatherStationId *int    `json:"weatherStationId,omitempty"` // UDOT RWIS numeric id
+	SynopticStid     *string `json:"synopticStid,omitempty"`     // MesoWest/Synoptic/NWS station id (e.g. CLN)
 }
 
 // RoadCondition represents road condition data from UDOT API
