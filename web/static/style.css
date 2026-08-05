@@ -1168,26 +1168,48 @@ the-overlay video {
   cursor: default;
 }
 
-/* Fullscreen image: fade in; receive pinch/pan (pointer-events on) */
+/* Fullscreen image: fade in; receive pinch/pan */
 the-overlay img.overlay-img {
   opacity: 0;
   transition: opacity 0.2s ease;
   pointer-events: auto;
   touch-action: none;
+  -ms-touch-action: none;
   transform-origin: center center;
+  -webkit-transform-origin: center center;
   will-change: transform;
   user-select: none;
   -webkit-user-select: none;
   -webkit-user-drag: none;
+  /* Avoid iOS callout / long-press hijacking the gesture */
+  -webkit-touch-callout: none;
 }
 the-overlay img.overlay-img.is-ready {
   opacity: 1;
 }
 the-overlay img.overlay-img.is-zoomed {
   cursor: grab;
+  /* Don't animate transform mid-gesture */
+  transition: opacity 0.2s ease;
 }
 the-overlay img.overlay-img.is-zoomed:active {
   cursor: grabbing;
+}
+
+/* While overlay open, never let body scroll/bounce under a pinch */
+body.overlay-open {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Grid: discourage accidental browser pinch affordance */
+body:not(.overlay-open) {
+  touch-action: pan-x pan-y;
 }
 
 .overlay-spinner {

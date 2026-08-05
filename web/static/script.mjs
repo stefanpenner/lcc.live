@@ -361,9 +361,11 @@ class FullscreenViewer {
     this.moved = false;
     this.gestureActive = false; // multi-touch session (suppress swipe)
     this.mousePan = null; // desktop drag when zoomed
+    this.gestureBaseScale = 1; // iOS Safari gesture* events
     this.setupOverlay();
     this.setupEventListeners();
     this.setupHoverPreload();
+    this.setupBlockPagePinch();
   }
 
   /**
@@ -456,7 +458,7 @@ class FullscreenViewer {
       }
     });
 
-    // Touch Events = reliable multi-touch on iOS; mouse/wheel for desktop
+    // Touch + iOS gesture* for pinch; mouse/wheel for desktop
     this.setupTouchZoomGestures();
     this.setupMouseZoomGestures();
   }
@@ -473,6 +475,7 @@ class FullscreenViewer {
     this.panOrigin = null;
     this.mousePan = null;
     this.gestureActive = false;
+    this.gestureBaseScale = 1;
     this.applyZoomTransform();
     if (this.zoomImg) {
       this.zoomImg.classList.remove('is-zoomed');
@@ -482,8 +485,10 @@ class FullscreenViewer {
 
   applyZoomTransform() {
     if (!this.zoomImg) return;
-    this.zoomImg.style.transform =
-      `translate3d(${this.tx}px, ${this.ty}px, 0) scale(${this.scale})`;
+    // Use webkit prefix-friendly transform; force compositing for iOS
+    const t = `translate3d(${this.tx}px, ${this.ty}px, 0) scale(${this.scale})`;
+    this.zoomImg.style.webkitTransform = t;
+    this.zoomImg.style.transform = t;
     this.zoomImg.classList.toggle('is-zoomed', this.isZoomed());
     this.zoomImg.style.cursor = this.isZoomed() ? 'grab' : '';
   }
@@ -500,8 +505,8 @@ class FullscreenViewer {
       return;
     }
     const rect = this.overlay.getBoundingClientRect();
-    const cx = clientX - rect.left - rect.width / 2;
-    const cy = clientY - rect.top - rect.height / 2;
+    const cx = (clientX ?? rect.left + rect.width / 2) - rect.left - rect.width / 2;
+    const cy = (clientY ?? rect.top + rect.height / 2) - rect.top - rect.height / 2;
     // Keep point under fingers/cursor stable
     const k = scale / prev;
     this.tx = cx - k * (cx - this.tx);
@@ -521,23 +526,82 @@ class FullscreenViewer {
     };
   }
 
+  /** Block Safari page-pinch on the grid (fullscreen handles its own zoom). */
+  setupBlockPagePinch() {
+    const block = (e) => {
+      if (e.touches && e.touches.length > 1 && !this.isOpen()) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener('touchmove', block, { passive: false, capture: true });
+    // iOS Safari non-standard gesture events on the document
+    document.addEventListener(
+      'gesturestart',
+      (e) => {
+        if (!this.isOpen()) e.preventDefault();
+      },
+      { passive: false, capture: true }
+    );
+    document.addEventListener(
+      'gesturechange',
+      (e) => {
+        if (!this.isOpen()) e.preventDefault();
+      },
+      { passive: false, capture: true }
+    );
+  }
+
   /**
-   * iOS Safari: multi-touch Pointer Events are unreliable.
-   * Use Touch Events on the overlay (not only the img — fingers often land on padding).
+   * Fullscreen zoom:
+   * - iOS: gesturestart/change (Safari-native pinch) + Touch Events fallback
+   * - Android: Touch Events with 2 fingers
+   * Capture phase on overlay so nothing steals the gesture.
    */
   setupTouchZoomGestures() {
+    const ov = this.overlay;
+
+    // --- iOS Safari gesture* (fires for pinch even when touch multi-pointer is flaky) ---
+    const onGestureStart = (e) => {
+      if (!this.isOpen() || !this.zoomImg) return;
+      e.preventDefault();
+      e.stopPropagation();
+      this.gestureActive = true;
+      this.moved = true;
+      this.gestureBaseScale = this.scale;
+      this.panOrigin = null;
+    };
+    const onGestureChange = (e) => {
+      if (!this.isOpen() || !this.zoomImg) return;
+      e.preventDefault();
+      e.stopPropagation();
+      this.gestureActive = true;
+      this.moved = true;
+      // e.scale is relative to gesturestart; e.clientX/Y = midpoint when available
+      const cx = e.clientX || window.innerWidth / 2;
+      const cy = e.clientY || window.innerHeight / 2;
+      this.setScaleAt(this.gestureBaseScale * e.scale, cx, cy);
+    };
+    const onGestureEnd = (e) => {
+      if (!this.isOpen()) return;
+      e.preventDefault();
+      this.gestureActive = false;
+    };
+    ov.addEventListener('gesturestart', onGestureStart, { passive: false });
+    ov.addEventListener('gesturechange', onGestureChange, { passive: false });
+    ov.addEventListener('gestureend', onGestureEnd, { passive: false });
+
+    // --- Standard Touch Events (Android + iOS fallback) ---
     const onStart = (e) => {
       if (!this.isOpen() || !this.zoomImg) return;
 
-      if (e.touches.length === 2) {
+      if (e.touches.length >= 2) {
         e.preventDefault();
+        e.stopPropagation();
         this.gestureActive = true;
         this.moved = true;
         this.panOrigin = null;
-        this.pinchStartDist = this.touchDist(e.touches[0], e.touches[1]);
+        this.pinchStartDist = this.touchDist(e.touches[0], e.touches[1]) || 1;
         this.pinchStartScale = this.scale;
-        this.pinchStartTx = this.tx;
-        this.pinchStartTy = this.ty;
         return;
       }
 
@@ -557,14 +621,19 @@ class FullscreenViewer {
     const onMove = (e) => {
       if (!this.isOpen() || !this.zoomImg) return;
 
-      if (e.touches.length === 2 && this.pinchStartDist > 0) {
+      if (e.touches.length >= 2) {
         e.preventDefault();
+        e.stopPropagation();
         this.gestureActive = true;
         this.moved = true;
-        const dist = this.touchDist(e.touches[0], e.touches[1]);
+        // Prefer continuous 2-finger scale even if pinchStart wasn't set
+        if (!(this.pinchStartDist > 0)) {
+          this.pinchStartDist = this.touchDist(e.touches[0], e.touches[1]) || 1;
+          this.pinchStartScale = this.scale;
+        }
+        const dist = this.touchDist(e.touches[0], e.touches[1]) || 1;
         const mid = this.touchMid(e.touches[0], e.touches[1]);
-        const next = this.pinchStartScale * (dist / this.pinchStartDist);
-        this.setScaleAt(next, mid.x, mid.y);
+        this.setScaleAt(this.pinchStartScale * (dist / this.pinchStartDist), mid.x, mid.y);
         return;
       }
 
@@ -583,7 +652,6 @@ class FullscreenViewer {
     const onEnd = (e) => {
       if (!this.isOpen()) return;
 
-      // Still one finger left after lifting one of a pinch → start pan if zoomed
       if (e.touches.length === 1 && this.isZoomed()) {
         this.pinchStartDist = 0;
         const t = e.touches[0];
@@ -597,20 +665,15 @@ class FullscreenViewer {
         this.panOrigin = null;
         this.gestureActive = false;
 
-        // Double-tap zoom (single finger, no real drag, not after pinch)
         if (!wasGesture && !this.moved && e.changedTouches.length === 1 && this.zoomImg) {
           const t = e.changedTouches[0];
-          // Only if lift roughly over the image bounds (or near it)
           const now = Date.now();
           const dt = now - this.lastTapAt;
           const dist = Math.hypot(t.clientX - this.lastTapX, t.clientY - this.lastTapY);
           if (dt < 320 && dist < 50) {
             e.preventDefault();
-            if (this.isZoomed()) {
-              this.resetZoom();
-            } else {
-              this.setScaleAt(2.5, t.clientX, t.clientY);
-            }
+            if (this.isZoomed()) this.resetZoom();
+            else this.setScaleAt(2.5, t.clientX, t.clientY);
             this.lastTapAt = 0;
             return;
           }
@@ -619,7 +682,6 @@ class FullscreenViewer {
           this.lastTapY = t.clientY;
         }
 
-        // Swipe nav / close — only fit scale, single-finger, no pinch session
         if (!wasGesture && !this.isZoomed() && e.changedTouches.length === 1) {
           const t = e.changedTouches[0];
           const deltaX = this.touchStartX - t.screenX;
@@ -635,11 +697,12 @@ class FullscreenViewer {
       }
     };
 
-    // passive:false so preventDefault works (blocks Safari page zoom / scroll)
-    this.overlay.addEventListener('touchstart', onStart, { passive: false });
-    this.overlay.addEventListener('touchmove', onMove, { passive: false });
-    this.overlay.addEventListener('touchend', onEnd, { passive: false });
-    this.overlay.addEventListener('touchcancel', onEnd, { passive: false });
+    // capture:true — beat any child handlers; passive:false — allow preventDefault
+    const opts = { passive: false, capture: true };
+    ov.addEventListener('touchstart', onStart, opts);
+    ov.addEventListener('touchmove', onMove, opts);
+    ov.addEventListener('touchend', onEnd, opts);
+    ov.addEventListener('touchcancel', onEnd, opts);
   }
 
   /** Desktop: wheel + click-drag pan when zoomed + double-click zoom */
@@ -929,6 +992,7 @@ class FullscreenViewer {
     
     // Store scroll position and prevent body scroll (iOS-specific handling)
     this.scrollPosition = window.scrollY || window.pageYOffset;
+    document.body.classList.add('overlay-open');
     document.body.style.overflow = 'hidden';
     document.body.style.position = 'fixed';
     document.body.style.width = '100%';
@@ -960,6 +1024,7 @@ class FullscreenViewer {
     
     // Restore scroll position (iOS-specific handling)
     const scrollPos = this.scrollPosition || 0;
+    document.body.classList.remove('overlay-open');
     document.body.style.removeProperty('overflow');
     document.body.style.removeProperty('position');
     document.body.style.removeProperty('width');
