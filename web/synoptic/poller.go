@@ -16,10 +16,11 @@ type Poller struct {
 	interval time.Duration
 }
 
-// NewPoller creates a poller. Default interval 3 minutes if zero.
+// NewPoller creates a poller. Default interval 10 minutes if zero
+// (station reports are typically 5–15+ min; no need to hammer free tier).
 func NewPoller(client *Client, s *store.Store, interval time.Duration) *Poller {
 	if interval <= 0 {
-		interval = 3 * time.Minute
+		interval = 10 * time.Minute
 	}
 	return &Poller{client: client, store: s, interval: interval}
 }

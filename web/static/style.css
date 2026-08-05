@@ -448,6 +448,30 @@ road-status img:hover {
   margin-left: auto;
 }
 
+/* Narrow: chips on their own full-width row, horizontal scroll — no orphan wrap */
+@media (max-width: 640px) {
+  .top-bar-chips {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-left: 0;
+    padding-bottom: 0.1rem;
+  }
+  .top-bar-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .top-bar-chips .status-chip,
+  .top-bar-chips .events-strip {
+    flex-shrink: 0;
+  }
+  .events-strip {
+    flex-wrap: nowrap;
+  }
+}
+
 .top-bar-chips:empty {
   display: none;
 }
@@ -1298,9 +1322,10 @@ the-overlay:hover .overlay-hint {
     margin-bottom: var(--space-md);
   }
 
+  /* Phone: one full-width column — tiles as wide as available space */
   #container {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
+    grid-template-columns: 1fr;
+    gap: 8px;
     padding-bottom: var(--space-lg);
   }
 
@@ -1398,9 +1423,11 @@ the-overlay:hover .overlay-hint {
   }
 }
 
-@media (max-width: 380px) {
+/* Small tablet / large phone landscape: optional 2-up when wide enough */
+@media (min-width: 540px) and (max-width: 768px) {
   #container {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
   }
 }
 

@@ -34,7 +34,7 @@ import (
 const (
 	defaultSyncInterval      = 3 * time.Second
 	defaultUDOTFetchInterval = 75 * time.Second
-	defaultSynopticInterval  = 3 * time.Minute
+	defaultSynopticInterval  = 10 * time.Minute
 )
 
 type Config struct {

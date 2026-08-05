@@ -35,7 +35,7 @@ bazel run //:lcc-live
 - `DEV_MODE=1` - Hot reload from disk
 - `UDOT_API_KEY` - UDOT RWIS/road (optional in DEV)
 - `SYNOPTIC_TOKEN` - Synoptic/MesoWest mountain weather (optional; without it, free NWS station obs for the same STIDs)
-- `SYNOPTIC_FETCH_INTERVAL` - Mountain weather poll (default: 3m)
+- `SYNOPTIC_FETCH_INTERVAL` - Mountain weather poll (default: 10m)
 
 ## iOS App
 
