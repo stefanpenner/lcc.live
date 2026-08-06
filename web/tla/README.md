@@ -8,9 +8,10 @@ Adversarial specs for concurrent state in `web/store` + `web/udot`.
 | `StoreReadyBuggy` | bait: Load+Store + WaitGroup Done | **FAIL** `WgNonNeg` |
 | `ImageFetch` | per-entry HEAD→GET→Write, dual ETag, ready | PASS core; bait `ReadyImpliesImage` **FAIL** |
 | `UdotSnapshot` | independent domain gens + torn canyon page | PASS weak; bait `CoherentPage` **FAIL** |
-| `OverlayGesture` | grid↔fullscreen, pinch zoom, swipe nav gates | PASS (~39 states) |
-| `OverlayGestureBait` | swipe allowed under `suppressNav` | **FAIL** `NavSafe` |
+| `OverlayGesture` | grid↔fullscreen, pinch, swipe nav + swipe-close | PASS (tiny lids) |
+| `OverlayGestureBait` | gallery swipe under `suppressNav` | **FAIL** `NavSafe` |
 | `OverlayGestureBaitPinchNav` | pinch-out changes `idx` | **FAIL** `NavSafe` |
+| `OverlayGestureBaitClose` | dismiss without `swipeCandidate` | **FAIL** `Safe` |
 
 ```bash
 tlc StoreReady.tla -c StoreReady.cfg          # expect pass
@@ -22,8 +23,11 @@ tlc UdotSnapshot.tla -c UdotSnapshotBait.cfg  # expect fail
 tlc -c OverlayGesture.cfg OverlayGesture.tla                 # expect pass
 tlc -c OverlayGestureBait.cfg OverlayGesture.tla             # expect fail
 tlc -c OverlayGestureBaitPinchNav.cfg OverlayGesture.tla     # expect fail
+tlc -c OverlayGestureBaitClose.cfg OverlayGesture.tla        # expect fail
 ```
 
 Lids: `MaxCycles=2`, `MaxVersions=2`, `MaxGen=2`, Overlay `MaxCams=3` `MaxFingers=2` — product may run more cycles / more cams; policy is the same.
+
+**Overlay reduce notes:** `zoomed`/`suppressNav`/`swipeCandidate` are BOOLs (not scale/timer); `pinching` sticky until `fingers=0` (matches product leftover finger); `CanSwipe` = gallery only, `CanSwipeClose` = dismiss (orthogonal; close allowed Zoomed + during suppress).
 
 See also `web/docs/concurrency.md`.

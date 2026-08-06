@@ -339,9 +339,11 @@ class ImageReloader {
  * Fullscreen camera viewer.
  * Gesture policy verified in web/tla/OverlayGesture.tla (TLC Safe + NavSafe):
  *   ClickThumb      — grid thumb → open fullscreen Fit
- *   ClickFullscreen — click image → close (minimize)
+ *   ClickFullscreen — click image → close (blocked while pinching/suppressNav)
  *   PinchIn/Out     — zoom only; never change gallery idx
- *   CanSwipe        — Fit ∧ ¬pinching ∧ ¬suppressNav ∧ fingers≤1
+ *   CanSwipe        — gallery next/prev: Fit ∧ ¬pinching ∧ ¬suppressNav ∧ fingers≤1
+ *   CanSwipeClose   — swipe-down dismiss: swipeCandidate ∧ ¬pinching ∧ fingers=0
+ *                     (allowed Zoomed + during suppressNav; not after multi-touch stroke)
  */
 class FullscreenViewer {
   constructor() {
@@ -363,13 +365,13 @@ class FullscreenViewer {
     this.pinchStartScale = 1;
     this.panOrigin = null; // {x, y, tx, ty}
     this.moved = false;
-    this.gestureActive = false; // pinching (TLA: pinching)
+    this.gestureActive = false; // pinching (TLA: pinching) — sticky until all fingers up
     this.mousePan = null;
     /** @type {Map<number, {x:number,y:number}>} */
     this.activeTouches = new Map();
-    /** TLA suppressNav — after pinch, block swipe next/prev */
+    /** TLA suppressNav — after pinch, block swipe next/prev (not dismiss) */
     this.suppressNavUntil = 0;
-    /** Pure 1-finger stroke (false once multi-touch joined) — gates swipe-close */
+    /** TLA swipeCandidate — pure 1-finger stroke; gates CanSwipeClose */
     this.swipeCandidate = false;
     this.setupOverlay();
     this.setupEventListeners();
@@ -514,6 +516,14 @@ class FullscreenViewer {
     this.gestureActive = false;
     this.activeTouches.clear();
     this.applyZoomTransform();
+  }
+
+  /** TLA ClickThumb / CloseAlways / SwipeClose — clear gesture session on open/close/nav */
+  resetGestureSession() {
+    this.suppressNavUntil = 0;
+    this.swipeCandidate = false;
+    this.moved = false;
+    this.resetZoom();
   }
 
   /** TLA: pinching' ∧ suppressNav' when multi-touch enters */
@@ -889,6 +899,9 @@ class FullscreenViewer {
   }
 
   open(element) {
+    // TLA ClickThumb: enter Fullscreen at Fit, clear suppress/swipeCandidate
+    this.resetGestureSession();
+
     // Get all images, iframes, and videos in the page
     const images = Array.from(document.querySelectorAll('img')).filter(
       i => !i.closest('the-overlay')
@@ -917,11 +930,11 @@ class FullscreenViewer {
 
     const sourceElement = this.items[this.currentIndex];
     
-    // Clear overlay
+    // Clear overlay + gesture session (nav must not keep suppress from prior photo)
     this.overlay.innerHTML = '';
     this.zoomLayer = null;
     this.zoomImg = null;
-    this.resetZoom();
+    this.resetGestureSession();
     
     // Clone and display element (image, iframe, or video)
     if (sourceElement.tagName === 'IMG') {
@@ -1110,7 +1123,8 @@ class FullscreenViewer {
     this.overlay.innerHTML = '';
     this.zoomLayer = null;
     this.zoomImg = null;
-    this.resetZoom();
+    // TLA CloseAlways / SwipeClose / ClickFullscreen — Grid idle (no suppress)
+    this.resetGestureSession();
     
     // Restore scroll position (iOS-specific handling)
     const scrollPos = this.scrollPosition || 0;
