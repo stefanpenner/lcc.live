@@ -14,7 +14,7 @@ bazel run //:lcc-live -- --help
 
 - **Go backend**: Single binary (~7.8MB), in-memory cache, background sync
 - **Vanilla JS frontend**: No frameworks, ES modules
-- **Build**: Bazel with rules_oci
+- **Build**: Bazel with rules_oci; JS/CSS minified into `//web/static:static_files` via `//tools/minify`
 - **Deploy**: Fly.io
 
 ## Development

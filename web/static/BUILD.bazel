@@ -1,11 +1,49 @@
+# Static assets for the web server.
+#
+# Sources (script.mjs, style.css) stay unminified in git for editing.
+# //web/static:static_files packages minified JS/CSS + pass-through images
+# under dist/ for production runfiles and the OCI layer.
+# DEV_MODE loads web/static/ from the workspace (see loadStaticFilesystem).
+
+# Minify JS/CSS; copy images unchanged into dist/.
+genrule(
+    name = "static_dist",
+    srcs = [
+        "script.mjs",
+        "style.css",
+        "apple-touch-icon.png",
+        "favicon.png",
+        "og-image.png",
+        "oops.png",
+    ],
+    outs = [
+        "dist/script.mjs",
+        "dist/style.css",
+        "dist/apple-touch-icon.png",
+        "dist/favicon.png",
+        "dist/og-image.png",
+        "dist/oops.png",
+    ],
+    cmd = """
+$(execpath //tools/minify) js $(location script.mjs) $(location dist/script.mjs) && \
+$(execpath //tools/minify) css $(location style.css) $(location dist/style.css) && \
+cp $(location apple-touch-icon.png) $(location dist/apple-touch-icon.png) && \
+cp $(location favicon.png) $(location dist/favicon.png) && \
+cp $(location og-image.png) $(location dist/og-image.png) && \
+cp $(location oops.png) $(location dist/oops.png)
+""",
+    tools = ["//tools/minify"],
+    visibility = ["//visibility:private"],
+)
+
 filegroup(
     name = "static_files",
-    srcs = glob(
-        ["**/*"],
-        exclude = [
-            "BUILD.bazel",
-            "image_gen.bzl",
-        ],
-    ),
+    srcs = [":static_dist"],
     visibility = ["//visibility:public"],
 )
+
+# Unminified sources (for tooling / explicit deps). Not used by runtime packaging.
+exports_files([
+    "script.mjs",
+    "style.css",
+])

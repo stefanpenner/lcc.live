@@ -136,7 +136,7 @@ func TestFilesystemLoading(t *testing.T) {
 	})
 
 	t.Run("Static files load", func(t *testing.T) {
-		staticFS, err := loadFilesystem("web/static")
+		staticFS, err := loadStaticFilesystem()
 		require.NoError(t, err)
 
 		files := []string{
@@ -211,7 +211,7 @@ func TestApplicationStartup(t *testing.T) {
 	// Test that server starts without errors
 	t.Run("Server starts successfully", func(t *testing.T) {
 		// Setup filesystem
-		staticFS, err := loadFilesystem("web/static")
+		staticFS, err := loadStaticFilesystem()
 		require.NoError(t, err)
 
 		tmplFS, err := loadFilesystem("web/templates")
@@ -239,7 +239,7 @@ func TestApplicationStartup(t *testing.T) {
 	// Integration test: full startup and basic route
 	t.Run("Full startup and basic route works", func(t *testing.T) {
 		// Setup filesystem
-		staticFS, err := loadFilesystem("web/static")
+		staticFS, err := loadStaticFilesystem()
 		require.NoError(t, err)
 
 		tmplFS, err := loadFilesystem("web/templates")

@@ -169,6 +169,45 @@ func loadFilesystem(subdir string) (fs.FS, error) {
 	return os.DirFS(path), nil
 }
 
+// loadStaticFilesystem prefers Bazel-minified dist/ when present; in DEV_MODE
+// loads unminified web/static sources from the workspace for hot-reload.
+func loadStaticFilesystem() (fs.FS, error) {
+	devMode := os.Getenv("DEV_MODE") == "1" || os.Getenv("DEV_MODE") == "true"
+	if devMode {
+		// bazel run sets BUILD_WORKSPACE_DIRECTORY; prefer it over runfiles.
+		for _, root := range []string{os.Getenv("BUILD_WORKSPACE_DIRECTORY"), mustGetwd()} {
+			if root == "" {
+				continue
+			}
+			src := filepath.Join(root, "web/static")
+			if _, err := os.Stat(filepath.Join(src, "script.mjs")); err == nil {
+				return os.DirFS(src), nil
+			}
+		}
+	}
+
+	baseDir, err := getBaseDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get base directory: %w", err)
+	}
+	// Minified package first (//web/static:static_files → dist/), then raw static.
+	for _, sub := range []string{"web/static/dist", "web/static"} {
+		dir := filepath.Join(baseDir, sub)
+		if _, err := os.Stat(filepath.Join(dir, "script.mjs")); err == nil {
+			return os.DirFS(dir), nil
+		}
+	}
+	return nil, fmt.Errorf("static files not found under %s (tried web/static/dist and web/static)", baseDir)
+}
+
+func mustGetwd() string {
+	wd, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+	return wd
+}
+
 // purgeCloudflareCache purges the Cloudflare cache for the configured zone
 func purgeCloudflareCache() error {
 	zoneID := os.Getenv("CLOUDFLARE_ZONE_ID")
@@ -302,7 +341,7 @@ func main() {
 	config := loadConfig()
 
 	// Setup filesystem - load from disk instead of embed
-	staticFS, err := loadFilesystem("web/static")
+	staticFS, err := loadStaticFilesystem()
 	if err != nil {
 		logger.Fatal(err, "failed to load static files: %v", err)
 	}

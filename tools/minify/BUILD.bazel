@@ -1,0 +1,32 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "minify_lib",
+    srcs = [
+        "main.go",
+        "minify.go",
+    ],
+    importpath = "github.com/stefanpenner/lcc-live/tools/minify",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@com_github_tdewolff_minify_v2//:minify",
+        "@com_github_tdewolff_minify_v2//css",
+        "@com_github_tdewolff_minify_v2//js",
+    ],
+)
+
+go_binary(
+    name = "minify",
+    embed = [":minify_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "minify_test",
+    srcs = ["minify_test.go"],
+    embed = [":minify_lib"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

@@ -69,7 +69,7 @@ func setupSmokeServer(t *testing.T) string {
 
 	tmplFS, err := loadFilesystem("web/templates")
 	require.NoError(t, err)
-	staticFS, err := loadFilesystem("web/static")
+	staticFS, err := loadStaticFilesystem()
 	require.NoError(t, err)
 
 	app, err := server.Start(server.ServerConfig{

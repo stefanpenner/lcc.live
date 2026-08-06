@@ -43,6 +43,7 @@ use_repo(
     "com_github_mitchellh_hashstructure",
     "com_github_prometheus_client_golang",
     "com_github_stretchr_testify",
+    "com_github_tdewolff_minify_v2",
     "org_golang_x_sync",
 )
 

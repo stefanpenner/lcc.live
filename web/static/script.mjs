@@ -369,6 +369,8 @@ class FullscreenViewer {
     this.activeTouches = new Map();
     /** TLA suppressNav — after pinch, block swipe next/prev */
     this.suppressNavUntil = 0;
+    /** Pure 1-finger stroke (false once multi-touch joined) — gates swipe-close */
+    this.swipeCandidate = false;
     this.setupOverlay();
     this.setupEventListeners();
     this.setupHoverPreload();
@@ -477,14 +479,28 @@ class FullscreenViewer {
     return this.scale > 1.05;
   }
 
-  /** TLA CanSwipe */
-  canSwipe() {
+  /** TLA CanSwipe — gallery next/prev only */
+  canSwipeNav() {
     return (
       this.isOpen() &&
       !this.isZoomed() &&
       !this.gestureActive &&
       Date.now() >= this.suppressNavUntil &&
       this.activeTouches.size <= 1
+    );
+  }
+
+  /**
+   * 1-finger swipe down → close.
+   * Allowed at Fit, Zoomed, and during suppressNav (after pinch).
+   * Requires a pure single-finger stroke (swipeCandidate) — not the lift that ends a pinch.
+   */
+  canSwipeClose() {
+    return (
+      this.isOpen() &&
+      this.swipeCandidate &&
+      !this.gestureActive &&
+      this.activeTouches.size === 0
     );
   }
 
@@ -505,6 +521,7 @@ class FullscreenViewer {
     this.gestureActive = true;
     this.moved = true;
     this.suppressNavUntil = Date.now() + 450;
+    this.swipeCandidate = false; // pinch stroke ≠ swipe-close
   }
 
   /** Product settle: scale < 1.08 → Fit (TLA PinchOut / FingerUp snap) */
@@ -607,15 +624,13 @@ class FullscreenViewer {
         }
 
         if (this.activeTouches.size === 1) {
-          // Don't start a "swipe" origin mid/after pinch — only pure single-finger
-          if (this.gestureActive || Date.now() < this.suppressNavUntil) {
-            this.panOrigin = null;
-            return;
-          }
           const t = e.changedTouches[0];
           this.moved = false;
+          // Always record origin so swipe-down close works after pinch / while zoomed.
+          // suppressNav only blocks next/prev (canSwipeNav), not dismiss.
           this.touchStartX = t.screenX;
           this.touchStartY = t.screenY;
+          this.swipeCandidate = true;
           if (this.isZoomed()) {
             this.panOrigin = { x: t.clientX, y: t.clientY, tx: this.tx, ty: this.ty };
           } else {
@@ -672,9 +687,10 @@ class FullscreenViewer {
 
       if (!wasOpen || !this.zoomLayer) return;
 
-      // One finger remains after a pinch — never treat as swipe start mid-lift
+      // One finger remains after a pinch — pan ok; not a swipe-close candidate
       if (this.activeTouches.size === 1) {
         this.pinchStartDist = 0;
+        this.swipeCandidate = false;
         if (this.isZoomed()) {
           const pt = [...this.activeTouches.values()][0];
           this.panOrigin = { x: pt.x, y: pt.y, tx: this.tx, ty: this.ty };
@@ -686,35 +702,54 @@ class FullscreenViewer {
       }
 
       if (this.activeTouches.size === 0) {
-        const wasGesture = this.gestureActive || hadPinch || Date.now() < this.suppressNavUntil;
+        const endingPinch = this.gestureActive || hadPinch;
+        const suppressNav = Date.now() < this.suppressNavUntil;
         this.pinchStartDist = 0;
         this.panOrigin = null;
         this.settleZoomAfterGesture();
-        if (wasGesture) {
-          this.markPinchSession(); // keep suppressNav past last finger-up (TLA)
+        if (endingPinch) {
+          // Extend suppressNav past last pinch finger-up (TLA) — do not
+          // clear swipeCandidate (a new 1-finger stroke may be in progress).
+          this.suppressNavUntil = Date.now() + 450;
         }
         this.gestureActive = false;
 
-        // After pinch: no swipe (NavSafe). Click-to-close uses synthesized click separately.
-        if (wasGesture || Date.now() < this.suppressNavUntil) {
+        if (e.changedTouches.length !== 1) {
+          this.swipeCandidate = false;
           return;
         }
 
-        // TLA CanSwipe: Fit ∧ ¬pinching ∧ ¬suppressNav ∧ fingers≤1
-        if (this.canSwipe() && e.changedTouches.length === 1) {
-          const t = e.changedTouches[0];
-          const deltaX = this.touchStartX - t.screenX;
-          const deltaY = this.touchStartY - t.screenY;
-          const minSwipe = 60;
-          if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipe) {
-            if (deltaX > 0) this.next();
-            else this.previous();
-            return;
-          }
-          // Vertical swipe down also minimizes (extra; ClickFullscreen covers tap)
-          if (deltaY < 0 && Math.abs(deltaY) > minSwipe) {
-            this.close();
-          }
+        const t = e.changedTouches[0];
+        const deltaX = this.touchStartX - t.screenX;
+        const deltaY = this.touchStartY - t.screenY;
+        const minSwipe = 60;
+        const vertical = Math.abs(deltaY) > Math.abs(deltaX);
+        const horizontal = Math.abs(deltaX) > Math.abs(deltaY);
+
+        // Swipe down → close: Fit, Zoomed, or after pinch (suppressNav).
+        // swipeCandidate false if this lift ended a multi-touch pinch.
+        if (
+          this.canSwipeClose() &&
+          vertical &&
+          deltaY < 0 &&
+          Math.abs(deltaY) > minSwipe
+        ) {
+          this.swipeCandidate = false;
+          this.close();
+          return;
+        }
+
+        this.swipeCandidate = false;
+
+        // After pinch: no next/prev (NavSafe)
+        if (endingPinch || suppressNav || Date.now() < this.suppressNavUntil) {
+          return;
+        }
+
+        // TLA CanSwipe — next/prev only at Fit
+        if (this.canSwipeNav() && horizontal && Math.abs(deltaX) > minSwipe) {
+          if (deltaX > 0) this.next();
+          else this.previous();
         }
       }
     };
