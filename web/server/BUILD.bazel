@@ -5,8 +5,8 @@ go_library(
     srcs = [
         "cache_helpers.go",
         "camera_route.go",
-        "dev_log.go",
         "canyon_route.go",
+        "dev_log.go",
         "error_logger.go",
         "healthcheck_router.go",
         "image_route.go",

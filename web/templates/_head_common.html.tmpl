@@ -3,6 +3,14 @@
     <!-- maximum-scale=1: block Safari page pinch on the grid (fullscreen has its own zoom) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="view-transition" content="same-origin">
+    <script>
+      (function () {
+        var home = navigator.standalone === true ||
+          matchMedia('(display-mode: standalone)').matches ||
+          matchMedia('(display-mode: fullscreen)').matches;
+        if (home) document.documentElement.classList.add('home-screen');
+      })();
+    </script>
     
     <!-- Mobile Optimization -->
     <meta name="mobile-web-app-capable" content="yes">

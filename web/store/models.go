@@ -205,11 +205,12 @@ type Canyons struct {
 	Parleys Canyon `json:"parleys"`
 	AFC     Canyon `json:"afc"`
 	Provo   Canyon `json:"provo"`
+	AVBH    Canyon `json:"avbh"`
 }
 
 // IDs is the canyon order used by routes, metrics, and UDOT fan-out.
 func (c *Canyons) IDs() []string {
-	return []string{"LCC", "BCC", "Parleys", "AFC", "Provo"}
+	return []string{"LCC", "BCC", "Parleys", "AFC", "Provo", "AVBH"}
 }
 
 // Get returns the canyon for id.
@@ -225,6 +226,8 @@ func (c *Canyons) Get(id string) (*Canyon, bool) {
 		return &c.AFC, true
 	case "Parleys":
 		return &c.Parleys, true
+	case "AVBH":
+		return &c.AVBH, true
 	default:
 		return nil, false
 	}

@@ -147,6 +147,11 @@ func (p *Poller) seedDevWeatherStations() {
 		{Id: 1650136, StationName: "I-80 @ Mouth of Parleys", AirTemperature: str("67.8"), WindSpeedAvg: str("6.0"), WindDirection: str("W"), Source: "dev", LastUpdated: now},
 		{Id: 1650118, StationName: "I-80 @ East Canyon", AirTemperature: str("53.8"), WindSpeedAvg: str("8.0"), WindDirection: str("W"), Source: "dev", LastUpdated: now},
 		{Id: 1650059, StationName: "I-80 @ Parleys Summit", AirTemperature: str("58.9"), WindSpeedAvg: str("10.0"), WindDirection: str("W"), Source: "dev", LastUpdated: now},
+		{Id: 1650263, StationName: "I-15 @ MP 29 Browse NB", AirTemperature: str("67.4"), WindSpeedAvg: str("6.0"), WindDirection: str("S"), Source: "dev", LastUpdated: now},
+		{Id: 1650110, StationName: "I-15 @ MP 37 Ash Creek", AirTemperature: str("57.6"), WindSpeedAvg: str("8.0"), WindDirection: str("SW"), Source: "dev", LastUpdated: now},
+		{Id: 1650056, StationName: "I-15 @ Black Ridge", AirTemperature: str("64.2"), WindSpeedAvg: str("7.0"), WindDirection: str("S"), Source: "dev", LastUpdated: now},
+		{Id: 1650247, StationName: "I-15 @ MP 54 Hamiltons Fort", AirTemperature: str("59.3"), WindSpeedAvg: str("5.0"), WindDirection: str("W"), Source: "dev", LastUpdated: now},
+		{Id: 1650076, StationName: "SR-143 @ Brian Head", AirTemperature: str("47.6"), WindSpeedAvg: str("9.0"), WindDirection: str("SW"), Source: "dev", LastUpdated: now},
 	})
 	logger.Warn("UDOT_API_KEY not set — seeded dev weather stations for UI")
 }

@@ -273,6 +273,43 @@ func TestApplicationStartup(t *testing.T) {
 	})
 }
 
+func TestAVBHDriveOrder(t *testing.T) {
+	os.Setenv("DEV_MODE", "1")
+	t.Cleanup(func() { os.Unsetenv("DEV_MODE") })
+
+	dataFS, err := loadFilesystem(".")
+	require.NoError(t, err)
+	var canyons store.Canyons
+	require.NoError(t, canyons.Load(dataFS, "data.json"))
+	canyon, ok := canyons.Get("AVBH")
+	require.True(t, ok)
+	var alts []string
+	for _, cam := range canyon.Cameras {
+		alts = append(alts, cam.Alt)
+	}
+	assert.Equal(t, []string{
+		"Apple Valley",
+		"I-15 SR-9",
+		"I-15 MP 29",
+		"Ash Creek",
+		"New Harmony",
+		"Cedar City",
+		"I-15 Summit",
+		"Parowan Canyon",
+		"Brian Head",
+		"BH Snow Stake",
+		"Giant Steps Base",
+		"Giant Steps Summit",
+	}, alts)
+	got := map[string]string{}
+	for _, cam := range canyon.Cameras {
+		got[cam.Alt] = cam.Src
+	}
+	assert.Equal(t, "https://b16.hdrelay.com/camera/66e069aee2c05fceb65b6688/snapshot", got["BH Snow Stake"])
+	assert.Equal(t, "https://b15.hdrelay.com/camera/bcca39a1-43c0-477f-9389-5b039c797c5d/snapshot", got["Giant Steps Base"])
+	assert.Equal(t, "https://b15.hdrelay.com/camera/1fbebe18-f211-4fec-a185-0024cbc0838c/snapshot", got["Giant Steps Summit"])
+}
+
 func TestEventsByCanyonOtherRoads(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -283,6 +320,16 @@ func TestEventsByCanyonOtherRoads(t *testing.T) {
 		{"afc", store.Event{Location: "American Fork Canyon"}, "AFC"},
 		{"parleys", store.Event{RoadwayName: "I-80 Parleys Canyon"}, "Parleys"},
 		{"plain i-80", store.Event{RoadwayName: "I-80"}, ""},
+		{"avbh sr-143", store.Event{RoadwayName: "SR-143"}, "AVBH"},
+		{"avbh apple valley", store.Event{Location: "SR-59 near Apple Valley"}, "AVBH"},
+		{"avbh cedar", store.Event{RoadwayName: "I-15 Through Cedar City"}, "AVBH"},
+		{"avbh parowan", store.Event{RoadwayName: "I-15 Through Parowan"}, "AVBH"},
+		{"avbh county line", store.Event{RoadwayName: "I-15 Iron/Washington Co Ln to Anderson Jct"}, "AVBH"},
+		{"avbh mile", store.Event{RoadwayName: "I-15", Location: "MP 54 Hamilton Fort"}, "AVBH"},
+		{"plain i-15", store.Event{RoadwayName: "I-15"}, ""},
+		{"st george i-15", store.Event{RoadwayName: "I-15 Anderson Jct through St George"}, ""},
+		{"salt lake i-15", store.Event{RoadwayName: "I-15 Farmington South through Salt Lake"}, ""},
+		{"north i-15 mile", store.Event{RoadwayName: "I-15", Location: "Start Milepost: 300"}, ""},
 	}
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {

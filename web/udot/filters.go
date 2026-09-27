@@ -1,6 +1,7 @@
 package udot
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/stefanpenner/lcc-live/web/store"
@@ -54,7 +55,127 @@ func matchCanyon(road, location, description string) []string {
 	if parleysText(road) || parleysText(location) || parleysText(description) {
 		ids = append(ids, "Parleys")
 	}
+	if avbh(road, location, description) {
+		ids = append(ids, "AVBH")
+	}
 	return ids
+}
+
+// avbh is the Apple Valley to Brian Head drive.
+// The drive is SR-59, I-15 from Anderson Junction through Parowan, then SR-143.
+func avbh(road, location, description string) bool {
+	text := road + " " + location + " " + description
+	if hasRoute(text, "143") || hasRoute(text, "59") ||
+		strings.Contains(text, "brian head") ||
+		strings.Contains(text, "parowan canyon") ||
+		strings.Contains(text, "apple valley") {
+		return true
+	}
+	return i15OnAVBH(text)
+}
+
+func hasRoute(text, num string) bool {
+	for _, prefix := range []string{"sr-" + num, "sr " + num, "state route " + num} {
+		from := 0
+		for {
+			i := strings.Index(text[from:], prefix)
+			if i < 0 {
+				break
+			}
+			i += from
+			end := i + len(prefix)
+			if end >= len(text) || text[end] < '0' || text[end] > '9' {
+				return true
+			}
+			from = end
+		}
+	}
+	return false
+}
+
+func i15OnAVBH(text string) bool {
+	if !hasI15(text) {
+		return false
+	}
+	if strings.Contains(text, "st george") || strings.Contains(text, "st. george") {
+		return false
+	}
+	for _, place := range []string{
+		"cedar city",
+		"parowan",
+		"iron/washington",
+		"black ridge",
+		"new harmony",
+		"ash creek",
+		"hamilton",
+		"kanarraville",
+		"anderson",
+	} {
+		if strings.Contains(text, place) {
+			return true
+		}
+	}
+	return i15MileOnDrive(text)
+}
+
+func hasI15(text string) bool {
+	for _, prefix := range []string{"i-15", "i 15"} {
+		from := 0
+		for {
+			i := strings.Index(text[from:], prefix)
+			if i < 0 {
+				break
+			}
+			i += from
+			end := i + len(prefix)
+			if end >= len(text) || text[end] < '0' || text[end] > '9' {
+				return true
+			}
+			from = end
+		}
+	}
+	return false
+}
+
+func i15MileOnDrive(text string) bool {
+	for _, key := range []string{"milepost:", "milepost ", "mp:", "mp "} {
+		rest := text
+		for {
+			i := strings.Index(rest, key)
+			if i < 0 {
+				break
+			}
+			n, ok := leadingNumber(rest[i+len(key):])
+			if ok && n >= 15 && n <= 78 {
+				return true
+			}
+			rest = rest[i+len(key):]
+		}
+	}
+	return false
+}
+
+func leadingNumber(s string) (float64, bool) {
+	i := 0
+	for i < len(s) && s[i] == ' ' {
+		i++
+	}
+	start := i
+	dot := false
+	for i < len(s) && ((s[i] >= '0' && s[i] <= '9') || (s[i] == '.' && !dot)) {
+		if s[i] == '.' {
+			dot = true
+		}
+		i++
+	}
+	if i == start || (dot && i == start+1) {
+		return 0, false
+	}
+	n, err := strconv.ParseFloat(s[start:i], 64)
+	if err != nil {
+		return 0, false
+	}
+	return n, true
 }
 
 func lccRoad(name string) bool {

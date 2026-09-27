@@ -1058,7 +1058,7 @@ func TestCanyonCatalogOrder(t *testing.T) {
 	for _, link := range canyonCatalog() {
 		got = append(got, link.Label)
 	}
-	assert.Equal(t, []string{"LCC", "BCC", "Parleys", "AF", "Provo"}, got)
+	assert.Equal(t, []string{"LCC", "BCC", "Parleys", "AF", "Provo", "AV-BH"}, got)
 }
 
 func TestCameraRoute(t *testing.T) {

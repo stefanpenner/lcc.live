@@ -116,7 +116,10 @@ oci_image(
     name = "image",
     base = "@alpine_linux_amd64",
     # Root so the entrypoint can chown /data, then it drops to nobody.
-    entrypoint = ["/bin/sh", "/usr/local/bin/entrypoint.sh"],
+    entrypoint = [
+        "/bin/sh",
+        "/usr/local/bin/entrypoint.sh",
+    ],
     env = {
         "PORT": "3000",
     },

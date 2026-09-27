@@ -130,7 +130,7 @@ func TestCanyons_SetETag(t *testing.T) {
 }
 
 func TestCanyons_IDsOrder(t *testing.T) {
-	assert.Equal(t, []string{"LCC", "BCC", "Parleys", "AFC", "Provo"}, (&Canyons{}).IDs())
+	assert.Equal(t, []string{"LCC", "BCC", "Parleys", "AFC", "Provo", "AVBH"}, (&Canyons{}).IDs())
 }
 
 func TestCanyons_String(t *testing.T) {

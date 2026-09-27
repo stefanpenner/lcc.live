@@ -119,15 +119,19 @@
           {{.Label}}
         </a>
         {{- end -}}
-          <div class="alert-wrap" hidden>
-            <button type="button" id="road-alerts" class="alert-bell" hidden data-canyon="{{.Name}}" aria-pressed="false" aria-expanded="false" aria-controls="road-alerts-panel" aria-label="Road alerts for {{.Name}}">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M4 17h16"/>
-                <path d="M6 17V9.8a6 6 0 0 1 12 0V17"/>
-                <path d="M9.2 17.4a2.8 2.8 0 0 0 5.6 0"/>
-              </svg>
-            </button>
-          </div>
+        </div>
+        <div class="alert-wrap" hidden>
+          <button type="button" id="road-alerts" class="alert-bell" hidden data-canyon="{{.Name}}" aria-pressed="false" aria-expanded="false" aria-haspopup="dialog" aria-controls="road-alerts-panel" aria-label="Road alerts for {{.Name}}">
+            <svg class="alert-bell-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 17h16"/>
+              <path d="M6 17V9.8a6 6 0 0 1 12 0V17"/>
+              <path d="M9.2 17.4a2.8 2.8 0 0 0 5.6 0"/>
+            </svg>
+            <svg class="alert-bell-on" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M12 2.8a1 1 0 0 1 1 1V5.1a6 6 0 0 1 5 5.9v4.2l1.4 1.5a1 1 0 0 1-.7 1.7H5.3a1 1 0 0 1-.7-1.7L6 15.2V11a6 6 0 0 1 5-5.9V3.8a1 1 0 0 1 1-1z"/>
+              <path fill="currentColor" d="M9.1 19.4a2.9 2.9 0 0 0 5.8 0H9.1z"/>
+            </svg>
+          </button>
         </div>
       </nav>
 
@@ -300,20 +304,18 @@
     </main>
     
     <div id="road-alerts-backdrop" class="alert-backdrop" hidden></div>
-    <div id="road-alerts-panel" class="alert-panel" hidden role="dialog" aria-modal="true" aria-labelledby="road-alerts-copy">
-      <p id="road-alerts-copy">Notify me if {{.Name}} closes, needs traction, or opens again. Nothing else.</p>
-      <div class="alert-panel-actions" data-for="off">
+    <div id="road-alerts-panel" class="alert-panel" hidden role="dialog" aria-modal="true" aria-labelledby="road-alerts-title">
+      <div class="alert-sheet">
+        <p class="alert-menu-title" id="road-alerts-title">Road alerts</p>
+        <p id="road-alerts-copy">A notice if {{.Name}} closes, needs traction, or opens.</p>
         <button type="button" id="road-alerts-yes">Notify me</button>
-        <button type="button" id="road-alerts-no">Not now</button>
+        <button type="button" id="road-alerts-off" hidden>Turn off alerts</button>
+        {{- if .Dev -}}
+        <button type="button" id="road-alerts-test" class="alert-test" hidden>Send a test</button>
+        <p id="road-alerts-result" class="alert-result" role="status" hidden></p>
+        {{- end -}}
       </div>
-      <div class="alert-panel-actions" data-for="on" hidden>
-        <button type="button" id="road-alerts-off">Turn off</button>
-        <button type="button" id="road-alerts-close">Close</button>
-      </div>
-      {{- if .Dev -}}
-      <button type="button" id="road-alerts-test" class="alert-test">Send a test</button>
-      <p id="road-alerts-result" class="alert-result" hidden></p>
-      {{- end -}}
+      <button type="button" class="alert-cancel" id="road-alerts-no">Cancel</button>
     </div>
 
     <!-- Lightbox Overlay -->

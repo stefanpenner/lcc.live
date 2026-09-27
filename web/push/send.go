@@ -2,7 +2,10 @@ package push
 
 import (
 	"context"
+	"errors"
+	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -31,13 +34,48 @@ func sendWebPush(ctx context.Context, publicKey, privateKey, subject string, sub
 	if resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusOK {
 		return nil
 	}
-	return &statusError{code: resp.StatusCode}
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 120))
+	return &statusError{code: resp.StatusCode, body: oneLine(string(raw))}
 }
 
-type statusError struct{ code int }
+type statusError struct {
+	code int
+	body string
+}
 
 func (e *statusError) Error() string {
-	return "push endpoint returned " + strconv.Itoa(e.code)
+	msg := "push endpoint returned " + strconv.Itoa(e.code)
+	if e.body == "" {
+		return msg
+	}
+	return msg + ": " + e.body
+}
+
+// pushErr is safe to log. A transport error includes the endpoint URL.
+func pushErr(err error) error {
+	if err == nil {
+		return nil
+	}
+	var status *statusError
+	if errors.As(err, &status) {
+		return status
+	}
+	var target *url.Error
+	if errors.As(err, &target) && target.Timeout() {
+		return errors.New("push endpoint timed out")
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return errors.New("push endpoint timed out")
+	}
+	return errors.New("push endpoint failed")
+}
+
+func oneLine(s string) string {
+	s = strings.Join(strings.Fields(s), " ")
+	if len(s) > 120 {
+		return s[:120]
+	}
+	return s
 }
 
 func gone(err error) bool {

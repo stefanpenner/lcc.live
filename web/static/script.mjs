@@ -1985,24 +1985,33 @@ function initRoadAlerts(canyon) {
   const wrap = btn && btn.closest('.alert-wrap');
   if (!btn || !panel || !wrap || !canyon) return;
   const copy = document.getElementById('road-alerts-copy');
+  const yes = document.getElementById('road-alerts-yes');
+  const off = document.getElementById('road-alerts-off');
+  const testBtn = document.getElementById('road-alerts-test');
+  const result = document.getElementById('road-alerts-result');
   let offCopy = copy ? copy.textContent : '';
-  const onCopy = 'Alerts are on for ' + canyon + '. You will hear if it closes, needs traction, or opens again.';
-  const onActions = panel.querySelector('[data-for="on"]');
-  const offActions = panel.querySelector('[data-for="off"]');
+  const onCopy = 'On for ' + canyon + '.';
   const backdrop = document.getElementById('road-alerts-backdrop');
   const needsInstall = iosNeedsHomeScreen();
   if (needsInstall) {
-    offCopy = 'On iPhone, alerts work from the Home Screen icon. Tap Share, then Add to Home Screen. Open that icon, then tap the bell.';
-    const yes = document.getElementById('road-alerts-yes');
+    offCopy = 'Open the Home Screen icon. In Safari, tap Share, then Add to Home Screen.';
     if (yes) yes.hidden = true;
     if (copy) copy.textContent = offCopy;
   }
+  const resetTest = () => {
+    if (!testBtn) return;
+    testBtn.disabled = false;
+    testBtn.textContent = 'Send a test';
+    if (result) result.hidden = true;
+  };
   const mark = (on) => {
     btn.classList.toggle('on', on);
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     if (needsInstall) return;
-    if (onActions) onActions.hidden = !on;
-    if (offActions) offActions.hidden = on;
+    if (yes) yes.hidden = on;
+    if (off) off.hidden = !on;
+    if (testBtn) testBtn.hidden = !on;
+    if (!on) resetTest();
     if (copy) copy.textContent = on ? onCopy : offCopy;
   };
   const place = () => {
@@ -2018,7 +2027,10 @@ function initRoadAlerts(canyon) {
   };
   let openedAt = 0;
   const setOpen = (open) => {
-    if (open) openedAt = Date.now();
+    if (open) {
+      openedAt = Date.now();
+      resetTest();
+    }
     panel.hidden = !open;
     if (backdrop) backdrop.hidden = !open;
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -2033,8 +2045,8 @@ function initRoadAlerts(canyon) {
     event.stopPropagation();
     setOpen(panel.hidden);
   });
-  document.getElementById('road-alerts-no').addEventListener('click', () => setOpen(false));
-  document.getElementById('road-alerts-close').addEventListener('click', () => setOpen(false));
+  const cancel = document.getElementById('road-alerts-no');
+  if (cancel) cancel.addEventListener('click', () => setOpen(false));
   if (backdrop) backdrop.addEventListener('click', () => { if (!justOpened()) setOpen(false); });
   window.addEventListener('resize', () => { if (!panel.hidden) place(); });
   document.addEventListener('click', (event) => {
@@ -2056,94 +2068,121 @@ function initRoadAlerts(canyon) {
       return !!sub && localStorage.getItem('lcc-push-canyon') === canyon;
     };
     mark(await isOn());
-    document.getElementById('road-alerts-off').addEventListener('click', async () => {
+    const forget = async (endpoint) => {
+      await fetch('/api/push/subscribe', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint }),
+      });
+    };
+    const freshPush = async (old) => {
+      if (old) {
+        const endpoint = old.endpoint;
+        await old.unsubscribe();
+        await forget(endpoint);
+      }
+      return reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: vapidKey(publicKey),
+      });
+    };
+    const pushForThisBrowser = async () => {
+      const current = await reg.pushManager.getSubscription();
+      if (current && samePushKey(current, publicKey)) return current;
+      return freshPush(current);
+    };
+    const postSub = async (sub) => {
+      const keys = sub.toJSON().keys || {};
+      const save = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canyon, endpoint: sub.endpoint, p256dh: keys.p256dh, auth: keys.auth }),
+      });
+      if (!save.ok) return false;
+      localStorage.setItem('lcc-push-canyon', canyon);
+      mark(true);
+      return true;
+    };
+    const sendTest = async () => {
+      const res = await fetch('/api/push/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canyon }),
+      });
+      return res.ok;
+    };
+    if (off) off.addEventListener('click', async () => {
       const current = await reg.pushManager.getSubscription();
       if (current) {
         const endpoint = current.endpoint;
         await current.unsubscribe();
-        await fetch('/api/push/subscribe', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ endpoint }),
-        });
+        await forget(endpoint);
       }
       localStorage.removeItem('lcc-push-canyon');
       mark(false);
       setOpen(false);
     });
-    const testBtn = document.getElementById('road-alerts-test');
-    const result = document.getElementById('road-alerts-result');
     const say = (text) => {
       if (!result) return;
       result.hidden = false;
       result.textContent = text;
     };
+    const testLabel = (text) => {
+      if (testBtn) testBtn.textContent = text;
+    };
     if (testBtn) {
       testBtn.addEventListener('click', () => {
         if (Notification.permission !== 'granted') {
-          say('Click Notify me and allow notifications, then Send a test.');
+          say('Allow notifications, then send a test.');
           return;
         }
         testBtn.disabled = true;
-        const currentReady = reg.pushManager.getSubscription();
-        currentReady.then(async (current) => {
-          if (!current) {
-            say('Click Notify me first. This browser has no subscription yet.');
+        testLabel('Sending…');
+        pushForThisBrowser().then(async (sub) => {
+          if (!(await postSub(sub))) {
+            say('Could not save this browser.');
+            testLabel('Send a test');
             return;
           }
-          const keys = current.toJSON().keys || {};
-          const save = await fetch('/api/push/subscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ canyon, endpoint: current.endpoint, p256dh: keys.p256dh, auth: keys.auth }),
-          });
-          if (!save.ok) {
-            say('Could not save this browser for ' + canyon + '.');
+          if (await sendTest()) {
+            testLabel('Sent');
+            say('Sent.');
             return;
           }
-          localStorage.setItem('lcc-push-canyon', canyon);
-          mark(true);
-          const res = await fetch('/api/push/test', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ canyon }),
-          });
-          say(res.ok
-            ? 'Sent one ' + canyon + ' closure alert.'
-            : 'The push service rejected it.');
+          const next = await freshPush(sub);
+          if (!(await postSub(next))) {
+            say('Could not save this browser.');
+            testLabel('Send a test');
+            return;
+          }
+          if (await sendTest()) {
+            testLabel('Sent');
+            say('Sent.');
+            return;
+          }
+          say('Could not send.');
+          testLabel('Send a test');
         }).catch(() => {
           say('Send failed.');
+          testLabel('Send a test');
         }).finally(() => {
           testBtn.disabled = false;
         });
       });
     }
-    document.getElementById('road-alerts-yes').addEventListener('click', async () => {
-      const yes = document.getElementById('road-alerts-yes');
+    if (yes) yes.addEventListener('click', async () => {
       yes.disabled = true;
       try {
         if (Notification.permission === 'denied') {
-          if (copy) copy.textContent = 'Notifications are blocked for this site in the browser settings.';
+          if (copy) copy.textContent = 'Notifications are blocked. Turn them on in Settings.';
           return;
         }
         if (Notification.permission !== 'granted') {
           const perm = await Notification.requestPermission();
           if (perm !== 'granted') return;
         }
-        const current = await reg.pushManager.getSubscription();
-        const sub = current || await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: vapidKey(publicKey),
-        });
-        const keys = sub.toJSON().keys || {};
-        const save = await fetch('/api/push/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ canyon, endpoint: sub.endpoint, p256dh: keys.p256dh, auth: keys.auth }),
-        });
-        if (!save.ok) return;
-        localStorage.setItem('lcc-push-canyon', canyon);
-        mark(true);
+        const sub = await pushForThisBrowser();
+        if (!(await postSub(sub))) return;
         setOpen(false);
       } finally {
         yes.disabled = false;
@@ -2158,6 +2197,18 @@ function iosNeedsHomeScreen() {
   const installed = window.navigator.standalone === true ||
     window.matchMedia('(display-mode: standalone)').matches;
   return ios && !installed;
+}
+
+function samePushKey(sub, publicKey) {
+  const have = sub.options && sub.options.applicationServerKey;
+  if (!have) return true;
+  const want = vapidKey(publicKey);
+  const got = new Uint8Array(have);
+  if (got.length !== want.length) return false;
+  for (let i = 0; i < got.length; i++) {
+    if (got[i] !== want[i]) return false;
+  }
+  return true;
 }
 
 function vapidKey(base64String) {

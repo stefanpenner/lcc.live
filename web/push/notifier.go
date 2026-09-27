@@ -73,19 +73,7 @@ func (n *Notifier) SendTest(ctx context.Context, canyon string) int {
 	if err != nil {
 		return 0
 	}
-	sent := 0
-	for _, sub := range n.book.For(canyon) {
-		if err := n.send(ctx, sub, body); err != nil {
-			if gone(err) {
-				_ = n.book.Remove(sub.Endpoint)
-			} else {
-				logger.Error(err, "Road alert test failed: %v", err)
-			}
-			continue
-		}
-		sent++
-	}
-	return sent
+	return n.deliver(ctx, n.book.For(canyon), body)
 }
 
 // Check compares each canyon with the last reading and pushes on a change.
@@ -103,16 +91,27 @@ func (n *Notifier) Check(ctx context.Context, s *store.Store) {
 		if err != nil {
 			continue
 		}
-		for _, sub := range subs {
-			if err := n.send(ctx, sub, body); err != nil {
-				if gone(err) {
-					_ = n.book.Remove(sub.Endpoint)
-					continue
-				}
-				logger.Error(err, "Road alert push failed: %v", err)
-			}
-		}
+		n.deliver(ctx, subs, body)
 	}
+}
+
+func (n *Notifier) deliver(ctx context.Context, subs []Subscription, body []byte) int {
+	sent := 0
+	for _, sub := range subs {
+		err := n.send(ctx, sub, body)
+		if err == nil {
+			sent++
+			continue
+		}
+		safe := pushErr(err)
+		if gone(err) {
+			logger.Info("Road alert subscription ended: %s", safe.Error())
+			_ = n.book.Remove(sub.Endpoint)
+			continue
+		}
+		logger.Error(safe, "Road alert push failed: %s", safe.Error())
+	}
+	return sent
 }
 
 func (n *Notifier) payload(id, kind, label string) map[string]string {
@@ -130,6 +129,7 @@ func (n *Notifier) payload(id, kind, label string) map[string]string {
 			"title": title + " is open",
 			"body":  "The road is open again.",
 			"url":   path,
+			"tag":   "lcc-road-" + id,
 		}
 	}
 	body := label
@@ -140,6 +140,7 @@ func (n *Notifier) payload(id, kind, label string) map[string]string {
 		"title": title + " is closed",
 		"body":  body,
 		"url":   path,
+		"tag":   "lcc-road-" + id,
 	}
 }
 

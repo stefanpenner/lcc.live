@@ -21,7 +21,7 @@ import (
 func assertNavOrder(t *testing.T, body string) {
 	t.Helper()
 	prev := -1
-	for _, id := range []string{"LCC", "BCC", "Parleys", "AFC", "Provo"} {
+	for _, id := range []string{"LCC", "BCC", "Parleys", "AFC", "Provo", "AVBH"} {
 		at := strings.Index(body, `data-canyon="`+id+`"`)
 		require.Greater(t, at, prev, id)
 		prev = at
@@ -158,7 +158,7 @@ func TestSmokeE2E(t *testing.T) {
 	})
 
 	t.Run("canyon switch order", func(t *testing.T) {
-		for _, path := range []string{"/", "/bcc", "/parleys", "/afc", "/provo"} {
+		for _, path := range []string{"/", "/bcc", "/parleys", "/afc", "/provo", "/av-bh"} {
 			resp, err := client.Get(baseURL + path)
 			require.NoError(t, err)
 			body, err := io.ReadAll(resp.Body)

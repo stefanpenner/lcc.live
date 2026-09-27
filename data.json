@@ -552,5 +552,79 @@
           "weatherStationId": 1650059
         }
       ]
+    },
+    "avbh": {
+      "name": "AVBH",
+      "cameras": [
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/159402",
+          "alt": "Apple Valley"
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158908",
+          "alt": "I-15 SR-9"
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/157619",
+          "alt": "I-15 MP 29",
+          "weatherStationId": 1650263
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158079",
+          "alt": "Ash Creek",
+          "weatherStationId": 1650110
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/157744",
+          "alt": "New Harmony",
+          "weatherStationId": 1650056
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/157561",
+          "alt": "Cedar City",
+          "weatherStationId": 1650247
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/159488",
+          "alt": "I-15 Summit"
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/159018",
+          "alt": "Parowan Canyon",
+          "weatherStationId": 1650076
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/159062",
+          "alt": "Brian Head",
+          "weatherStationId": 1650076
+        },
+        {
+          "kind": "img",
+          "src": "https://b16.hdrelay.com/camera/66e069aee2c05fceb65b6688/snapshot",
+          "alt": "BH Snow Stake",
+          "weatherStationId": 1650076
+        },
+        {
+          "kind": "img",
+          "src": "https://b15.hdrelay.com/camera/bcca39a1-43c0-477f-9389-5b039c797c5d/snapshot",
+          "alt": "Giant Steps Base",
+          "weatherStationId": 1650076
+        },
+        {
+          "kind": "img",
+          "src": "https://b15.hdrelay.com/camera/1fbebe18-f211-4fec-a185-0024cbc0838c/snapshot",
+          "alt": "Giant Steps Summit",
+          "weatherStationId": 1650076
+        }
+      ]
     }
 }

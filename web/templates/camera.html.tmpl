@@ -74,11 +74,16 @@
         }
       }
 
-      @media (display-mode: standalone) {
+      @media (display-mode: standalone), (display-mode: fullscreen) {
         .camera-chrome {
-          padding-top: calc(env(safe-area-inset-top, 0px) + 0.85rem);
+          padding-top: calc(max(env(safe-area-inset-top, 0px), 47px) + 28px);
           background: var(--color-bg-primary);
         }
+      }
+
+      html.home-screen .camera-chrome {
+        padding-top: calc(max(env(safe-area-inset-top, 0px), 47px) + 28px);
+        background: var(--color-bg-primary);
       }
 
       .camera-chrome .back {

@@ -555,6 +555,7 @@ func canyonCatalog() []CanyonLink {
 		{ID: "Parleys", Label: "Parleys", Path: "/parleys", Title: "Parleys Canyon"},
 		{ID: "AFC", Label: "AF", Path: "/afc", Title: "American Fork Canyon"},
 		{ID: "Provo", Label: "Provo", Path: "/provo", Title: "Provo Canyon"},
+		{ID: "AVBH", Label: "AV-BH", Path: "/av-bh", Title: "Apple Valley to Brian Head"},
 	}
 }
 

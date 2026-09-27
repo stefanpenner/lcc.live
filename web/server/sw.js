@@ -7,12 +7,16 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-  let data = { title: 'Canyon road', body: 'This is a test alert.', url: '/' };
+  let data = { title: 'Canyon road', body: 'The road is closed.', url: '/', tag: 'lcc-road' };
   try {
     if (event.data) data = Object.assign(data, event.data.json());
   } catch (e) { /* keep the default */ }
-  event.waitUntil(self.registration.showNotification(data.title || 'Canyon road', {
+  const title = data.title || 'Canyon road';
+  event.waitUntil(self.registration.showNotification(title, {
     body: data.body || '',
+    tag: data.tag || 'lcc-road',
+    renotify: true,
+    icon: '/s/apple-touch-icon.png',
     data: { url: data.url || '/' },
   }));
 });
