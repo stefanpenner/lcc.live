@@ -24,81 +24,67 @@ func UDOTRoute(s *store.Store) func(c echo.Context) error {
 			return c.String(http.StatusBadRequest, "Invalid canyon. Must be LCC or BCC")
 		}
 
-		roadConditions := s.GetRoadConditions(canyonID)
+		data := loadUDOT(s, canyonID)
 
-		// Filter out unwanted road conditions
-		filteredRoadConditions := FilterRoadConditions(roadConditions)
-
-		// Sort road conditions for stable JSON hashing
-		sortedRoadConditions := SortRoadConditions(filteredRoadConditions)
-
-		// Events for this canyon
-		sortedEvents := SortEvents(s.GetEvents(canyonID))
-
-		// Get weather stations for all cameras in this canyon
-		canyon := s.Canyon(canyonID)
-		weatherStations := s.GetWeatherStationsForCanyon(canyon)
-
-		// Global UAC danger (both canyons)
-		avalancheDanger := s.GetAvalancheDanger()
-
-		// Alta parking only meaningful for LCC; omit for BCC
-		var altaStatus *store.AltaStatus
-		if canyonID == "LCC" {
-			altaStatus = s.GetAltaStatus()
-		}
-
-		// Calculate LastUpdated as max of all timestamps, or current time if no data
-		lastUpdated := time.Now().Unix()
-		for _, cond := range sortedRoadConditions {
-			if cond.LastUpdated > lastUpdated {
-				lastUpdated = cond.LastUpdated
-			}
-		}
-		for _, ev := range sortedEvents {
-			if ev.LastUpdated > lastUpdated {
-				lastUpdated = ev.LastUpdated
-			}
-		}
-		if avalancheDanger != nil && avalancheDanger.Updated > lastUpdated {
-			lastUpdated = avalancheDanger.Updated
-		}
-		if altaStatus != nil && altaStatus.Updated > lastUpdated {
-			lastUpdated = altaStatus.Updated
-		}
-
-		data := UDOTData{
-			RoadConditions:  sortedRoadConditions,
-			WeatherStations: weatherStations,
-			Events:          sortedEvents,
-			AvalancheDanger: avalancheDanger,
-			AltaStatus:      altaStatus,
-			LastUpdated:     lastUpdated,
-		}
-
-		// Set Content-Type before calling SetCacheHeaders
-		c.Response().Header().Set("Content-Type", "application/json; charset=UTF-8")
-
-		// Check if dev mode is enabled
-		devMode := c.Get("_dev_mode") != nil
-
-		config := CacheConfig{
-			Hash:    []any{data},
-			DevMode: devMode,
-		}
-
-		// Set cache headers and check for 304
-		_, shouldReturn304, err := SetCacheHeaders(c, config)
+		notModified, err := cacheUDOT(c, data)
 		if err != nil {
 			return err
 		}
-		if shouldReturn304 {
+		if notModified {
 			return c.NoContent(http.StatusNotModified)
 		}
 
-		// Set additional headers specific to API endpoint
 		c.Response().Header().Set("X-Content-Type-Options", "nosniff")
-
 		return c.JSON(http.StatusOK, data)
 	}
+}
+
+func loadUDOT(s *store.Store, canyonID string) UDOTData {
+	roads := SortRoadConditions(FilterRoadConditions(s.GetRoadConditions(canyonID)))
+	events := SortEvents(s.GetEvents(canyonID))
+	canyon := s.Canyon(canyonID)
+	stations := s.GetWeatherStationsForCanyon(canyon)
+	avalanche := s.GetAvalancheDanger()
+	var alta *store.AltaStatus
+	if canyonID == "LCC" {
+		alta = s.GetAltaStatus()
+	}
+	return UDOTData{
+		RoadConditions:  roads,
+		WeatherStations: stations,
+		Events:          events,
+		AvalancheDanger: avalanche,
+		AltaStatus:      alta,
+		LastUpdated:     latestUDOT(roads, events, avalanche, alta),
+	}
+}
+
+func latestUDOT(roads []store.RoadCondition, events []store.Event, avalanche *store.AvalancheDanger, alta *store.AltaStatus) int64 {
+	latest := time.Now().Unix()
+	for _, cond := range roads {
+		if cond.LastUpdated > latest {
+			latest = cond.LastUpdated
+		}
+	}
+	for _, ev := range events {
+		if ev.LastUpdated > latest {
+			latest = ev.LastUpdated
+		}
+	}
+	if avalanche != nil && avalanche.Updated > latest {
+		latest = avalanche.Updated
+	}
+	if alta != nil && alta.Updated > latest {
+		latest = alta.Updated
+	}
+	return latest
+}
+
+func cacheUDOT(c echo.Context, data UDOTData) (bool, error) {
+	c.Response().Header().Set("Content-Type", "application/json; charset=UTF-8")
+	_, notModified, err := SetCacheHeaders(c, CacheConfig{
+		Hash:    []any{data},
+		DevMode: c.Get("_dev_mode") != nil,
+	})
+	return notModified, err
 }
