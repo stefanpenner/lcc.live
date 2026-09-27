@@ -198,10 +198,36 @@ func (c *Canyon) GetETag() string {
 	return c.ETag
 }
 
-// Canyons represents the collection of all canyons
+// Canyons is every canyon the site serves. IDs are the API and route names.
 type Canyons struct {
-	LCC Canyon `json:"lcc"`
-	BCC Canyon `json:"bcc"`
+	LCC     Canyon `json:"lcc"`
+	BCC     Canyon `json:"bcc"`
+	Provo   Canyon `json:"provo"`
+	AFC     Canyon `json:"afc"`
+	Parleys Canyon `json:"parleys"`
+}
+
+// IDs is the canyon order used by routes, metrics, and UDOT fan-out.
+func (c *Canyons) IDs() []string {
+	return []string{"LCC", "BCC", "Provo", "AFC", "Parleys"}
+}
+
+// Get returns the canyon for id.
+func (c *Canyons) Get(id string) (*Canyon, bool) {
+	switch id {
+	case "LCC":
+		return &c.LCC, true
+	case "BCC":
+		return &c.BCC, true
+	case "Provo":
+		return &c.Provo, true
+	case "AFC":
+		return &c.AFC, true
+	case "Parleys":
+		return &c.Parleys, true
+	default:
+		return nil, false
+	}
 }
 
 // Load loads canyon data from a JSON file
@@ -224,12 +250,11 @@ func (c *Canyons) Load(f fs.FS, filepath string) error {
 		return fmt.Errorf("failed to parse JSON from %s: %w", filepath, err)
 	}
 
-	// precompute etags
-	if err := c.setETag(&c.LCC); err != nil {
-		return fmt.Errorf("failed to compute LCC ETag: %w", err)
-	}
-	if err := c.setETag(&c.BCC); err != nil {
-		return fmt.Errorf("failed to compute BCC ETag: %w", err)
+	for _, id := range c.IDs() {
+		canyon, _ := c.Get(id)
+		if err := c.setETag(canyon); err != nil {
+			return fmt.Errorf("failed to compute %s ETag: %w", id, err)
+		}
 	}
 
 	return nil

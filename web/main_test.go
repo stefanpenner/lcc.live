@@ -273,6 +273,29 @@ func TestApplicationStartup(t *testing.T) {
 	})
 }
 
+func TestEventsByCanyonOtherRoads(t *testing.T) {
+	cases := []struct {
+		name  string
+		event store.Event
+		want  string
+	}{
+		{"provo", store.Event{RoadwayName: "US-189 Provo Canyon"}, "Provo"},
+		{"afc", store.Event{Location: "American Fork Canyon"}, "AFC"},
+		{"parleys", store.Event{RoadwayName: "I-80 Parleys Canyon"}, "Parleys"},
+		{"plain i-80", store.Event{RoadwayName: "I-80"}, ""},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			grouped := udot.EventsByCanyon([]store.Event{tt.event})
+			if tt.want == "" {
+				assert.Empty(t, grouped)
+				return
+			}
+			assert.Len(t, grouped[tt.want], 1)
+		})
+	}
+}
+
 func TestFilterEventsByCanyon(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -359,7 +382,9 @@ func TestFilterEventsByCanyon(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lccEvents, bccEvents := udot.FilterEventsByCanyon([]store.Event{tt.event})
+			grouped := udot.EventsByCanyon([]store.Event{tt.event})
+			lccEvents := grouped["LCC"]
+			bccEvents := grouped["BCC"]
 
 			if tt.wantLCC {
 				assert.Len(t, lccEvents, 1, "should match LCC")

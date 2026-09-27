@@ -6,48 +6,55 @@ import (
 	"github.com/stefanpenner/lcc-live/web/store"
 )
 
-// FilterRoadConditionsByCanyon filters road conditions by canyon
-func FilterRoadConditionsByCanyon(conditions []store.RoadCondition) (lccConditions []store.RoadCondition, bccConditions []store.RoadCondition) {
+// RoadsByCanyon groups road conditions by canyon id.
+func RoadsByCanyon(conditions []store.RoadCondition) map[string][]store.RoadCondition {
+	out := map[string][]store.RoadCondition{}
 	for _, cond := range conditions {
-		name := strings.ToLower(cond.RoadwayName)
-
-		// LCC: match "Little Cottonwood", "LCC", "SR-210", "210"
-		if strings.Contains(name, "little cottonwood") ||
-			strings.Contains(name, "lcc") ||
-			strings.Contains(name, "sr-210") ||
-			strings.Contains(name, " 210") ||
-			strings.Contains(name, "-210") {
-			lccConditions = append(lccConditions, cond)
-		}
-
-		// BCC: match "Big Cottonwood", "BCC", "SR-190", "190"
-		if strings.Contains(name, "big cottonwood") ||
-			strings.Contains(name, "bcc") ||
-			strings.Contains(name, "sr-190") ||
-			strings.Contains(name, " 190") ||
-			strings.Contains(name, "-190") {
-			bccConditions = append(bccConditions, cond)
+		for _, id := range matchCanyon(cond.RoadwayName, "", "") {
+			out[id] = append(out[id], cond)
 		}
 	}
-	return lccConditions, bccConditions
+	return out
 }
 
-// FilterEventsByCanyon keeps SR-210 on LCC and SR-190 on BCC.
+// EventsByCanyon groups events by canyon id.
 // RoadwayName wins. Location and description also match the route number beside "sr" or "route".
-func FilterEventsByCanyon(events []store.Event) (lccEvents []store.Event, bccEvents []store.Event) {
+func EventsByCanyon(events []store.Event) map[string][]store.Event {
+	out := map[string][]store.Event{}
 	for _, event := range events {
-		road := strings.ToLower(strings.TrimSpace(event.RoadwayName))
-		location := strings.ToLower(event.Location)
-		description := strings.ToLower(event.Description)
-
-		if lccRoad(road) || lccText(location) || lccText(description) {
-			lccEvents = append(lccEvents, event)
-		}
-		if bccRoad(road) || bccText(location) || bccText(description) {
-			bccEvents = append(bccEvents, event)
+		seen := map[string]bool{}
+		for _, id := range matchCanyon(event.RoadwayName, event.Location, event.Description) {
+			if seen[id] {
+				continue
+			}
+			seen[id] = true
+			out[id] = append(out[id], event)
 		}
 	}
-	return lccEvents, bccEvents
+	return out
+}
+
+func matchCanyon(road, location, description string) []string {
+	road = strings.ToLower(strings.TrimSpace(road))
+	location = strings.ToLower(location)
+	description = strings.ToLower(description)
+	var ids []string
+	if lccRoad(road) || lccText(location) || lccText(description) {
+		ids = append(ids, "LCC")
+	}
+	if bccRoad(road) || bccText(location) || bccText(description) {
+		ids = append(ids, "BCC")
+	}
+	if provoRoad(road) || provoText(location) || provoText(description) {
+		ids = append(ids, "Provo")
+	}
+	if afcRoad(road) || afcText(location) || afcText(description) {
+		ids = append(ids, "AFC")
+	}
+	if parleysText(road) || parleysText(location) || parleysText(description) {
+		ids = append(ids, "Parleys")
+	}
+	return ids
 }
 
 func lccRoad(name string) bool {
@@ -70,6 +77,32 @@ func lccText(text string) bool {
 
 func bccText(text string) bool {
 	return bccRoad(text) || routeNumber(text, "190")
+}
+
+func provoRoad(name string) bool {
+	return strings.Contains(name, "provo canyon") ||
+		strings.Contains(name, "us-189") ||
+		strings.Contains(name, "us 189")
+}
+
+func provoText(text string) bool {
+	return provoRoad(text)
+}
+
+func afcRoad(name string) bool {
+	return strings.Contains(name, "american fork") ||
+		strings.Contains(name, "alpine loop") ||
+		strings.Contains(name, "timpanogos cave") ||
+		strings.Contains(name, "sr-144") ||
+		strings.Contains(name, "sr 144")
+}
+
+func afcText(text string) bool {
+	return afcRoad(text) || routeNumber(text, "144")
+}
+
+func parleysText(text string) bool {
+	return strings.Contains(text, "parley")
 }
 
 func routeNumber(text, number string) bool {

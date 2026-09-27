@@ -20,8 +20,8 @@ type UDOTData struct {
 func UDOTRoute(s *store.Store) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		canyonID := c.Param("canyon")
-		if canyonID != "LCC" && canyonID != "BCC" {
-			return c.String(http.StatusBadRequest, "Invalid canyon. Must be LCC or BCC")
+		if _, ok := canyonLink(canyonID); !ok {
+			return c.String(http.StatusBadRequest, "Invalid canyon")
 		}
 
 		data := loadUDOT(s, canyonID)

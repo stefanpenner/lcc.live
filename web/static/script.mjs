@@ -1970,9 +1970,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeTab = canyonNav.querySelector('.active');
     let canyonName = 'LCC'; // default
     if (activeTab) {
-      canyonName = activeTab.textContent.trim();
-    } else if (window.location.pathname.includes('/bcc')) {
-      canyonName = 'BCC';
+      canyonName = activeTab.dataset.canyon || activeTab.textContent.trim();
     }
 
     const poller = new UDOTPoller(canyonName);

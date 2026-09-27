@@ -58,13 +58,13 @@
     <title>{{.Name}} Live Cameras | Utah Canyon Conditions</title>
     
     <!-- SEO & Social -->
-    <meta name="description" content="Live camera feeds for {{if eq .Name "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}}. Real-time road conditions and weather updates.">
+    <meta name="description" content="Live camera feeds for {{.Title}}. Real-time road conditions and weather updates.">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://lcc.live{{if eq .Name "BCC"}}/bcc{{end}}">
+    <meta property="og:url" content="https://lcc.live{{.Path}}">
     <meta property="og:title" content="{{.Name}} Live Cameras | Utah Canyon Conditions">
-    <meta property="og:description" content="Live camera feeds for {{if eq .Name "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}}. Real-time road conditions and weather updates.">
+    <meta property="og:description" content="Live camera feeds for {{.Title}}. Real-time road conditions and weather updates.">
     <meta property="og:site_name" content="LCC.live">
     {{- if .Cameras -}}
     {{- range $index, $c := .Cameras -}}
@@ -81,9 +81,9 @@
     
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://lcc.live{{if eq .Name "BCC"}}/bcc{{end}}">
+    <meta name="twitter:url" content="https://lcc.live{{.Path}}">
     <meta name="twitter:title" content="{{.Name}} Live Cameras | Utah Canyon Conditions">
-    <meta name="twitter:description" content="Live camera feeds for {{if eq .Name "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}}.">
+    <meta name="twitter:description" content="Live camera feeds for {{.Title}}.">
     {{- if .Cameras -}}
     {{- range $index, $c := .Cameras -}}
     {{- if eq $index 0 -}}
@@ -98,10 +98,10 @@
     <meta name="apple-mobile-web-app-title" content="{{.Name}} Live">
     
     <!-- Prefetch -->
-    {{- if eq .Name "LCC" -}}
-    <link rel="prefetch" href="/bcc" as="document">
-    {{- else -}}
-    <link rel="prefetch" href="/" as="document">
+    {{- range .Nav -}}
+    {{- if ne .Path $.Path -}}
+    <link rel="prefetch" href="{{.Path}}" as="document">
+    {{- end -}}
     {{- end -}}
   </head>
   
@@ -110,31 +110,13 @@
     <header class="top-bar" role="banner">
       <nav class="canyon-nav" role="navigation" aria-label="Canyon selection">
         <div class="canyon-toggle">
-        {{ if eq .Name "LCC" -}}
-        <a href="/" 
-           aria-current="page" 
-           class="active" 
+        {{- range .Nav -}}
+        <a href="{{.Path}}"
+           data-canyon="{{.ID}}"
+           {{- if eq .ID $.Name }} aria-current="page" class="active"{{- end }}
            role="button"
-           aria-label="Little Cottonwood Canyon, currently selected">
-          LCC
-        </a>
-        <a href="/bcc" 
-           role="button"
-           aria-label="Switch to Big Cottonwood Canyon">
-          BCC
-        </a>
-        {{- else -}}
-        <a href="/" 
-           role="button"
-           aria-label="Switch to Little Cottonwood Canyon">
-          LCC
-        </a>
-        <a href="/bcc" 
-           aria-current="page" 
-           class="active" 
-           role="button"
-           aria-label="Big Cottonwood Canyon, currently selected">
-          BCC
+           aria-label="{{if eq .ID $.Name}}{{.Title}}, currently selected{{else}}Switch to {{.Title}}{{end}}">
+          {{.Label}}
         </a>
         {{- end -}}
         </div>
@@ -226,7 +208,7 @@
       <section 
         id="container" 
         role="region" 
-        aria-label="{{if eq .Name "LCC"}}Little Cottonwood Canyon{{else}}Big Cottonwood Canyon{{end}} camera feeds">
+        aria-label="{{.Title}} camera feeds">
         {{- range $index, $c := .Cameras -}}
         {{- if ne $c.Kind "roadstatus" -}}
         <camera-feed

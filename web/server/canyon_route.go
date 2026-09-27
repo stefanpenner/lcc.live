@@ -11,6 +11,9 @@ import (
 
 type CanyonPageData struct {
 	*store.Canyon
+	Title           string
+	Path            string
+	Nav             []CanyonLink
 	RoadConditions  []store.RoadCondition
 	Events          []store.Event
 	WeatherStations map[string]*store.WeatherStation
@@ -53,8 +56,12 @@ func loadCanyonPage(s *store.Store, canyonID string) CanyonPageData {
 	if canyonID == "LCC" {
 		altaStatus = s.GetAltaStatus()
 	}
+	link, _ := canyonLink(canyonID)
 	return CanyonPageData{
 		Canyon:          canyon,
+		Title:           link.Title,
+		Path:            link.Path,
+		Nav:             canyonCatalog(),
 		RoadConditions:  roadConditions,
 		Events:          events,
 		WeatherStations: weatherStations,

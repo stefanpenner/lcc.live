@@ -197,24 +197,16 @@ func NewStore(canyons *Canyons) *Store {
 		entries = append(entries, entry)
 	}
 
-	// Process status cameras if present
-	if canyons.LCC.Status.Src != "" {
-		canyons.LCC.Status.Canyon = "LCC" //nolint:goconst // Canyon name used for clarity
-		createEntry(&canyons.LCC.Status)
-	}
-	if canyons.BCC.Status.Src != "" {
-		canyons.BCC.Status.Canyon = "BCC" //nolint:goconst // Canyon name used for clarity
-		createEntry(&canyons.BCC.Status)
-	}
-
-	// Process regular cameras
-	for i := range canyons.LCC.Cameras {
-		canyons.LCC.Cameras[i].Canyon = "LCC" //nolint:goconst // Canyon name used for clarity
-		createEntry(&canyons.LCC.Cameras[i])
-	}
-	for i := range canyons.BCC.Cameras {
-		canyons.BCC.Cameras[i].Canyon = "BCC" //nolint:goconst // Canyon name used for clarity
-		createEntry(&canyons.BCC.Cameras[i])
+	for _, id := range canyons.IDs() {
+		canyon, _ := canyons.Get(id)
+		if canyon.Status.Src != "" {
+			canyon.Status.Canyon = id
+			createEntry(&canyon.Status)
+		}
+		for i := range canyon.Cameras {
+			canyon.Cameras[i].Canyon = id
+			createEntry(&canyon.Cameras[i])
+		}
 	}
 
 	// Create HTTP client with custom TLS config to handle camera servers
@@ -226,11 +218,11 @@ func NewStore(canyons *Canyons) *Store {
 	}
 
 	store := &Store{
-		entries:             entries,
-		index:               index,
-		nameIndex:           nameIndex,
-		canyons:             canyons,
-		roadConditions:      make(map[string][]RoadCondition),
+		entries:               entries,
+		index:                 index,
+		nameIndex:             nameIndex,
+		canyons:               canyons,
+		roadConditions:        make(map[string][]RoadCondition),
 		weatherStationsById:   make(map[int]*WeatherStation),
 		weatherStationsByStid: make(map[string]*WeatherStation),
 		events:                make(map[string][]Event),
@@ -245,23 +237,27 @@ func NewStore(canyons *Canyons) *Store {
 
 	// Set metrics
 	metrics.StoreEntriesTotal.Set(float64(len(entries)))
-	metrics.CamerasTotal.WithLabelValues("LCC").Set(float64(len(canyons.LCC.Cameras)))
-	metrics.CamerasTotal.WithLabelValues("BCC").Set(float64(len(canyons.BCC.Cameras)))
+	for _, id := range canyons.IDs() {
+		canyon, _ := canyons.Get(id)
+		metrics.CamerasTotal.WithLabelValues(id).Set(float64(len(canyon.Cameras)))
+	}
 	metrics.ImagesReady.Set(0)
 
 	return store
 }
 
-// Canyon returns the canyon with the given name
-func (s *Store) Canyon(canyon string) *Canyon {
-	switch canyon {
-	case "LCC":
-		return &s.canyons.LCC
-	case "BCC":
-		return &s.canyons.BCC
-	default:
-		panic("invalid canyon: must be either 'LCC' or 'BCC'")
+// CanyonIDs is the served canyon order.
+func (s *Store) CanyonIDs() []string {
+	return s.canyons.IDs()
+}
+
+// Canyon returns the canyon with the given name.
+func (s *Store) Canyon(id string) *Canyon {
+	canyon, ok := s.canyons.Get(id)
+	if !ok {
+		panic("invalid canyon: " + id)
 	}
+	return canyon
 }
 
 // FetchImages fetches images for all cameras concurrently.

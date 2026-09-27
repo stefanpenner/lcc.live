@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/url"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -83,7 +83,7 @@ func setupTestServer(t *testing.T) *http.Server {
 	// Create minimal filesystem for templates
 	tmplFS := fstest.MapFS{
 		"canyon.html.tmpl": &fstest.MapFile{
-			Data: []byte(`<!DOCTYPE html><html><head><title>{{.Name}}</title></head><body><h1>{{.Name}}</h1></body></html>`),
+			Data: []byte(`<!DOCTYPE html><html><head><title>{{.Name}} {{.Title}}</title></head><body><h1>{{.Name}} {{.Title}}</h1></body></html>`),
 		},
 		"camera.html.tmpl": &fstest.MapFile{
 			Data: []byte(`<!DOCTYPE html><html><head><title>{{.Camera.Alt}}</title></head><body><h1>{{.Camera.Alt}}</h1></body></html>`),
@@ -123,7 +123,7 @@ func TestHealthCheckRoute(t *testing.T) {
 func TestHealthCheckStates(t *testing.T) {
 	tmplFS := fstest.MapFS{
 		"canyon.html.tmpl": &fstest.MapFile{
-			Data: []byte(`<!DOCTYPE html><html><body>{{.Name}}</body></html>`),
+			Data: []byte(`<!DOCTYPE html><html><body>{{.Name}}{{.Title}}</body></html>`),
 		},
 		"camera.html.tmpl": &fstest.MapFile{
 			Data: []byte(`<!DOCTYPE html><html><body>{{.Camera.Alt}}</body></html>`),
@@ -972,7 +972,6 @@ func TestCanyonRoute_JSON_ProxiesCameraSrc(t *testing.T) {
 		}
 	}
 }
-
 
 func TestCanyonRoute_JSON_ProxiesCameraSrc_AbsoluteURLs(t *testing.T) {
 	srv := setupTestServer(t)

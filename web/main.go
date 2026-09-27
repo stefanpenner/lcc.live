@@ -277,12 +277,13 @@ func initSentry(dev bool) bool {
 }
 
 func cameraCount(live *store.Store) int {
-	n := len(live.Canyon("LCC").Cameras) + len(live.Canyon("BCC").Cameras)
-	if live.Canyon("LCC").Status.Src != "" {
-		n++
-	}
-	if live.Canyon("BCC").Status.Src != "" {
-		n++
+	n := 0
+	for _, id := range live.CanyonIDs() {
+		canyon := live.Canyon(id)
+		n += len(canyon.Cameras)
+		if canyon.Status.Src != "" {
+			n++
+		}
 	}
 	return n
 }

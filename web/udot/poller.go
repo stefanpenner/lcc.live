@@ -128,6 +128,13 @@ func (p *Poller) seedDevWeatherStations() {
 		{Id: 1650218, StationName: "SR-190 @ Cardiff", AirTemperature: str("48.7"), WindSpeedAvg: str("0.0"), WindDirection: str("N"), Source: "dev", LastUpdated: now},
 		{Id: 1650159, StationName: "Spruces", AirTemperature: str("47.5"), WindSpeedAvg: str("0.1"), WindDirection: str("N"), Source: "dev", LastUpdated: now},
 		{Id: 1650206, StationName: "SR-190 @ Brighton", AirTemperature: str("48.5"), WindSpeedAvg: str("1.9"), WindDirection: str("W"), Source: "dev", LastUpdated: now},
+		{Id: 1650069, StationName: "US-189 Provo Canyon", AirTemperature: str("61.8"), WindSpeedAvg: str("4.0"), WindDirection: str("W"), Source: "dev", LastUpdated: now},
+		{Id: 1650162, StationName: "US-189 @ Lower Provo Canyon", AirTemperature: str("62.2"), WindSpeedAvg: str("3.0"), WindDirection: str("SW"), Source: "dev", LastUpdated: now},
+		{Id: 1650163, StationName: "US-189 @ Deer Creek Dam", AirTemperature: str("59.2"), WindSpeedAvg: str("5.0"), WindDirection: str("W"), Source: "dev", LastUpdated: now},
+		{Id: 1650253, StationName: "SR-92 @ American Fork Canyon", AirTemperature: str("53.4"), WindSpeedAvg: str("2.0"), WindDirection: str("N"), Source: "dev", LastUpdated: now},
+		{Id: 1650136, StationName: "I-80 @ Mouth of Parleys", AirTemperature: str("67.8"), WindSpeedAvg: str("6.0"), WindDirection: str("W"), Source: "dev", LastUpdated: now},
+		{Id: 1650118, StationName: "I-80 @ East Canyon", AirTemperature: str("53.8"), WindSpeedAvg: str("8.0"), WindDirection: str("W"), Source: "dev", LastUpdated: now},
+		{Id: 1650059, StationName: "I-80 @ Parleys Summit", AirTemperature: str("58.9"), WindSpeedAvg: str("10.0"), WindDirection: str("W"), Source: "dev", LastUpdated: now},
 	})
 	logger.Warn("UDOT_API_KEY not set — seeded dev weather stations for UI")
 }
@@ -169,10 +176,11 @@ func (p *Poller) pollRoadConditions(ctx context.Context) {
 		return
 	}
 
-	lccConditions, bccConditions := FilterRoadConditionsByCanyon(conditions)
-	p.store.UpdateRoadConditions("LCC", lccConditions)
-	p.store.UpdateRoadConditions("BCC", bccConditions)
-	logger.Muted("Updated road conditions: LCC=%d, BCC=%d", len(lccConditions), len(bccConditions))
+	roads := RoadsByCanyon(conditions)
+	for _, id := range p.store.CanyonIDs() {
+		p.store.UpdateRoadConditions(id, roads[id])
+	}
+	logger.Muted("Updated road conditions for %d canyons", len(p.store.CanyonIDs()))
 }
 
 func (p *Poller) pollWeatherStations(ctx context.Context) {
@@ -200,8 +208,9 @@ func (p *Poller) pollEvents(ctx context.Context) {
 		return
 	}
 
-	lccEvents, bccEvents := FilterEventsByCanyon(events)
-	p.store.UpdateEvents("LCC", lccEvents)
-	p.store.UpdateEvents("BCC", bccEvents)
-	logger.Muted("Updated events: LCC=%d, BCC=%d", len(lccEvents), len(bccEvents))
+	grouped := EventsByCanyon(events)
+	for _, id := range p.store.CanyonIDs() {
+		p.store.UpdateEvents(id, grouped[id])
+	}
+	logger.Muted("Updated events for %d canyons", len(p.store.CanyonIDs()))
 }

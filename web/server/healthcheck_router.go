@@ -43,11 +43,10 @@ func unavailable(live *store.Store) string {
 }
 
 func proveCanyonHTML(e *echo.Echo) error {
-	if err := proveHTML(e, "/", "Little Cottonwood Canyon"); err != nil {
-		return fmt.Errorf("Healthcheck failed - LCC route error: %v", err)
-	}
-	if err := proveHTML(e, "/bcc", "Big Cottonwood Canyon"); err != nil {
-		return fmt.Errorf("Healthcheck failed - BCC route error: %v", err)
+	for _, link := range canyonCatalog() {
+		if err := proveHTML(e, link.Path, link.Title); err != nil {
+			return fmt.Errorf("Healthcheck failed - %s route error: %v", link.ID, err)
+		}
 	}
 	return nil
 }

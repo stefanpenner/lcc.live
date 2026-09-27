@@ -77,8 +77,8 @@ func cameraSlugRedirect(cam *store.Camera, slugOrID string, isJSON bool) string 
 
 func cameraPage(s *store.Store, entry store.EntrySnapshot) CameraPageData {
 	canyonPath := "/"
-	if strings.ToUpper(entry.Camera.Canyon) == "BCC" {
-		canyonPath = "/bcc"
+	if link, ok := canyonLink(entry.Camera.Canyon); ok {
+		canyonPath = link.Path
 	}
 	return CameraPageData{
 		Camera:         *entry.Camera,

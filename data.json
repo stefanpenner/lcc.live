@@ -333,5 +333,224 @@
           "synopticStid": "BRC"
         }
       ]
+    },
+    "provo": {
+      "name": "Provo",
+      "cameras": [
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158600",
+          "alt": "Provo 800 N",
+          "weatherStationId": 1650162
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158714",
+          "alt": "Provo Mouth",
+          "weatherStationId": 1650162
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/157624",
+          "alt": "Canyon View Park",
+          "weatherStationId": 1650162
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/159169",
+          "alt": "Springdell",
+          "weatherStationId": 1650162
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/157558",
+          "alt": "Canyon Glen",
+          "weatherStationId": 1650162
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158936",
+          "alt": "Bridal Veil",
+          "weatherStationId": 1650069
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158443",
+          "alt": "Provo MP 12",
+          "weatherStationId": 1650069
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158731",
+          "alt": "Vivian Park",
+          "weatherStationId": 1650069
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/159499",
+          "alt": "Sundance Junction",
+          "weatherStationId": 1650069
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158527",
+          "alt": "Fishermens",
+          "weatherStationId": 1650163
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158766",
+          "alt": "Provo Meadow",
+          "weatherStationId": 1650163
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158751",
+          "alt": "Deer Creek",
+          "weatherStationId": 1650163
+        }
+      ]
+    },
+    "afc": {
+      "name": "AFC",
+      "cameras": [
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/157779",
+          "alt": "AF MP 0.9",
+          "weatherStationId": 1650253
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/157517",
+          "alt": "AF MP 1.7",
+          "weatherStationId": 1650253
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/157732",
+          "alt": "Tibble Fork",
+          "weatherStationId": 1650253
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/159241",
+          "alt": "AF Canyon Road",
+          "weatherStationId": 1650253
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/157780",
+          "alt": "Ranger Station",
+          "weatherStationId": 1650253
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/159202",
+          "alt": "Timpanogos Cave",
+          "weatherStationId": 1650253
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/157976",
+          "alt": "Pine Hollow",
+          "weatherStationId": 1650253
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/157602",
+          "alt": "Alpine MP 14.5",
+          "weatherStationId": 1650253
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158072",
+          "alt": "East Toll Booth",
+          "weatherStationId": 1650253
+        }
+      ]
+    },
+    "parleys": {
+      "name": "Parleys",
+      "cameras": [
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158947",
+          "alt": "Parleys Mouth",
+          "weatherStationId": 1650136
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/159479",
+          "alt": "Parleys Exit 130",
+          "weatherStationId": 1650136
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158950",
+          "alt": "Chain Up West",
+          "weatherStationId": 1650136
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/159450",
+          "alt": "Chain Up East",
+          "weatherStationId": 1650136
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158948",
+          "alt": "Parleys Quarry",
+          "weatherStationId": 1650136
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158949",
+          "alt": "East Quarry",
+          "weatherStationId": 1650136
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158150",
+          "alt": "Mt Aire",
+          "weatherStationId": 1650118
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158129",
+          "alt": "East Canyon Ramp",
+          "weatherStationId": 1650118
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158128",
+          "alt": "East Canyon",
+          "weatherStationId": 1650118
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/157876",
+          "alt": "Mountain Dell",
+          "weatherStationId": 1650118
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158207",
+          "alt": "Lambs On-ramp",
+          "weatherStationId": 1650059
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158888",
+          "alt": "Lambs Off-ramp",
+          "weatherStationId": 1650059
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158455",
+          "alt": "Parleys Summit",
+          "weatherStationId": 1650059
+        }
+      ]
     }
 }

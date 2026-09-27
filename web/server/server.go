@@ -539,13 +539,41 @@ func devNoCache(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
+// CanyonLink is one entry in the canyon switcher.
+type CanyonLink struct {
+	ID, Label, Path, Title string
+}
+
+func canyonCatalog() []CanyonLink {
+	return []CanyonLink{
+		{ID: "LCC", Label: "LCC", Path: "/", Title: "Little Cottonwood Canyon"},
+		{ID: "BCC", Label: "BCC", Path: "/bcc", Title: "Big Cottonwood Canyon"},
+		{ID: "Provo", Label: "Provo", Path: "/provo", Title: "Provo Canyon"},
+		{ID: "AFC", Label: "AF", Path: "/afc", Title: "American Fork Canyon"},
+		{ID: "Parleys", Label: "Parleys", Path: "/parleys", Title: "Parleys Canyon"},
+	}
+}
+
+func canyonLink(id string) (CanyonLink, bool) {
+	for _, link := range canyonCatalog() {
+		if link.ID == id {
+			return link, true
+		}
+	}
+	return CanyonLink{}, false
+}
+
 func mountPublic(e *echo.Echo, live *store.Store) {
-	mountCanyon(e, live, "/", "LCC")
-	mountCanyon(e, live, "/.json", "LCC")
-	mountCanyon(e, live, "/lcc", "LCC")
-	mountCanyon(e, live, "/lcc.json", "LCC")
-	mountCanyon(e, live, "/bcc", "BCC")
-	mountCanyon(e, live, "/bcc.json", "BCC")
+	for _, link := range canyonCatalog() {
+		mountCanyon(e, live, link.Path, link.ID)
+		if link.Path == "/" {
+			mountCanyon(e, live, "/.json", link.ID)
+			mountCanyon(e, live, "/lcc", link.ID)
+			mountCanyon(e, live, "/lcc.json", link.ID)
+			continue
+		}
+		mountCanyon(e, live, link.Path+".json", link.ID)
+	}
 
 	e.GET("/image/:id", ImageRoute(live))
 	e.HEAD("/image/:id", ImageRoute(live))
