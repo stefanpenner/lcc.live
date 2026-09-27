@@ -25,11 +25,6 @@ func NewPoller(client *Client, s *store.Store, interval time.Duration) *Poller {
 	}
 }
 
-// unchanged is a 304. A nil body means the store already has this feed.
-func unchanged[T any](items []T) bool {
-	return items == nil
-}
-
 func (p *Poller) pollNowAndEvery(ctx context.Context, poll func(context.Context)) error {
 	ticker := time.NewTicker(p.interval)
 	defer ticker.Stop()
@@ -161,13 +156,12 @@ func (p *Poller) StartEvents(ctx context.Context) error {
 }
 
 func (p *Poller) pollRoadConditions(ctx context.Context) {
-	conditions, err := p.client.FetchRoadConditions(ctx)
+	conditions, notModified, err := p.client.FetchRoadConditions(ctx)
 	if err != nil {
 		logger.Error(err, "Failed to fetch road conditions: %v", err)
 		return
 	}
-
-	if unchanged(conditions) {
+	if notModified {
 		logger.Muted("Road conditions unchanged (304 Not Modified)")
 		return
 	}
@@ -179,13 +173,12 @@ func (p *Poller) pollRoadConditions(ctx context.Context) {
 }
 
 func (p *Poller) pollWeatherStations(ctx context.Context) {
-	stations, err := p.client.FetchWeatherStations(ctx)
+	stations, notModified, err := p.client.FetchWeatherStations(ctx)
 	if err != nil {
 		logger.Error(err, "Failed to fetch weather stations: %v", err)
 		return
 	}
-
-	if unchanged(stations) {
+	if notModified {
 		logger.Muted("Weather stations unchanged (304 Not Modified)")
 		return
 	}
@@ -194,13 +187,12 @@ func (p *Poller) pollWeatherStations(ctx context.Context) {
 }
 
 func (p *Poller) pollEvents(ctx context.Context) {
-	events, err := p.client.FetchEvents(ctx)
+	events, notModified, err := p.client.FetchEvents(ctx)
 	if err != nil {
 		logger.Error(err, "Failed to fetch events: %v", err)
 		return
 	}
-
-	if unchanged(events) {
+	if notModified {
 		logger.Muted("Events unchanged (304 Not Modified)")
 		return
 	}
