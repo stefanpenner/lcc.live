@@ -33,12 +33,6 @@ func (p *Poller) Start(ctx context.Context) error {
 		logger.Info("Synoptic weather: no SYNOPTIC_TOKEN — using free NWS station observations")
 	}
 
-	// DEV seed only when neither path can run live... we always can hit NWS,
-	// but seed helps offline / flaky network demos.
-	if os.Getenv("DEV_MODE") == "1" || os.Getenv("DEV_MODE") == "true" {
-		// Still try live first below; seed is only if first poll returns nothing.
-	}
-
 	ticker := time.NewTicker(p.interval)
 	defer ticker.Stop()
 
@@ -62,26 +56,33 @@ func (p *Poller) poll(ctx context.Context) {
 	}
 
 	stations, err := p.client.FetchLatest(ctx, stids)
-	if err != nil {
-		logger.Error(err, "Failed to fetch mountain weather: %v", err)
-		if os.Getenv("DEV_MODE") == "1" || os.Getenv("DEV_MODE") == "true" {
-			p.seedDev(stids)
-		}
+	if err != nil || len(stations) == 0 {
+		p.noteMiss(stids, err)
 		return
 	}
-	if len(stations) == 0 {
-		logger.Muted("Mountain weather poll returned 0 stations for %d stids", len(stids))
-		if os.Getenv("DEV_MODE") == "1" || os.Getenv("DEV_MODE") == "true" {
-			p.seedDev(stids)
-		}
-		return
-	}
+
 	p.store.StoreWeatherStationsByStid(stations)
 	src := "nws"
 	if p.client.HasSynopticToken() {
 		src = "synoptic"
 	}
 	logger.Muted("Updated mountain weather (%s): %d stations", src, len(stations))
+}
+
+func (p *Poller) noteMiss(stids []string, err error) {
+	if err != nil {
+		logger.Error(err, "Failed to fetch mountain weather: %v", err)
+	} else {
+		logger.Muted("Mountain weather poll returned 0 stations for %d stids", len(stids))
+	}
+	if devMode() {
+		p.seedDev(stids)
+	}
+}
+
+func devMode() bool {
+	v := os.Getenv("DEV_MODE")
+	return v == "1" || v == "true"
 }
 
 func (p *Poller) seedDev(stids []string) {
