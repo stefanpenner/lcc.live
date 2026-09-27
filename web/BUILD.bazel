@@ -66,6 +66,7 @@ go_test(
     data = [":runtime_files"],
     embed = [":web_lib"],
     deps = [
+        "//web/push",
         "//web/server",
         "//web/store",
         "//web/udot",

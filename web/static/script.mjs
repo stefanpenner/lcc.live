@@ -1990,7 +1990,7 @@ function initRoadAlerts(canyon) {
   const testBtn = document.getElementById('road-alerts-test');
   const result = document.getElementById('road-alerts-result');
   let offCopy = copy ? copy.textContent : '';
-  const onCopy = 'On for ' + canyon + '.';
+  const onCopy = 'On for ' + (btn.dataset.label || canyon) + '.';
   const backdrop = document.getElementById('road-alerts-backdrop');
   const needsInstall = iosNeedsHomeScreen();
   if (needsInstall) {

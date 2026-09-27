@@ -120,8 +120,9 @@
         </a>
         {{- end -}}
         </div>
+        {{- if .AlertCanyon }}
         <div class="alert-wrap" hidden>
-          <button type="button" id="road-alerts" class="alert-bell" hidden data-canyon="{{.Name}}" aria-pressed="false" aria-expanded="false" aria-haspopup="dialog" aria-controls="road-alerts-panel" aria-label="Road alerts for {{.Name}}">
+          <button type="button" id="road-alerts" class="alert-bell" hidden data-canyon="{{.AlertCanyon}}" data-label="{{.Title}}" aria-pressed="false" aria-expanded="false" aria-haspopup="dialog" aria-controls="road-alerts-panel" aria-label="Road alerts for {{.Title}}">
             <svg class="alert-bell-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M4 17h16"/>
               <path d="M6 17V9.8a6 6 0 0 1 12 0V17"/>
@@ -133,6 +134,7 @@
             </svg>
           </button>
         </div>
+        {{- end }}
       </nav>
 
       <div class="top-bar-chips" role="group" aria-label="Status chips">
@@ -303,11 +305,12 @@
       </section>
     </main>
     
+    {{- if .AlertCanyon }}
     <div id="road-alerts-backdrop" class="alert-backdrop" hidden></div>
     <div id="road-alerts-panel" class="alert-panel" hidden role="dialog" aria-modal="true" aria-labelledby="road-alerts-title">
       <div class="alert-sheet">
         <p class="alert-menu-title" id="road-alerts-title">Road alerts</p>
-        <p id="road-alerts-copy">A notice if {{.Name}} closes, needs traction, or opens.</p>
+        <p id="road-alerts-copy">A notice if {{.Title}} closes, needs traction, or opens.</p>
         <button type="button" id="road-alerts-yes">Notify me</button>
         <button type="button" id="road-alerts-off" hidden>Turn off alerts</button>
         {{- if .Dev -}}
@@ -317,6 +320,7 @@
       </div>
       <button type="button" class="alert-cancel" id="road-alerts-no">Cancel</button>
     </div>
+    {{- end }}
 
     <!-- Lightbox Overlay -->
     <the-overlay 

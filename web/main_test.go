@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/stefanpenner/lcc-live/web/push"
 	"github.com/stefanpenner/lcc-live/web/server"
 	"github.com/stefanpenner/lcc-live/web/store"
 	"github.com/stefanpenner/lcc-live/web/udot"
@@ -169,6 +173,75 @@ func TestFilesystemLoading(t *testing.T) {
 		assert.NotEmpty(t, data)
 		assert.Contains(t, string(data), "<!DOCTYPE")
 	})
+}
+
+func TestRoadAlertsOnlyAVBH(t *testing.T) {
+	imageServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/jpeg")
+		if r.Method == http.MethodGet {
+			w.Write([]byte{0xFF, 0xD8, 0xFF, 0xD9})
+		}
+	}))
+	t.Cleanup(imageServer.Close)
+
+	staticFS, err := loadStaticFilesystem()
+	require.NoError(t, err)
+	tmplFS, err := loadFilesystem("web/templates")
+	require.NoError(t, err)
+	testStore := store.NewStore(&store.Canyons{
+		LCC: store.Canyon{
+			Name: "LCC",
+			Cameras: []store.Camera{{
+				Kind: "img", Src: imageServer.URL + "/lcc.jpg", Alt: "LCC", Canyon: "LCC",
+			}},
+		},
+		AVBH: store.Canyon{Name: "AVBH"},
+	})
+	testStore.FetchImages(context.Background())
+
+	book, err := push.Open(filepath.Join(t.TempDir(), "push.json"))
+	require.NoError(t, err)
+	notes := push.New(book, "pub", "priv", "https://lcc.live", server.PushCanyons())
+	app, err := server.Start(server.ServerConfig{
+		Store:      testStore,
+		StaticFS:   staticFS,
+		TemplateFS: tmplFS,
+		Push:       notes,
+	})
+	require.NoError(t, err)
+
+	body := func(path string) string {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		rec := httptest.NewRecorder()
+		app.ServeHTTP(rec, req)
+		require.Equal(t, http.StatusOK, rec.Code, path)
+		return rec.Body.String()
+	}
+	for _, path := range []string{"/", "/bcc", "/parleys", "/afc", "/provo"} {
+		assert.NotContains(t, body(path), `id="road-alerts"`)
+	}
+	av := body("/av-bh")
+	assert.Contains(t, av, `id="road-alerts" class="alert-bell"`)
+	assert.Contains(t, av, `data-canyon="AVBH" data-label="Apple Valley to Brian Head"`)
+	assert.Contains(t, av, "A notice if Apple Valley to Brian Head closes, needs traction, or opens.")
+
+	post := func(canyon string) int {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPost, "/api/push/subscribe", strings.NewReader(
+			`{"canyon":"`+canyon+`","endpoint":"https://push.example/`+canyon+`","p256dh":"k","auth":"a"}`,
+		))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		app.ServeHTTP(rec, req)
+		return rec.Code
+	}
+	assert.Equal(t, http.StatusNoContent, post("AVBH"))
+	for _, canyon := range []string{"LCC", "BCC", "Parleys", "AFC", "Provo"} {
+		assert.Equal(t, http.StatusBadRequest, post(canyon), canyon)
+	}
+	assert.Len(t, book.For("AVBH"), 1)
+	assert.Empty(t, book.For("LCC"))
 }
 
 // Benchmark config loading

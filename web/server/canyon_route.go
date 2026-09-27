@@ -6,6 +6,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/stefanpenner/lcc-live/web/metrics"
+	"github.com/stefanpenner/lcc-live/web/push"
 	"github.com/stefanpenner/lcc-live/web/store"
 )
 
@@ -20,6 +21,7 @@ type CanyonPageData struct {
 	AvalancheDanger *store.AvalancheDanger
 	AltaStatus      *store.AltaStatus
 	Dev             bool
+	AlertCanyon     string
 }
 
 func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
@@ -59,6 +61,10 @@ func loadCanyonPage(s *store.Store, canyonID string) CanyonPageData {
 		altaStatus = s.GetAltaStatus()
 	}
 	link, _ := canyonLink(canyonID)
+	alert := ""
+	if canyonID == push.AlertCanyon {
+		alert = canyonID
+	}
 	return CanyonPageData{
 		Canyon:          canyon,
 		Title:           link.Title,
@@ -69,6 +75,7 @@ func loadCanyonPage(s *store.Store, canyonID string) CanyonPageData {
 		WeatherStations: weatherStations,
 		AvalancheDanger: avalancheDanger,
 		AltaStatus:      altaStatus,
+		AlertCanyon:     alert,
 	}
 }
 
