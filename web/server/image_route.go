@@ -10,55 +10,60 @@ import (
 	"github.com/stefanpenner/lcc-live/web/store"
 )
 
-func ImageRoute(store *store.Store) func(c echo.Context) error {
+func ImageRoute(s *store.Store) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		id := c.Param("id")
-		entry, exists := store.Get(id)
-
-		status := http.StatusNotFound
-
-		if exists {
-			// Track image view
-			cameraName := entry.Camera.Alt
-			if cameraName == "" {
-				cameraName = entry.Camera.ID
-			}
-			metrics.ImageViewsTotal.WithLabelValues(cameraName, entry.Camera.Canyon).Inc()
-			if entry.HTTPHeaders.Status == http.StatusOK {
-				headers := entry.HTTPHeaders
-
-				c.Response().Header().Set("Content-Type", headers.ContentType)
-				// See web/docs/caching.md for analysis of max-age tradeoffs.
-				c.Response().Header().Set("Cache-Control", "public, max-age=3, stale-while-revalidate=120")
-				c.Response().Header().Set("ETag", entry.Image.ETag)
-				// Body length is SSOT (store also sets HTTPHeaders.ContentLength = len(bytes))
-				c.Response().Header().Set("Content-Length", fmt.Sprintf("%d", len(entry.Image.Bytes)))
-				if !entry.FetchedAt.IsZero() {
-					c.Response().Header().Set("Last-Modified", entry.FetchedAt.UTC().Format(time.RFC1123))
-				}
-
-				if ifNoneMatch := c.Request().Header.Get("If-None-Match"); ifNoneMatch != "" {
-					if ifNoneMatch == entry.Image.ETag {
-						// Track cache hit
-						metrics.CacheHits.WithLabelValues(c.Path()).Inc()
-						return c.NoContent(http.StatusNotModified)
-					}
-				}
-				if c.Request().Method == http.MethodHead {
-					return c.NoContent(http.StatusOK)
-				} else {
-					// Track response size
-					metrics.ResponseSizeBytes.WithLabelValues(c.Path()).Observe(float64(len(entry.Image.Bytes)))
-					return c.Blob(http.StatusOK, headers.ContentType, entry.Image.Bytes)
-				}
-			}
-			status = entry.HTTPHeaders.Status
+		entry, ok := s.Get(c.Param("id"))
+		if !ok {
+			return imageNotFound(c, http.StatusNotFound)
 		}
 
-		// Ensure we have a valid HTTP status code
-		if status == 0 {
-			status = http.StatusNotFound
+		metrics.ImageViewsTotal.WithLabelValues(imageViewName(entry.Camera), entry.Camera.Canyon).Inc()
+		if entry.HTTPHeaders.Status != http.StatusOK {
+			return imageNotFound(c, entry.HTTPHeaders.Status)
 		}
-		return c.String(status, "image not found")
+
+		setImageHeaders(c, entry)
+		if imageNotModified(c, entry.Image.ETag) {
+			metrics.CacheHits.WithLabelValues(c.Path()).Inc()
+			return c.NoContent(http.StatusNotModified)
+		}
+		if c.Request().Method == http.MethodHead {
+			return c.NoContent(http.StatusOK)
+		}
+
+		metrics.ResponseSizeBytes.WithLabelValues(c.Path()).Observe(float64(len(entry.Image.Bytes)))
+		return c.Blob(http.StatusOK, entry.HTTPHeaders.ContentType, entry.Image.Bytes)
 	}
+}
+
+func imageViewName(cam *store.Camera) string {
+	if cam.Alt != "" {
+		return cam.Alt
+	}
+	return cam.ID
+}
+
+func imageNotFound(c echo.Context, status int) error {
+	if status == 0 {
+		status = http.StatusNotFound
+	}
+	return c.String(status, "image not found")
+}
+
+func setImageHeaders(c echo.Context, entry store.EntrySnapshot) {
+	h := c.Response().Header()
+	h.Set("Content-Type", entry.HTTPHeaders.ContentType)
+	// See web/docs/caching.md for analysis of max-age tradeoffs.
+	h.Set("Cache-Control", "public, max-age=3, stale-while-revalidate=120")
+	h.Set("ETag", entry.Image.ETag)
+	// Body length is SSOT (store also sets HTTPHeaders.ContentLength = len(bytes))
+	h.Set("Content-Length", fmt.Sprintf("%d", len(entry.Image.Bytes)))
+	if !entry.FetchedAt.IsZero() {
+		h.Set("Last-Modified", entry.FetchedAt.UTC().Format(time.RFC1123))
+	}
+}
+
+func imageNotModified(c echo.Context, etag string) bool {
+	match := c.Request().Header.Get("If-None-Match")
+	return match != "" && match == etag
 }
