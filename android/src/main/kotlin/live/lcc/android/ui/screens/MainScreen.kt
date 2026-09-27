@@ -35,7 +35,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import live.lcc.android.data.model.MediaItem
 import live.lcc.android.data.model.MediaType
+import live.lcc.android.data.model.RoadCondition
+import live.lcc.android.data.model.WeatherStation
 import live.lcc.android.domain.ConnectionStatusHelper
 import live.lcc.android.ui.components.ConnectionStatusSheet
 import org.koin.androidx.compose.koinViewModel
@@ -50,20 +53,36 @@ fun MainScreen(
     val connectionState by viewModel.connectionState.collectAsState()
     val imageRevision by viewModel.imageRevision.collectAsState()
 
-    // LCC state
     val lccItems by viewModel.lccMediaItems.collectAsState()
     val lccRoadConditions by viewModel.lccRoadConditions.collectAsState()
     val lccWeatherStations by viewModel.lccWeatherStations.collectAsState()
     val lccError by viewModel.lccError.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    // BCC state
     val bccItems by viewModel.bccMediaItems.collectAsState()
     val bccRoadConditions by viewModel.bccRoadConditions.collectAsState()
     val bccWeatherStations by viewModel.bccWeatherStations.collectAsState()
     val bccError by viewModel.bccError.collectAsState()
 
-    // Gallery state
+    val items: List<MediaItem>
+    val roadConditions: List<RoadCondition>
+    val weatherStations: Map<String, WeatherStation>
+    val error: String?
+    when (selectedTab) {
+        CanyonTab.LCC -> {
+            items = lccItems
+            roadConditions = lccRoadConditions
+            weatherStations = lccWeatherStations
+            error = lccError
+        }
+        CanyonTab.BCC -> {
+            items = bccItems
+            roadConditions = bccRoadConditions
+            weatherStations = bccWeatherStations
+            error = bccError
+        }
+    }
+
     var galleryIndex by remember { mutableStateOf<Int?>(null) }
     var showConnectionSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -130,28 +149,20 @@ fun MainScreen(
             }
         },
     ) { innerPadding ->
-        val currentItems = if (selectedTab == CanyonTab.LCC) lccItems else bccItems
-        val currentRoadConditions = if (selectedTab == CanyonTab.LCC) lccRoadConditions else bccRoadConditions
-        val currentWeatherStations = if (selectedTab == CanyonTab.LCC) lccWeatherStations else bccWeatherStations
-        val currentError = if (selectedTab == CanyonTab.LCC) lccError else bccError
-
         CanyonTabScreen(
-            mediaItems = currentItems,
-            roadConditions = currentRoadConditions,
-            weatherStations = currentWeatherStations,
+            mediaItems = items,
+            roadConditions = roadConditions,
+            weatherStations = weatherStations,
             isLoading = isLoading,
             isRefreshing = isRefreshing,
             imageRevision = imageRevision,
             gridColumns = gridColumns,
-            error = currentError,
+            error = error,
             onItemClick = { index ->
-                val item = currentItems[index]
-                if (item.type is MediaType.YouTubeVideo) {
-                    val url = (item.type as MediaType.YouTubeVideo).embedURL
-                        .replace("/embed/", "/watch?v=")
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                } else {
-                    galleryIndex = index
+                when (val type = items[index].type) {
+                    is MediaType.YouTubeVideo ->
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(type.watchUrl())))
+                    else -> galleryIndex = index
                 }
             },
             onRefresh = { viewModel.refresh() },
@@ -167,14 +178,11 @@ fun MainScreen(
         )
     }
 
-    // Gallery overlay
     galleryIndex?.let { index ->
-        val items = if (selectedTab == CanyonTab.LCC) lccItems else bccItems
-        val stations = if (selectedTab == CanyonTab.LCC) lccWeatherStations else bccWeatherStations
         if (items.isNotEmpty()) {
             GalleryScreen(
                 mediaItems = items,
-                weatherStations = stations,
+                weatherStations = weatherStations,
                 initialIndex = index,
                 imageRevision = imageRevision,
                 onDismiss = { galleryIndex = null },
@@ -182,7 +190,6 @@ fun MainScreen(
         }
     }
 
-    // Connection status sheet
     if (showConnectionSheet) {
         ConnectionStatusSheet(
             connectionState = connectionState,
@@ -190,3 +197,6 @@ fun MainScreen(
         )
     }
 }
+
+private fun MediaType.YouTubeVideo.watchUrl(): String =
+    embedURL.replace("/embed/", "/watch?v=")
