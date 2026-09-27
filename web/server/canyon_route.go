@@ -20,56 +20,15 @@ type CanyonPageData struct {
 
 func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		// Track page view
 		metrics.PageViewsTotal.WithLabelValues(canyonID).Inc()
 
-		canyon := s.Canyon(canyonID)
-		roadConditions := s.GetRoadConditions(canyonID)
-		// Filter out unwanted road conditions
-		roadConditions = FilterRoadConditions(roadConditions)
-		events := SortEvents(s.GetEvents(canyonID))
+		page := loadCanyonPage(s, canyonID)
 
-		// Get weather stations for all cameras (single lock acquisition)
-		weatherStations := s.GetWeatherStationsForCanyon(canyon)
-
-		avalancheDanger := s.GetAvalancheDanger()
-		var altaStatus *store.AltaStatus
-		if canyonID == "LCC" {
-			altaStatus = s.GetAltaStatus()
-		}
-
-		// Determine response format
-		isJSON := strings.HasSuffix(c.Request().URL.Path, ".json")
-
-		// Set Content-Type before calling SetCacheHeaders
-		if isJSON {
-			c.Response().Header().Set("Content-Type", "application/json; charset=UTF-8")
-		} else {
-			c.Response().Header().Set("Content-Type", "text/html; charset=UTF-8")
-		}
-
-		// Check if dev mode is enabled
-		devMode := c.Get("_dev_mode") != nil
-
-		// Build cache config - include all components that affect the response
-		config := CacheConfig{
-			Components: []interface{}{
-				canyon,          // Canyon data (cameras, etc.) - uses ETag() method
-				roadConditions,  // Road conditions - hashed with StableJSONHash
-				weatherStations, // Weather stations - hashed with StableJSONHash
-				events,          // UDOT events
-				avalancheDanger, // UAC Salt Lake
-				altaStatus,      // Alta parking (LCC only; nil for BCC)
-			},
-			DevMode: devMode,
-		}
-
-		// Set cache headers and check for 304
-		_, shouldReturn304, err := SetCacheHeaders(c, config)
+		notModified, err := cacheCanyon(c, page)
 		if err != nil {
 			return err
 		}
-		if shouldReturn304 {
+		if notModified {
 			return c.NoContent(http.StatusNotModified)
 		}
 
@@ -77,30 +36,67 @@ func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
 			return c.NoContent(http.StatusOK)
 		}
 
-		// Return appropriate response format
-		if isJSON {
-			// Rewrite camera Src to proxy URLs so clients (e.g. iOS)
-			// don't hit upstream sources directly (UDOT blocks non-US IPs).
-			scheme := c.Scheme()
-			proxied := *canyon
-			proxied.Cameras = make([]store.Camera, len(canyon.Cameras))
-			for i, cam := range canyon.Cameras {
-				if cam.Kind == "img" {
-					cam.Src = scheme + "://" + c.Request().Host + "/image/" + cam.ID
-				}
-				proxied.Cameras[i] = cam
-			}
-			return c.JSON(http.StatusOK, &proxied)
+		if wantsCanyonJSON(c) {
+			return c.JSON(http.StatusOK, proxiedCanyon(c, page.Canyon))
 		}
-
-		pageData := CanyonPageData{
-			Canyon:          canyon,
-			RoadConditions:  roadConditions,
-			Events:          events,
-			WeatherStations: weatherStations,
-			AvalancheDanger: avalancheDanger,
-			AltaStatus:      altaStatus,
-		}
-		return c.Render(http.StatusOK, "canyon.html.tmpl", pageData)
+		return c.Render(http.StatusOK, "canyon.html.tmpl", page)
 	}
+}
+
+func loadCanyonPage(s *store.Store, canyonID string) CanyonPageData {
+	canyon := s.Canyon(canyonID)
+	roadConditions := FilterRoadConditions(s.GetRoadConditions(canyonID))
+	events := SortEvents(s.GetEvents(canyonID))
+	weatherStations := s.GetWeatherStationsForCanyon(canyon)
+	avalancheDanger := s.GetAvalancheDanger()
+	var altaStatus *store.AltaStatus
+	if canyonID == "LCC" {
+		altaStatus = s.GetAltaStatus()
+	}
+	return CanyonPageData{
+		Canyon:          canyon,
+		RoadConditions:  roadConditions,
+		Events:          events,
+		WeatherStations: weatherStations,
+		AvalancheDanger: avalancheDanger,
+		AltaStatus:      altaStatus,
+	}
+}
+
+func cacheCanyon(c echo.Context, page CanyonPageData) (bool, error) {
+	contentType := "text/html; charset=UTF-8"
+	if wantsCanyonJSON(c) {
+		contentType = "application/json; charset=UTF-8"
+	}
+	c.Response().Header().Set("Content-Type", contentType)
+
+	_, notModified, err := SetCacheHeaders(c, CacheConfig{
+		Components: []interface{}{
+			page.Canyon,
+			page.RoadConditions,
+			page.WeatherStations,
+			page.Events,
+			page.AvalancheDanger,
+			page.AltaStatus,
+		},
+		DevMode: c.Get("_dev_mode") != nil,
+	})
+	return notModified, err
+}
+
+func wantsCanyonJSON(c echo.Context) bool {
+	return strings.HasSuffix(c.Request().URL.Path, ".json")
+}
+
+// Image cameras go through /image so clients never hit UDOT, which blocks non-US IPs.
+func proxiedCanyon(c echo.Context, canyon *store.Canyon) *store.Canyon {
+	proxied := *canyon
+	proxied.Cameras = make([]store.Camera, len(canyon.Cameras))
+	for i, cam := range canyon.Cameras {
+		if cam.Kind == "img" {
+			cam.Src = c.Scheme() + "://" + c.Request().Host + "/image/" + cam.ID
+		}
+		proxied.Cameras[i] = cam
+	}
+	return &proxied
 }
