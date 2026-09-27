@@ -1053,6 +1053,14 @@ func TestCanyonRoute_JSON_Extension(t *testing.T) {
 	}
 }
 
+func TestCanyonCatalogOrder(t *testing.T) {
+	got := make([]string, 0, len(canyonCatalog()))
+	for _, link := range canyonCatalog() {
+		got = append(got, link.Label)
+	}
+	assert.Equal(t, []string{"LCC", "BCC", "Parleys", "AF", "Provo"}, got)
+}
+
 func TestCameraRoute(t *testing.T) {
 	// Create shared test server and store
 	imageServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

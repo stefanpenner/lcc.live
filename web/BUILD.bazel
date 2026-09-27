@@ -11,6 +11,7 @@ go_library(
     deps = [
         "//web/alta",
         "//web/logger",
+        "//web/push",
         "//web/server",
         "//web/store",
         "//web/synoptic",
@@ -103,10 +104,19 @@ pkg_tar(
 )
 
 # Build OCI image
+pkg_tar(
+    name = "entrypoint_layer",
+    srcs = ["//web/scripts:entrypoint.sh"],
+    mode = "0755",
+    package_dir = "/usr/local/bin",
+    tags = ["manual"],
+)
+
 oci_image(
     name = "image",
     base = "@alpine_linux_amd64",
-    entrypoint = ["/usr/local/bin/lcc-live"],
+    # Root so the entrypoint can chown /data, then it drops to nobody.
+    entrypoint = ["/bin/sh", "/usr/local/bin/entrypoint.sh"],
     env = {
         "PORT": "3000",
     },
@@ -114,10 +124,10 @@ oci_image(
     tags = ["manual"],
     tars = [
         ":lcc-live_layer",
+        ":entrypoint_layer",
         ":runtime_files_layer",
     ],
-    # Security: Run as unprivileged user
-    user = "nobody",
+    user = "root",
     workdir = "/usr/local/bin",
 )
 

@@ -1975,5 +1975,196 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const poller = new UDOTPoller(canyonName);
     poller.start();
+    initRoadAlerts(canyonName);
   }
 });
+
+function initRoadAlerts(canyon) {
+  const btn = document.getElementById('road-alerts');
+  const panel = document.getElementById('road-alerts-panel');
+  const wrap = btn && btn.closest('.alert-wrap');
+  if (!btn || !panel || !wrap || !canyon) return;
+  const copy = document.getElementById('road-alerts-copy');
+  let offCopy = copy ? copy.textContent : '';
+  const onCopy = 'Alerts are on for ' + canyon + '. You will hear if it closes, needs traction, or opens again.';
+  const onActions = panel.querySelector('[data-for="on"]');
+  const offActions = panel.querySelector('[data-for="off"]');
+  const backdrop = document.getElementById('road-alerts-backdrop');
+  const needsInstall = iosNeedsHomeScreen();
+  if (needsInstall) {
+    offCopy = 'On iPhone, alerts work from the Home Screen icon. Tap Share, then Add to Home Screen. Open that icon, then tap the bell.';
+    const yes = document.getElementById('road-alerts-yes');
+    if (yes) yes.hidden = true;
+    if (copy) copy.textContent = offCopy;
+  }
+  const mark = (on) => {
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (needsInstall) return;
+    if (onActions) onActions.hidden = !on;
+    if (offActions) offActions.hidden = on;
+    if (copy) copy.textContent = on ? onCopy : offCopy;
+  };
+  const place = () => {
+    if (window.matchMedia('(max-width: 640px)').matches) {
+      panel.style.top = '';
+      panel.style.left = '';
+      return;
+    }
+    const rect = btn.getBoundingClientRect();
+    panel.style.top = (rect.bottom + 6) + 'px';
+    const width = panel.offsetWidth || 248;
+    panel.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)) + 'px';
+  };
+  let openedAt = 0;
+  const setOpen = (open) => {
+    if (open) openedAt = Date.now();
+    panel.hidden = !open;
+    if (backdrop) backdrop.hidden = !open;
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) place();
+    if (window.__lccLog) window.__lccLog('panel', { open: open, install: needsInstall });
+  };
+  const justOpened = () => Date.now() - openedAt < 500;
+  btn.hidden = false;
+  wrap.hidden = false;
+  btn.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setOpen(panel.hidden);
+  });
+  document.getElementById('road-alerts-no').addEventListener('click', () => setOpen(false));
+  document.getElementById('road-alerts-close').addEventListener('click', () => setOpen(false));
+  if (backdrop) backdrop.addEventListener('click', () => { if (!justOpened()) setOpen(false); });
+  window.addEventListener('resize', () => { if (!panel.hidden) place(); });
+  document.addEventListener('click', (event) => {
+    if (justOpened()) return;
+    if (!wrap.contains(event.target) && !panel.contains(event.target)) setOpen(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') setOpen(false);
+  });
+  if (needsInstall || !('serviceWorker' in navigator)) return;
+  fetch('/api/push/key').then(async (res) => {
+    if (!res.ok) return;
+    const { publicKey } = await res.json();
+    if (!publicKey) return;
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    const isOn = async () => {
+      if (!reg.pushManager) return false;
+      const sub = await reg.pushManager.getSubscription();
+      return !!sub && localStorage.getItem('lcc-push-canyon') === canyon;
+    };
+    mark(await isOn());
+    document.getElementById('road-alerts-off').addEventListener('click', async () => {
+      const current = await reg.pushManager.getSubscription();
+      if (current) {
+        const endpoint = current.endpoint;
+        await current.unsubscribe();
+        await fetch('/api/push/subscribe', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint }),
+        });
+      }
+      localStorage.removeItem('lcc-push-canyon');
+      mark(false);
+      setOpen(false);
+    });
+    const testBtn = document.getElementById('road-alerts-test');
+    const result = document.getElementById('road-alerts-result');
+    const say = (text) => {
+      if (!result) return;
+      result.hidden = false;
+      result.textContent = text;
+    };
+    if (testBtn) {
+      testBtn.addEventListener('click', () => {
+        if (Notification.permission !== 'granted') {
+          say('Click Notify me and allow notifications, then Send a test.');
+          return;
+        }
+        testBtn.disabled = true;
+        const currentReady = reg.pushManager.getSubscription();
+        currentReady.then(async (current) => {
+          if (!current) {
+            say('Click Notify me first. This browser has no subscription yet.');
+            return;
+          }
+          const keys = current.toJSON().keys || {};
+          const save = await fetch('/api/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ canyon, endpoint: current.endpoint, p256dh: keys.p256dh, auth: keys.auth }),
+          });
+          if (!save.ok) {
+            say('Could not save this browser for ' + canyon + '.');
+            return;
+          }
+          localStorage.setItem('lcc-push-canyon', canyon);
+          mark(true);
+          const res = await fetch('/api/push/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ canyon }),
+          });
+          say(res.ok
+            ? 'Sent one ' + canyon + ' closure alert.'
+            : 'The push service rejected it.');
+        }).catch(() => {
+          say('Send failed.');
+        }).finally(() => {
+          testBtn.disabled = false;
+        });
+      });
+    }
+    document.getElementById('road-alerts-yes').addEventListener('click', async () => {
+      const yes = document.getElementById('road-alerts-yes');
+      yes.disabled = true;
+      try {
+        if (Notification.permission === 'denied') {
+          if (copy) copy.textContent = 'Notifications are blocked for this site in the browser settings.';
+          return;
+        }
+        if (Notification.permission !== 'granted') {
+          const perm = await Notification.requestPermission();
+          if (perm !== 'granted') return;
+        }
+        const current = await reg.pushManager.getSubscription();
+        const sub = current || await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: vapidKey(publicKey),
+        });
+        const keys = sub.toJSON().keys || {};
+        const save = await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ canyon, endpoint: sub.endpoint, p256dh: keys.p256dh, auth: keys.auth }),
+        });
+        if (!save.ok) return;
+        localStorage.setItem('lcc-push-canyon', canyon);
+        mark(true);
+        setOpen(false);
+      } finally {
+        yes.disabled = false;
+      }
+    });
+  }).catch(() => {});
+}
+
+function iosNeedsHomeScreen() {
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const installed = window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+  return ios && !installed;
+}
+
+function vapidKey(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}

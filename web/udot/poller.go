@@ -14,6 +14,18 @@ type Poller struct {
 	client   *Client
 	store    *store.Store
 	interval time.Duration
+	after    func()
+}
+
+// AfterUpdate runs after a road or event poll writes the store.
+func (p *Poller) AfterUpdate(fn func()) {
+	p.after = fn
+}
+
+func (p *Poller) changed() {
+	if p.after != nil {
+		p.after()
+	}
 }
 
 // NewPoller creates a new UDOT data poller
@@ -181,6 +193,7 @@ func (p *Poller) pollRoadConditions(ctx context.Context) {
 		p.store.UpdateRoadConditions(id, roads[id])
 	}
 	logger.Muted("Updated road conditions for %d canyons", len(p.store.CanyonIDs()))
+	p.changed()
 }
 
 func (p *Poller) pollWeatherStations(ctx context.Context) {
@@ -213,4 +226,5 @@ func (p *Poller) pollEvents(ctx context.Context) {
 		p.store.UpdateEvents(id, grouped[id])
 	}
 	logger.Muted("Updated events for %d canyons", len(p.store.CanyonIDs()))
+	p.changed()
 }

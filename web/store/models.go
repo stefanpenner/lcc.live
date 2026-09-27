@@ -202,14 +202,14 @@ func (c *Canyon) GetETag() string {
 type Canyons struct {
 	LCC     Canyon `json:"lcc"`
 	BCC     Canyon `json:"bcc"`
-	Provo   Canyon `json:"provo"`
-	AFC     Canyon `json:"afc"`
 	Parleys Canyon `json:"parleys"`
+	AFC     Canyon `json:"afc"`
+	Provo   Canyon `json:"provo"`
 }
 
 // IDs is the canyon order used by routes, metrics, and UDOT fan-out.
 func (c *Canyons) IDs() []string {
-	return []string{"LCC", "BCC", "Provo", "AFC", "Parleys"}
+	return []string{"LCC", "BCC", "Parleys", "AFC", "Provo"}
 }
 
 // Get returns the canyon for id.

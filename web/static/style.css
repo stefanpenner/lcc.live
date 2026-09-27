@@ -179,6 +179,7 @@
    Base Typography & Layout
    ======================================== */
 html {
+  background: var(--color-bg-secondary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -260,13 +261,21 @@ body {
   max-width: none;
   /* Full-bleed relative to body padding; mb matches grid rhythm */
   margin: calc(-1 * var(--body-pad)) calc(-1 * var(--body-pad)) var(--space-md);
-  padding: max(0.3rem, env(safe-area-inset-top, 0px)) var(--body-pad) 0.35rem;
+  padding: calc(env(safe-area-inset-top, 0px) + 0.3rem) var(--body-pad) 0.35rem;
   background: color-mix(in srgb, var(--color-bg-secondary) 82%, transparent);
   backdrop-filter: saturate(180%) blur(14px);
   -webkit-backdrop-filter: saturate(180%) blur(14px);
   border-bottom: 1px solid var(--color-border-default);
   transition: transform 0.25s ease;
   will-change: transform;
+}
+
+/* Home Screen app. The status bar is a white veil and the top inset is often 0. */
+@media (display-mode: standalone) {
+  .top-bar {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 0.85rem);
+    background: var(--color-bg-secondary);
+  }
 }
 
 /* Hide chrome while scrolling down; restore on scroll up */
@@ -494,6 +503,243 @@ road-status img:hover {
   background: var(--color-bg-tertiary);
   text-decoration: none;
   border: none;
+}
+
+.alert-wrap {
+  display: flex;
+  align-items: stretch;
+  flex: none;
+}
+
+.alert-wrap[hidden] {
+  display: none;
+}
+
+.alert-bell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  margin: 0;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  box-shadow: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--transition-fast), background var(--transition-fast), filter var(--transition-fast);
+}
+
+.alert-bell svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.alert-bell[hidden] {
+  display: none;
+}
+
+.alert-bell:hover {
+  color: var(--color-text-secondary);
+  background: var(--color-bg-tertiary);
+}
+
+.alert-bell:active {
+  color: var(--color-text-primary);
+  background: var(--color-bg-tertiary);
+}
+
+.alert-bell:focus-visible {
+  outline: 2px solid var(--color-accent-focus);
+  outline-offset: 2px;
+}
+
+.alert-bell.on {
+  color: var(--color-bg-secondary);
+  background: var(--color-accent-primary);
+}
+
+.alert-bell.on:hover {
+  filter: brightness(1.08);
+}
+
+.alert-bell.on:active {
+  filter: brightness(0.92);
+}
+
+.alert-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 280;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.alert-backdrop[hidden] {
+  display: none;
+}
+
+.alert-panel {
+  position: fixed;
+  z-index: 300;
+  top: 3.2rem;
+  left: 0.75rem;
+  width: 15.5rem;
+  max-width: calc(100% - 1.5rem);
+  padding: 0.7rem 0.75rem 0.6rem;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.alert-panel p {
+  margin: 0 0 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+}
+
+.alert-panel-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.alert-panel-actions[hidden],
+.alert-panel-actions button[hidden] {
+  display: none;
+}
+
+.alert-panel-actions button {
+  padding: 0.28rem 0.55rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), filter var(--transition-fast);
+}
+
+.alert-panel-actions button:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-border-strong);
+}
+
+.alert-panel-actions button:active {
+  transform: scale(0.98);
+  background: var(--color-bg-secondary);
+}
+
+.alert-panel-actions button:focus-visible {
+  outline: 2px solid var(--color-accent-focus);
+  outline-offset: 2px;
+}
+
+.alert-panel-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+}
+
+.alert-panel-actions button:first-child {
+  color: var(--color-bg-secondary);
+  background: var(--color-accent-primary);
+  border-color: transparent;
+}
+
+.alert-panel-actions button:first-child:hover {
+  color: var(--color-bg-secondary);
+  background: var(--color-accent-primary);
+  filter: brightness(1.08);
+}
+
+.alert-panel-actions button:first-child:active {
+  filter: brightness(0.9);
+}
+
+.alert-panel-actions button:first-child:disabled {
+  filter: none;
+}
+
+.alert-test {
+  display: block;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--color-text-tertiary);
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.alert-test:hover {
+  color: var(--color-text-primary);
+}
+
+.alert-test:active {
+  color: var(--color-text-secondary);
+}
+
+.alert-test:focus-visible {
+  outline: 2px solid var(--color-accent-focus);
+  outline-offset: 2px;
+}
+
+.alert-result {
+  margin: 0.45rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--color-text-primary);
+}
+
+.alert-result[hidden] {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .alert-panel {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    max-width: none;
+    border-radius: 16px 16px 0 0;
+    padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .alert-panel-actions button {
+    min-height: 44px;
+    flex: 1;
+  }
+}
+
+@media (min-width: 641px) {
+  .alert-backdrop {
+    display: none;
+  }
 }
 
 a.status-chip:hover {

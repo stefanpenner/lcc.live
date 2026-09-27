@@ -1,3 +1,5 @@
+exports_files(["entrypoint.sh"])
+
 sh_binary(
     name = "deploy",
     srcs = ["deploy.sh"],

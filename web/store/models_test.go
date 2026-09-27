@@ -129,6 +129,10 @@ func TestCanyons_SetETag(t *testing.T) {
 	assert.NotEmpty(t, canyon.ETag)
 }
 
+func TestCanyons_IDsOrder(t *testing.T) {
+	assert.Equal(t, []string{"LCC", "BCC", "Parleys", "AFC", "Provo"}, (&Canyons{}).IDs())
+}
+
 func TestCanyons_String(t *testing.T) {
 	canyons := Canyons{
 		LCC: Canyon{

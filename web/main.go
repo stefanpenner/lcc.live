@@ -22,6 +22,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/stefanpenner/lcc-live/web/alta"
 	"github.com/stefanpenner/lcc-live/web/logger"
+	"github.com/stefanpenner/lcc-live/web/push"
 	"github.com/stefanpenner/lcc-live/web/server"
 	"github.com/stefanpenner/lcc-live/web/store"
 	"github.com/stefanpenner/lcc-live/web/synoptic"
@@ -332,7 +333,7 @@ func publishSyncStats(
 }
 
 // startPollers runs image sync, UDOT, UAC, Alta, and mountain weather until ctx ends.
-func startPollers(g *errgroup.Group, ctx context.Context, live *store.Store, config Config, totalSyncs *atomic.Int64) {
+func startPollers(g *errgroup.Group, ctx context.Context, live *store.Store, config Config, totalSyncs *atomic.Int64, notes *push.Notifier) {
 	g.Go(func() error {
 		live.FetchImages(ctx)
 		return nil
@@ -343,6 +344,9 @@ func startPollers(g *errgroup.Group, ctx context.Context, live *store.Store, con
 
 	udotClient := udot.NewClient(config.UDOTAPIKey)
 	udotPoller := udot.NewPoller(udotClient, live, config.UDOTInterval)
+	if notes != nil {
+		udotPoller.AfterUpdate(func() { notes.Check(ctx, live) })
+	}
 	g.Go(func() error { return udotPoller.StartRoadConditions(ctx) })
 	g.Go(func() error { return udotPoller.StartWeatherStations(ctx) })
 	g.Go(func() error { return udotPoller.StartEvents(ctx) })
@@ -441,7 +445,8 @@ func main() {
 
 	logger.Info("Fetching initial camera images...")
 	g, gCtx := errgroup.WithContext(ctx)
-	startPollers(g, gCtx, live, config, &totalSyncs)
+	notes := push.TryOpen(server.PushCanyons())
+	startPollers(g, gCtx, live, config, &totalSyncs, notes)
 
 	server.LogWriter = ui.AddLog
 	server.RequestCounter = &requestCount
@@ -452,6 +457,7 @@ func main() {
 		TemplateFS:    tmplFS,
 		DevMode:       config.DevMode,
 		SentryEnabled: sentryEnabled,
+		Push:          notes,
 	})
 	if err != nil {
 		logger.Fatal(err)

@@ -19,6 +19,7 @@ type CanyonPageData struct {
 	WeatherStations map[string]*store.WeatherStation
 	AvalancheDanger *store.AvalancheDanger
 	AltaStatus      *store.AltaStatus
+	Dev             bool
 }
 
 func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
@@ -42,6 +43,7 @@ func CanyonRoute(s *store.Store, canyonID string) func(c echo.Context) error {
 		if wantsCanyonJSON(c) {
 			return c.JSON(http.StatusOK, proxiedCanyon(c, page.Canyon))
 		}
+		page.Dev = c.Get("_dev_mode") != nil
 		return c.Render(http.StatusOK, "canyon.html.tmpl", page)
 	}
 }

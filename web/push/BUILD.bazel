@@ -1,0 +1,33 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "push",
+    srcs = [
+        "book.go",
+        "notifier.go",
+        "send.go",
+        "status.go",
+    ],
+    importpath = "github.com/stefanpenner/lcc-live/web/push",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//web/logger",
+        "//web/store",
+        "@com_github_sherclockholmes_webpush_go//:webpush-go",
+    ],
+)
+
+go_test(
+    name = "push_test",
+    srcs = [
+        "book_test.go",
+        "notifier_test.go",
+        "status_test.go",
+    ],
+    embed = [":push"],
+    deps = [
+        "//web/store",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

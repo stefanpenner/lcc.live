@@ -119,6 +119,15 @@
           {{.Label}}
         </a>
         {{- end -}}
+          <div class="alert-wrap" hidden>
+            <button type="button" id="road-alerts" class="alert-bell" hidden data-canyon="{{.Name}}" aria-pressed="false" aria-expanded="false" aria-controls="road-alerts-panel" aria-label="Road alerts for {{.Name}}">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 17h16"/>
+                <path d="M6 17V9.8a6 6 0 0 1 12 0V17"/>
+                <path d="M9.2 17.4a2.8 2.8 0 0 0 5.6 0"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -290,6 +299,23 @@
       </section>
     </main>
     
+    <div id="road-alerts-backdrop" class="alert-backdrop" hidden></div>
+    <div id="road-alerts-panel" class="alert-panel" hidden role="dialog" aria-modal="true" aria-labelledby="road-alerts-copy">
+      <p id="road-alerts-copy">Notify me if {{.Name}} closes, needs traction, or opens again. Nothing else.</p>
+      <div class="alert-panel-actions" data-for="off">
+        <button type="button" id="road-alerts-yes">Notify me</button>
+        <button type="button" id="road-alerts-no">Not now</button>
+      </div>
+      <div class="alert-panel-actions" data-for="on" hidden>
+        <button type="button" id="road-alerts-off">Turn off</button>
+        <button type="button" id="road-alerts-close">Close</button>
+      </div>
+      {{- if .Dev -}}
+      <button type="button" id="road-alerts-test" class="alert-test">Send a test</button>
+      <p id="road-alerts-result" class="alert-result" hidden></p>
+      {{- end -}}
+    </div>
+
     <!-- Lightbox Overlay -->
     <the-overlay 
       role="dialog" 
@@ -297,6 +323,66 @@
       aria-label="Enlarged camera view">
     </the-overlay>
 
+    {{- if .Dev -}}
+    <script>
+      (function () {
+        function send(event, detail) {
+          var body = JSON.stringify({
+            t: new Date().toISOString(),
+            event: event,
+            detail: detail || {},
+            href: location.href,
+            ua: navigator.userAgent
+          });
+          try {
+            if (navigator.sendBeacon(location.origin + '/api/dev/log', new Blob([body], { type: 'application/json' }))) return;
+          } catch (e) {}
+          fetch('/api/dev/log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body, keepalive: true }).catch(function () {});
+        }
+        window.__lccLog = send;
+        window.addEventListener('error', function (e) {
+          send('error', { message: e.message, src: e.filename, line: e.lineno, col: e.colno });
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+          send('rejection', { reason: String(e.reason && e.reason.stack || e.reason) });
+        });
+        send('boot', {
+          standalone: navigator.standalone === true,
+          displayMode: matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser',
+          secure: window.isSecureContext === true,
+          pushManager: typeof PushManager !== 'undefined',
+          serviceWorker: 'serviceWorker' in navigator,
+          notification: typeof Notification !== 'undefined',
+          permission: (typeof Notification !== 'undefined') ? Notification.permission : 'none',
+          touch: navigator.maxTouchPoints || 0,
+          w: innerWidth,
+          h: innerHeight
+        });
+        function targetOf(e) {
+          var el = e.target;
+          return { tag: el && el.tagName, id: el && el.id, cls: el && String(el.className).slice(0, 120) };
+        }
+        document.addEventListener('pointerdown', function (e) { send('pointerdown', targetOf(e)); }, true);
+        document.addEventListener('touchend', function (e) { send('touchend', targetOf(e)); }, true);
+        document.addEventListener('click', function (e) { send('click', targetOf(e)); }, true);
+        setTimeout(function () {
+          var btn = document.getElementById('road-alerts');
+          if (!btn) { send('bell', { missing: true }); return; }
+          var s = getComputedStyle(btn);
+          var r = btn.getBoundingClientRect();
+          send('bell', {
+            hidden: btn.hidden,
+            display: s.display,
+            pointer: s.pointerEvents,
+            w: Math.round(r.width),
+            h: Math.round(r.height),
+            top: Math.round(r.top),
+            left: Math.round(r.left)
+          });
+        }, 800);
+      })();
+    </script>
+    {{- end -}}
     <script type="module" src="/s/script.mjs?v={{version}}"></script>
     {{template "analytics" .}}
   </body>

@@ -19,6 +19,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/stefanpenner/lcc-live/web/push"
 	"github.com/stefanpenner/lcc-live/web/store"
 )
 
@@ -291,6 +292,7 @@ type ServerConfig struct {
 	TemplateFS    fs.FS
 	DevMode       bool
 	SentryEnabled bool
+	Push          *push.Notifier
 }
 
 // Start serves canyon pages, camera images, and health.
@@ -324,9 +326,11 @@ func Start(cfg ServerConfig) (*echo.Echo, error) {
 	}
 	if cfg.DevMode {
 		e.Use(devNoCache)
+		mountDevLog(e)
 	}
 
 	mountPublic(e, cfg.Store)
+	mountPush(e, cfg.Push, cfg.DevMode)
 	mountInternal(e)
 	return e, nil
 }
@@ -548,9 +552,9 @@ func canyonCatalog() []CanyonLink {
 	return []CanyonLink{
 		{ID: "LCC", Label: "LCC", Path: "/", Title: "Little Cottonwood Canyon"},
 		{ID: "BCC", Label: "BCC", Path: "/bcc", Title: "Big Cottonwood Canyon"},
-		{ID: "Provo", Label: "Provo", Path: "/provo", Title: "Provo Canyon"},
-		{ID: "AFC", Label: "AF", Path: "/afc", Title: "American Fork Canyon"},
 		{ID: "Parleys", Label: "Parleys", Path: "/parleys", Title: "Parleys Canyon"},
+		{ID: "AFC", Label: "AF", Path: "/afc", Title: "American Fork Canyon"},
+		{ID: "Provo", Label: "Provo", Path: "/provo", Title: "Provo Canyon"},
 	}
 }
 

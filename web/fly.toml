@@ -14,9 +14,16 @@ kill_timeout = '5s'
 [env]
   PORT = '3000'
   GOMEMLIMIT = '200MiB'
+  PUSH_DB = '/data/push.json'
+  VAPID_SUBJECT = 'https://lcc.live'
 
 [deploy]
-  strategy = "bluegreen"
+  # One volume can attach to one machine, so this cannot be bluegreen.
+  strategy = "immediate"
+
+[mounts]
+  source = 'push_subs'
+  destination = '/data'
 
 [metrics]
   port = 3000

@@ -42,6 +42,7 @@ use_repo(
     "com_github_mattn_go_isatty",
     "com_github_mitchellh_hashstructure",
     "com_github_prometheus_client_golang",
+    "com_github_sherclockholmes_webpush_go",
     "com_github_stretchr_testify",
     "com_github_tdewolff_minify_v2",
     "org_golang_x_sync",
@@ -78,6 +79,7 @@ android_sdk_repository_extension.configure(
     build_tools_version = "36.1.0",
 )
 use_repo(android_sdk_repository_extension, "androidsdk")
+
 register_toolchains("@androidsdk//:sdk-toolchain")
 
 # Maven dependencies for Android app
@@ -128,10 +130,6 @@ maven.install(
         "com.jakewharton.timber:timber:5.0.1",
         "junit:junit:4.13.2",
     ],
-    repositories = [
-        "https://maven.google.com",
-        "https://repo1.maven.org/maven2",
-    ],
     excluded_artifacts = [
         # Exclude JetBrains Compose Multiplatform bridge artifacts that conflict
         # with our direct AndroidX Compose dependencies. These are KMP wrappers
@@ -152,6 +150,10 @@ maven.install(
         "org.jetbrains.androidx.navigation:navigation-compose",
     ],
     fail_if_repin_required = False,
+    repositories = [
+        "https://maven.google.com",
+        "https://repo1.maven.org/maven2",
+    ],
     use_starlark_android_rules = True,
     version_conflict_policy = "pinned",
 )

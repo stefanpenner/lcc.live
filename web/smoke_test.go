@@ -18,6 +18,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func assertNavOrder(t *testing.T, body string) {
+	t.Helper()
+	prev := -1
+	for _, id := range []string{"LCC", "BCC", "Parleys", "AFC", "Provo"} {
+		at := strings.Index(body, `data-canyon="`+id+`"`)
+		require.Greater(t, at, prev, id)
+		prev = at
+	}
+}
+
 // setupSmokeServer starts a real HTTP server on a random port with mock camera data.
 // Returns the base URL and a cleanup function.
 func setupSmokeServer(t *testing.T) string {
@@ -145,6 +155,18 @@ func TestSmokeE2E(t *testing.T) {
 		assert.Contains(t, resp.Header.Get("Content-Type"), "text/html")
 		body, _ := io.ReadAll(resp.Body)
 		assert.Contains(t, string(body), "Little Cottonwood Canyon")
+	})
+
+	t.Run("canyon switch order", func(t *testing.T) {
+		for _, path := range []string{"/", "/bcc", "/parleys", "/afc", "/provo"} {
+			resp, err := client.Get(baseURL + path)
+			require.NoError(t, err)
+			body, err := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			require.NoError(t, err)
+			assert.Equal(t, http.StatusOK, resp.StatusCode, path)
+			assertNavOrder(t, string(body))
+		}
 	})
 
 	t.Run("BCC page returns HTML", func(t *testing.T) {

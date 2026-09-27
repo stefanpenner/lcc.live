@@ -60,7 +60,7 @@
         gap: 0.4rem;
         flex-wrap: wrap;
         min-height: 2.5rem;
-        padding: max(0.35rem, env(safe-area-inset-top, 0px)) 0.6rem 0.35rem;
+        padding: calc(env(safe-area-inset-top, 0px) + 0.35rem) 0.6rem 0.35rem;
         background: color-mix(in srgb, var(--color-bg-primary) 90%, transparent);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
@@ -70,6 +70,13 @@
 
       @supports not (background: color-mix(in srgb, white 50%, transparent)) {
         .camera-chrome {
+          background: var(--color-bg-primary);
+        }
+      }
+
+      @media (display-mode: standalone) {
+        .camera-chrome {
+          padding-top: calc(env(safe-area-inset-top, 0px) + 0.85rem);
           background: var(--color-bg-primary);
         }
       }
