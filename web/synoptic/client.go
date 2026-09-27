@@ -21,7 +21,9 @@ import (
 const (
 	synopticLatestURL = "https://api.synopticdata.com/v2/stations/latest"
 	nwsStationURL     = "https://api.weather.gov/stations/%s/observations/latest"
+	nwsMetaURL        = "https://api.weather.gov/stations/%s"
 	userAgent         = "lcc.live (https://lcc.live; canyon conditions)"
+	nwsAccept         = "application/geo+json"
 )
 
 // Client fetches latest observations for MesoWest-style station IDs.
@@ -281,19 +283,22 @@ func (c *Client) fetchNWS(ctx context.Context, stids []string) ([]store.WeatherS
 }
 
 func (c *Client) fetchNWSOne(ctx context.Context, stid string) (*store.WeatherStation, error) {
-	obsURL := fmt.Sprintf(nwsStationURL, url.PathEscape(stid))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, obsURL, nil)
+	ws, err := c.latestNWSObservation(ctx, stid)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", userAgent)
-	req.Header.Set("Accept", "application/geo+json")
 
-	resp, err := c.http.Do(req)
+	c.fillNWSMeta(ctx, stid, ws)
+	return ws, nil
+}
+
+func (c *Client) latestNWSObservation(ctx context.Context, stid string) (*store.WeatherStation, error) {
+	resp, err := c.nwsGet(ctx, fmt.Sprintf(nwsStationURL, url.PathEscape(stid)))
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
+
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, err
@@ -304,37 +309,43 @@ func (c *Client) fetchNWSOne(ctx context.Context, stid string) (*store.WeatherSt
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, truncate(string(body), 120))
 	}
+	return ParseNWSObservation(stid, body)
+}
 
-	ws, err := ParseNWSObservation(stid, body)
+func (c *Client) fillNWSMeta(ctx context.Context, stid string, ws *store.WeatherStation) {
+	resp, err := c.nwsGet(ctx, fmt.Sprintf(nwsMetaURL, url.PathEscape(stid)))
+	if err != nil {
+		return
+	}
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return
+	}
+
+	var meta nwsStationMeta
+	if json.Unmarshal(body, &meta) != nil {
+		return
+	}
+	if meta.Properties.Name != "" {
+		ws.StationName = meta.Properties.Name
+	}
+	if len(meta.Geometry.Coordinates) >= 2 {
+		lon := meta.Geometry.Coordinates[0]
+		lat := meta.Geometry.Coordinates[1]
+		ws.Longitude = &lon
+		ws.Latitude = &lat
+	}
+}
+
+func (c *Client) nwsGet(ctx context.Context, rawURL string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		return nil, err
 	}
-
-	// Optional station name/coords from metadata (best-effort)
-	metaURL := fmt.Sprintf("https://api.weather.gov/stations/%s", url.PathEscape(stid))
-	if mreq, err := http.NewRequestWithContext(ctx, http.MethodGet, metaURL, nil); err == nil {
-		mreq.Header.Set("User-Agent", userAgent)
-		mreq.Header.Set("Accept", "application/geo+json")
-		if mresp, err := c.http.Do(mreq); err == nil {
-			mb, _ := io.ReadAll(io.LimitReader(mresp.Body, 1<<20))
-			_ = mresp.Body.Close()
-			if mresp.StatusCode == http.StatusOK {
-				var meta nwsStationMeta
-				if json.Unmarshal(mb, &meta) == nil {
-					if meta.Properties.Name != "" {
-						ws.StationName = meta.Properties.Name
-					}
-					if len(meta.Geometry.Coordinates) >= 2 {
-						lon := meta.Geometry.Coordinates[0]
-						lat := meta.Geometry.Coordinates[1]
-						ws.Longitude = &lon
-						ws.Latitude = &lat
-					}
-				}
-			}
-		}
-	}
-	return ws, nil
+	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("Accept", nwsAccept)
+	return c.http.Do(req)
 }
 
 // ParseNWSObservation converts an NWS /observations/latest payload.
