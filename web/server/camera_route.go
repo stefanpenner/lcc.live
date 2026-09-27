@@ -17,115 +17,88 @@ type CameraPageData struct {
 	WeatherStation *store.WeatherStation
 }
 
-func CameraRoute(store *store.Store) func(c echo.Context) error {
+func CameraRoute(s *store.Store) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		// Get the wildcard parameter (everything after /camera/)
-		path := c.Param("*")
-		// Remove .json suffix if present
-		slugOrID := strings.TrimSuffix(path, ".json")
-		isJSON := strings.HasSuffix(c.Request().URL.Path, ".json")
-
-		entry, exists := store.Get(slugOrID)
-
-		if !exists {
+		slugOrID := cameraSlugOrID(c)
+		entry, ok := s.Get(slugOrID)
+		if !ok {
 			return c.String(http.StatusNotFound, "Camera not found")
 		}
-
-		// Check if Camera is nil (defensive programming)
 		if entry.Camera == nil {
 			return c.String(http.StatusInternalServerError, "Camera data is invalid")
 		}
-
-		// If accessed via ID, redirect to slug-based URL for canonical URLs
-		// Check if this was accessed via ID (not slug) and redirect to slug if available
-		if entry.Camera.Alt != "" {
-			expectedSlug := slugify(entry.Camera.Alt)
-			// Only redirect if:
-			// 1. The path doesn't match the expected slug (i.e., it's an ID or wrong slug)
-			// 2. The path matches this camera's ID (confirming it was accessed via ID)
-			// 3. The expected slug is not empty
-			if expectedSlug != "" && slugOrID != expectedSlug && slugOrID == entry.Camera.ID {
-				// Redirect ID-based URLs to slug-based URLs
-				redirectPath := "/camera/" + expectedSlug
-				if isJSON {
-					redirectPath += ".json"
-				}
-				return c.Redirect(http.StatusMovedPermanently, redirectPath)
-			}
+		if dest := cameraSlugRedirect(entry.Camera, slugOrID, wantsCameraJSON(c)); dest != "" {
+			return c.Redirect(http.StatusMovedPermanently, dest)
 		}
 
-		// Track camera page view
-		cameraName := entry.Camera.Alt
-		if cameraName == "" {
-			cameraName = entry.Camera.ID
-		}
 		metrics.PageViewsTotal.WithLabelValues("camera-" + entry.Camera.Canyon).Inc()
 
-		// Determine canyon name and path
-		canyonName := entry.Camera.Canyon
-		canyonPath := "/"
-		if strings.ToUpper(canyonName) == "BCC" {
-			canyonPath = "/bcc"
+		page := cameraPage(s, entry)
+
+		notModified, err := cacheCamera(c, entry.Image)
+		if err != nil {
+			return err
 		}
-
-		// Get weather station for this camera
-		weatherStation := store.GetWeatherStation(entry.Camera.ID)
-
-		// Build the data for the template
-		// Use the actual camera ID for image URL, not the path parameter (which might be a slug)
-		// For iframe cameras, ImageURL is not used but we set it anyway for consistency
-		data := CameraPageData{
-			Camera:         *entry.Camera,
-			CanyonName:     canyonName,
-			CanyonPath:     canyonPath,
-			ImageURL:       "/image/" + entry.Camera.ID,
-			WeatherStation: weatherStation,
+		if notModified {
+			return c.NoContent(http.StatusNotModified)
 		}
-
-		// Determine response format and set appropriate headers BEFORE caching headers
-		// (isJSON already determined above)
-
-		// Set Content-Type early so Cloudflare knows what we're caching
-		if isJSON {
-			c.Response().Header().Set("Content-Type", "application/json; charset=UTF-8")
-		} else {
-			c.Response().Header().Set("Content-Type", "text/html; charset=UTF-8")
-		}
-
-		// Include version in ETag so deploys automatically bust cache
-		// Use different ETags for JSON vs HTML to prevent cache confusion
-		version := GetVersionString()
-		etag := entry.Image.ETag + "-" + version
-		if isJSON {
-			etag = etag + "-json"
-		} else {
-			etag = etag + "-html"
-		}
-
-		// Use max-age with stale-while-revalidate for better performance
-		// When version changes, ETag changes automatically, so no manual purge needed
-		c.Response().Header().Set("Cache-Control", "public, max-age=30, stale-while-revalidate=120, must-revalidate")
-		c.Response().Header().Set("ETag", etag)
-
-		// Add Vary header to ensure Cloudflare caches by Content-Type
-		c.Response().Header().Set("Vary", "Accept")
-
-		// Check if client has matching ETag
-		if ifNoneMatch := c.Request().Header.Get("If-None-Match"); ifNoneMatch != "" {
-			if ifNoneMatch == etag {
-				return c.NoContent(http.StatusNotModified)
-			}
-		}
-
 		if c.Request().Method == http.MethodHead {
 			return c.NoContent(http.StatusOK)
 		}
 
-		// Return appropriate response format
-		if isJSON {
-			return c.JSON(http.StatusOK, data)
+		if wantsCameraJSON(c) {
+			return c.JSON(http.StatusOK, page)
 		}
-
-		return c.Render(http.StatusOK, "camera.html.tmpl", data)
+		return c.Render(http.StatusOK, "camera.html.tmpl", page)
 	}
+}
+
+func cameraSlugOrID(c echo.Context) string {
+	return strings.TrimSuffix(c.Param("*"), ".json")
+}
+
+func wantsCameraJSON(c echo.Context) bool {
+	return strings.HasSuffix(c.Request().URL.Path, ".json")
+}
+
+func cameraSlugRedirect(cam *store.Camera, slugOrID string, isJSON bool) string {
+	if cam.Alt == "" {
+		return ""
+	}
+	slug := slugify(cam.Alt)
+	if slug == "" || slugOrID == slug || slugOrID != cam.ID {
+		return ""
+	}
+	if isJSON {
+		return "/camera/" + slug + ".json"
+	}
+	return "/camera/" + slug
+}
+
+func cameraPage(s *store.Store, entry store.EntrySnapshot) CameraPageData {
+	canyonPath := "/"
+	if strings.ToUpper(entry.Camera.Canyon) == "BCC" {
+		canyonPath = "/bcc"
+	}
+	return CameraPageData{
+		Camera:         *entry.Camera,
+		CanyonName:     entry.Camera.Canyon,
+		CanyonPath:     canyonPath,
+		ImageURL:       "/image/" + entry.Camera.ID,
+		WeatherStation: s.GetWeatherStation(entry.Camera.ID),
+	}
+}
+
+func cacheCamera(c echo.Context, image *store.Image) (bool, error) {
+	contentType := "text/html; charset=UTF-8"
+	if wantsCameraJSON(c) {
+		contentType = "application/json; charset=UTF-8"
+	}
+	c.Response().Header().Set("Content-Type", contentType)
+
+	_, notModified, err := SetCacheHeaders(c, CacheConfig{
+		Components: []interface{}{image.ETag},
+		DevMode:    c.Get("_dev_mode") != nil,
+	})
+	return notModified, err
 }
