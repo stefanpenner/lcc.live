@@ -32,82 +32,46 @@ func FilterRoadConditionsByCanyon(conditions []store.RoadCondition) (lccConditio
 	return lccConditions, bccConditions
 }
 
-// FilterEventsByCanyon filters events by canyon - SR-210 for LCC, SR-190 for BCC
-// Prioritizes RoadwayName field as it's the most authoritative identifier
+// FilterEventsByCanyon keeps SR-210 on LCC and SR-190 on BCC.
+// RoadwayName wins. Location and description also match the route number beside "sr" or "route".
 func FilterEventsByCanyon(events []store.Event) (lccEvents []store.Event, bccEvents []store.Event) {
 	for _, event := range events {
-		roadwayName := strings.ToLower(strings.TrimSpace(event.RoadwayName))
+		road := strings.ToLower(strings.TrimSpace(event.RoadwayName))
 		location := strings.ToLower(event.Location)
 		description := strings.ToLower(event.Description)
 
-		// Helper function to check if RoadwayName matches SR-210 patterns
-		isLCCRoadway := func(name string) bool {
-			if name == "" {
-				return false
-			}
-			return name == "sr-210" ||
-				name == "sr 210" ||
-				name == "state route 210" ||
-				strings.HasPrefix(name, "sr-210") ||
-				strings.HasPrefix(name, "sr 210") ||
-				strings.HasPrefix(name, "state route 210") ||
-				strings.Contains(name, "sr-210") ||
-				strings.Contains(name, "sr 210") ||
-				strings.Contains(name, "state route 210") ||
-				strings.Contains(name, "little cottonwood")
-		}
-
-		// Helper function to check if RoadwayName matches SR-190 patterns
-		isBCCRoadway := func(name string) bool {
-			if name == "" {
-				return false
-			}
-			return name == "sr-190" ||
-				name == "sr 190" ||
-				name == "state route 190" ||
-				strings.HasPrefix(name, "sr-190") ||
-				strings.HasPrefix(name, "sr 190") ||
-				strings.HasPrefix(name, "state route 190") ||
-				strings.Contains(name, "sr-190") ||
-				strings.Contains(name, "sr 190") ||
-				strings.Contains(name, "state route 190") ||
-				strings.Contains(name, "big cottonwood")
-		}
-
-		// Helper function for fallback matching in Location/Description
-		isLCCFallback := func(text string) bool {
-			return strings.Contains(text, "sr-210") ||
-				strings.Contains(text, "sr 210") ||
-				strings.Contains(text, "state route 210") ||
-				strings.Contains(text, "little cottonwood") ||
-				(strings.Contains(text, "210") && (strings.Contains(text, "sr") || strings.Contains(text, "route")))
-		}
-
-		isBCCFallback := func(text string) bool {
-			return strings.Contains(text, "sr-190") ||
-				strings.Contains(text, "sr 190") ||
-				strings.Contains(text, "state route 190") ||
-				strings.Contains(text, "big cottonwood") ||
-				(strings.Contains(text, "190") && (strings.Contains(text, "sr") || strings.Contains(text, "route")))
-		}
-
-		// Prioritize RoadwayName - it's the most authoritative field
-		isLCC := isLCCRoadway(roadwayName)
-		if !isLCC {
-			isLCC = isLCCFallback(location) || isLCCFallback(description)
-		}
-
-		isBCC := isBCCRoadway(roadwayName)
-		if !isBCC {
-			isBCC = isBCCFallback(location) || isBCCFallback(description)
-		}
-
-		if isLCC {
+		if lccRoad(road) || lccText(location) || lccText(description) {
 			lccEvents = append(lccEvents, event)
 		}
-		if isBCC {
+		if bccRoad(road) || bccText(location) || bccText(description) {
 			bccEvents = append(bccEvents, event)
 		}
 	}
 	return lccEvents, bccEvents
+}
+
+func lccRoad(name string) bool {
+	return strings.Contains(name, "sr-210") ||
+		strings.Contains(name, "sr 210") ||
+		strings.Contains(name, "state route 210") ||
+		strings.Contains(name, "little cottonwood")
+}
+
+func bccRoad(name string) bool {
+	return strings.Contains(name, "sr-190") ||
+		strings.Contains(name, "sr 190") ||
+		strings.Contains(name, "state route 190") ||
+		strings.Contains(name, "big cottonwood")
+}
+
+func lccText(text string) bool {
+	return lccRoad(text) || routeNumber(text, "210")
+}
+
+func bccText(text string) bool {
+	return bccRoad(text) || routeNumber(text, "190")
+}
+
+func routeNumber(text, number string) bool {
+	return strings.Contains(text, number) && (strings.Contains(text, "sr") || strings.Contains(text, "route"))
 }
