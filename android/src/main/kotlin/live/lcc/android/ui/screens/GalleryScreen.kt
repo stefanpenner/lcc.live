@@ -62,7 +62,6 @@ fun GalleryScreen(
 
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
     val dismissThreshold = 200f
-    val velocityThreshold = 800f
 
     val backgroundAlpha by animateFloatAsState(
         targetValue = (1f - (abs(dragOffsetY) / 400f)).coerceIn(0.3f, 1f),
@@ -112,9 +111,8 @@ fun GalleryScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
                     ) {
-                        val watchUrl = type.embedURL.replace("/embed/", "/watch?v=")
                         IconButton(onClick = {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(watchUrl)))
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(type.watchUrl())))
                         }) {
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
@@ -205,3 +203,6 @@ fun GalleryScreen(
         }
     }
 }
+
+private fun MediaType.YouTubeVideo.watchUrl(): String =
+    embedURL.replace("/embed/", "/watch?v=")
