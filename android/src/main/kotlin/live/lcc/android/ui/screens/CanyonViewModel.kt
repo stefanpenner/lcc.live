@@ -2,6 +2,7 @@ package live.lcc.android.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -62,26 +63,23 @@ class CanyonViewModel(
     }
 
     private fun loadInitialData() {
-        viewModelScope.launch {
-            launch { canyonRepository.refreshLcc() }
-            launch { canyonRepository.refreshBcc() }
-            launch { canyonRepository.refreshUdot("LCC") }
-            launch { canyonRepository.refreshUdot("BCC") }
-        }
+        viewModelScope.launch { refreshCanyons() }
     }
 
     private fun startPolling() {
         viewModelScope.launch {
             while (true) {
                 delay(POLL_INTERVAL_MS)
-                if (networkMonitor.isOnline.value) {
-                    launch { canyonRepository.refreshLcc() }
-                    launch { canyonRepository.refreshBcc() }
-                    launch { canyonRepository.refreshUdot("LCC") }
-                    launch { canyonRepository.refreshUdot("BCC") }
-                }
+                if (networkMonitor.isOnline.value) refreshCanyons()
             }
         }
+    }
+
+    private fun CoroutineScope.refreshCanyons() {
+        launch { canyonRepository.refreshLcc() }
+        launch { canyonRepository.refreshBcc() }
+        launch { canyonRepository.refreshUdot("LCC") }
+        launch { canyonRepository.refreshUdot("BCC") }
     }
 
     fun selectTab(tab: CanyonTab) {
@@ -95,10 +93,7 @@ class CanyonViewModel(
     fun refresh() {
         viewModelScope.launch {
             _isRefreshing.value = true
-            launch { canyonRepository.refreshLcc() }
-            launch { canyonRepository.refreshBcc() }
-            launch { canyonRepository.refreshUdot("LCC") }
-            launch { canyonRepository.refreshUdot("BCC") }
+            refreshCanyons()
             delay(500) // brief minimum refresh indicator
             _isRefreshing.value = false
         }
