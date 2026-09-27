@@ -10,68 +10,63 @@ import (
 	"github.com/stefanpenner/lcc-live/web/store"
 )
 
-func HealthCheckRoute(store *store.Store) func(c echo.Context) error {
+// HealthCheckRoute is 503 until the store is live and both canyon pages render.
+func HealthCheckRoute(live *store.Store) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		// First fetch cycle not finished — still booting
-		if !store.IsReady() {
-			return c.String(http.StatusServiceUnavailable, "Service starting up - images not ready yet")
+		if msg := unavailable(live); msg != "" {
+			return c.String(http.StatusServiceUnavailable, msg)
 		}
 
-		// Verify store has cameras loaded (basic sanity check)
-		lcc := store.Canyon("LCC")
-		bcc := store.Canyon("BCC")
-
-		if len(lcc.Cameras) == 0 && len(bcc.Cameras) == 0 {
-			return c.String(http.StatusServiceUnavailable, "No cameras configured")
-		}
-
-		// Strict: no live image ⇒ unhealthy (no traffic until ≥1 camera OK)
-		if !store.HasAnyLiveImage() {
-			return c.String(http.StatusServiceUnavailable, "No live camera images")
-		}
-
-		// Smoke test: verify that LCC and BCC routes can render HTML
-		// This catches template errors, data issues, and rendering pipeline problems
-		e := c.Echo()
-		
-		// Test LCC route
-		if err := testRoute(e, "/", "Little Cottonwood Canyon"); err != nil {
-			return c.String(http.StatusServiceUnavailable, 
-				fmt.Sprintf("Healthcheck failed - LCC route error: %v", err))
-		}
-		
-		// Test BCC route
-		if err := testRoute(e, "/bcc", "Big Cottonwood Canyon"); err != nil {
-			return c.String(http.StatusServiceUnavailable, 
-				fmt.Sprintf("Healthcheck failed - BCC route error: %v", err))
+		if err := proveCanyonHTML(c.Echo()); err != nil {
+			return c.String(http.StatusServiceUnavailable, err.Error())
 		}
 
 		return c.String(http.StatusOK, "OK")
 	}
 }
 
-// testRoute performs an internal HTTP request to verify a route can render successfully
-func testRoute(e *echo.Echo, path string, expectedContent string) error {
+func unavailable(live *store.Store) string {
+	if !live.IsReady() {
+		return "Service starting up - images not ready yet"
+	}
+
+	lcc := live.Canyon("LCC")
+	bcc := live.Canyon("BCC")
+	if len(lcc.Cameras) == 0 && len(bcc.Cameras) == 0 {
+		return "No cameras configured"
+	}
+
+	if !live.HasAnyLiveImage() {
+		return "No live camera images"
+	}
+	return ""
+}
+
+func proveCanyonHTML(e *echo.Echo) error {
+	if err := proveHTML(e, "/", "Little Cottonwood Canyon"); err != nil {
+		return fmt.Errorf("Healthcheck failed - LCC route error: %v", err)
+	}
+	if err := proveHTML(e, "/bcc", "Big Cottonwood Canyon"); err != nil {
+		return fmt.Errorf("Healthcheck failed - BCC route error: %v", err)
+	}
+	return nil
+}
+
+func proveHTML(e *echo.Echo, path, needle string) error {
 	req := httptest.NewRequest(http.MethodGet, path, nil)
 	rec := httptest.NewRecorder()
-	
 	e.ServeHTTP(rec, req)
-	
+
 	if rec.Code != http.StatusOK {
 		return fmt.Errorf("returned status %d instead of 200", rec.Code)
 	}
-	
+
 	body := rec.Body.String()
-	
-	// Verify it's HTML
 	if !strings.Contains(body, "<!DOCTYPE") {
 		return fmt.Errorf("response is not valid HTML (missing DOCTYPE)")
 	}
-	
-	// Verify expected content is present
-	if !strings.Contains(body, expectedContent) {
-		return fmt.Errorf("response missing expected content '%s'", expectedContent)
+	if !strings.Contains(body, needle) {
+		return fmt.Errorf("response missing expected content '%s'", needle)
 	}
-	
 	return nil
 }
