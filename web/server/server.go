@@ -278,7 +278,6 @@ func (w customLogWriter) Write(p []byte) (n int, err error) {
 	if LogWriter != nil {
 		msg := strings.TrimSpace(string(p))
 		if msg != "" {
-			// Parse and colorize the log message
 			LogWriter(msg)
 		}
 	}
@@ -294,307 +293,288 @@ type ServerConfig struct {
 	SentryEnabled bool
 }
 
-// Start starts the HTTP server with the given configuration
+// Start serves canyon pages, camera images, and health.
 func Start(cfg ServerConfig) (*echo.Echo, error) {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
 
-	// Initialize error logger
-	if err := InitErrorLogger(""); err != nil {
-		// Log warning but don't fail startup
-		if LogWriter != nil {
-			LogWriter(fmt.Sprintf("Warning: Failed to initialize error logger: %v", err))
-		}
-	}
-
-	// Use our custom log writer if available
+	warnErrorLogger()
 	if LogWriter != nil {
 		e.Logger.SetOutput(customLogWriter{})
 	}
 
-	// Recover middleware must be outermost to catch panics in all middleware
-	if !cfg.SentryEnabled {
-		e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
-			DisableStackAll:   false,
-			DisablePrintStack: false,
-			StackSize:         4 << 10, // 4 KB
-			LogLevel:          0,       // Log all panics
-		}))
+	// First, so it wraps every later middleware.
+	usePanicGuard(e, cfg.SentryEnabled)
+	e.Use(securityHeaders(cfg.DevMode))
+	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
+		Timeout: 30 * time.Second,
+	}))
+	e.Use(versionHeader)
+	e.Use(MetricsMiddleware())
+	e.Use(countRequests)
+	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
+		Level: 5,
+	}))
+	e.GET("/s/*", staticHandler(cfg.StaticFS, cfg.DevMode))
+	e.Use(requestLog)
+
+	if err := mountTemplates(e, cfg.TemplateFS, cfg.DevMode); err != nil {
+		return nil, err
+	}
+	if cfg.DevMode {
+		e.Use(devNoCache)
 	}
 
-	// Add Sentry middleware to capture panics and errors (only if Sentry is enabled)
-	if cfg.SentryEnabled {
+	mountPublic(e, cfg.Store)
+	mountInternal(e)
+	return e, nil
+}
+
+func warnErrorLogger() {
+	err := InitErrorLogger("")
+	if err != nil && LogWriter != nil {
+		LogWriter(fmt.Sprintf("Warning: Failed to initialize error logger: %v", err))
+	}
+}
+
+func usePanicGuard(e *echo.Echo, sentryEnabled bool) {
+	if sentryEnabled {
 		e.Use(sentryecho.New(sentryecho.Options{
 			Repanic: true,
 		}))
+		return
 	}
+	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
+		DisableStackAll:   false,
+		DisablePrintStack: false,
+		StackSize:         4 << 10, // 4 KB
+		LogLevel:          0,       // Log all panics
+	}))
+}
 
-	// Security headers
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+func securityHeaders(devMode bool) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			h := c.Response().Header()
 			h.Set("X-Content-Type-Options", "nosniff")
 			h.Set("X-Frame-Options", "DENY")
 			h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 			h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-			if !cfg.DevMode {
+			if !devMode {
 				h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 			}
 			return next(c)
 		}
-	})
+	}
+}
 
-	// Request timeout to prevent slow clients from holding connections
-	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
-		Timeout: 30 * time.Second,
-	}))
+func versionHeader(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		c.Response().Header().Set("X-Version", GetVersionString())
+		return next(c)
+	}
+}
 
-	// Add version header to all responses
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			c.Response().Header().Set("X-Version", GetVersionString())
-			return next(c)
+func countRequests(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if RequestCounter != nil {
+			atomic.AddInt64(RequestCounter, 1)
 		}
-	})
-
-	// Add metrics middleware early to track all requests
-	e.Use(MetricsMiddleware())
-
-	// Increment request and error counters for UI stats, and log errors
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			if RequestCounter != nil {
-				atomic.AddInt64(RequestCounter, 1)
-			}
-			start := time.Now()
-			err := next(c)
-			status := c.Response().Status
-			if ErrorCounter != nil && status >= 400 {
-				atomic.AddInt64(ErrorCounter, 1)
-				// Log error to file
-				LogError(
-					status,
-					c.Request().Method,
-					c.Path(),
-					c.Request().URL.String(),
-					c.RealIP(),
-					c.Request().UserAgent(),
-					time.Since(start),
-					err,
-				)
-			}
-			return err
+		start := time.Now()
+		err := next(c)
+		status := c.Response().Status
+		if ErrorCounter != nil && status >= 400 {
+			atomic.AddInt64(ErrorCounter, 1)
+			LogError(
+				status,
+				c.Request().Method,
+				c.Path(),
+				c.Request().URL.String(),
+				c.RealIP(),
+				c.Request().UserAgent(),
+				time.Since(start),
+				err,
+			)
 		}
-	})
+		return err
+	}
+}
 
-	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
-		Level: 5,
-	}))
-
-	// Serve static files with long-term caching
-	// These files (CSS, JS, images) are versioned via their URLs or rarely change
-	e.GET("/s/*", func(c echo.Context) error {
-		// In dev mode, disable caching for static files
-		if cfg.DevMode {
-			c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-			c.Response().Header().Set("Pragma", "no-cache")
-			c.Response().Header().Set("Expires", "0")
+func staticHandler(staticFS fs.FS, devMode bool) echo.HandlerFunc {
+	files := echo.WrapHandler(http.StripPrefix("/s", http.FileServer(http.FS(staticFS))))
+	return func(c echo.Context) error {
+		h := c.Response().Header()
+		if devMode {
+			h.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			h.Set("Pragma", "no-cache")
+			h.Set("Expires", "0")
 		} else {
-			// Set aggressive caching for static assets
-			// Long cache time is safe because:
-			// 1. Static files rarely change
-			// 2. HTML pages are already cache-busted via version ETags
-			// 3. When HTML changes, it references new/updated static files
-			c.Response().Header().Set("Cache-Control", "public, max-age=86400, immutable")
+			// Not content-hashed. HTML etags move on deploy; these files rarely change.
+			h.Set("Cache-Control", "public, max-age=86400, immutable")
 		}
-		return echo.WrapHandler(http.StripPrefix("/s", http.FileServer(http.FS(cfg.StaticFS))))(c)
-	})
+		return files(c)
+	}
+}
 
-	// Custom logger middleware that routes through our UI
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			err := next(c)
-
-			if LogWriter != nil {
-				req := c.Request()
-				res := c.Response()
-
-				// Format method with color
-				var methodStyled string
-				switch req.Method {
-				case "GET": //nolint:goconst // HTTP method string used for readability
-					methodStyled = methodGET.Render(req.Method)
-				case "POST":
-					methodStyled = methodPOST.Render(req.Method)
-				case "PUT":
-					methodStyled = methodPUT.Render(req.Method)
-				case "DELETE":
-					methodStyled = methodDELETE.Render(req.Method)
-				default:
-					methodStyled = mutedStyle.Render(req.Method)
-				}
-
-				// Format status with color
-				statusCode := res.Status
-				var statusStyled string
-				switch {
-				case statusCode >= 200 && statusCode < 300:
-					statusStyled = status2xx.Render(fmt.Sprintf("%d", statusCode))
-				case statusCode >= 300 && statusCode < 400:
-					statusStyled = status3xx.Render(fmt.Sprintf("%d", statusCode))
-				case statusCode >= 400 && statusCode < 500:
-					statusStyled = status4xx.Render(fmt.Sprintf("%d", statusCode))
-				case statusCode >= 500:
-					statusStyled = status5xx.Render(fmt.Sprintf("%d", statusCode))
-				default:
-					statusStyled = mutedStyle.Render(fmt.Sprintf("%d", statusCode))
-				}
-
-				// Calculate latency
-				latency := c.Get("request_latency")
-
-				// Format URI with clickable link (even when truncated)
-				uri := req.RequestURI
-
-				// Build full URL with proper scheme, host, and port
-				scheme := "http"
-				if req.TLS != nil {
-					scheme = "https"
-				}
-				host := req.Host
-				if host == "" {
-					host = "localhost"
-				}
-				fullURL := fmt.Sprintf("%s://%s%s", scheme, host, uri)
-
-				var uriStyled string
-				if len(uri) > 60 {
-					// Truncate but keep it clickable using ANSI hyperlink escape codes
-					truncated := uri[:57] + "..."
-					// Format: \e]8;;URL\e\\TEXT\e]8;;\e\\
-					uriStyled = fmt.Sprintf("\x1b]8;;%s\x1b\\%s\x1b]8;;\x1b\\", fullURL, mutedStyle.Render(truncated))
-				} else {
-					// Make full URI clickable
-					uriStyled = fmt.Sprintf("\x1b]8;;%s\x1b\\%s\x1b]8;;\x1b\\", fullURL, mutedStyle.Render(uri))
-				}
-
-				// Format duration with color coding
-				var durationStyled string
-				if latency != nil {
-					if dur, ok := latency.(time.Duration); ok {
-						ms := dur.Milliseconds()
-						// Color code based on latency
-						var durStyle lipgloss.Style
-						switch {
-						case ms < 50:
-							durStyle = status2xx // Green - fast
-						case ms < 200:
-							durStyle = status3xx // Cyan - acceptable
-						case ms < 500:
-							durStyle = status4xx // Yellow - slow
-						default:
-							durStyle = status5xx // Red - very slow
-						}
-
-						// Format duration nicely
-						if ms < 1000 {
-							durationStyled = durStyle.Render(fmt.Sprintf("%dms", ms))
-						} else {
-							durationStyled = durStyle.Render(fmt.Sprintf("%.2fs", dur.Seconds()))
-						}
-					} else {
-						durationStyled = mutedStyle.Render(fmt.Sprintf("%v", latency))
-					}
-				} else {
-					durationStyled = mutedStyle.Render("-")
-				}
-
-				// Log the request
-				msg := fmt.Sprintf("  %s %s %s %s",
-					methodStyled,
-					uriStyled,
-					statusStyled,
-					durationStyled)
-
-				LogWriter(msg)
-			}
-
+func requestLog(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		err := next(c)
+		if LogWriter == nil {
 			return err
 		}
-	})
 
-	// Custom Rendering Stuff [
-	tmpl, err := template.New("").Funcs(templateFuncs).ParseFS(cfg.TemplateFS, "*.html.tmpl")
+		req := c.Request()
+		line := fmt.Sprintf("  %s %s %s %s",
+			styledMethod(req.Method),
+			styledURI(req),
+			styledStatus(c.Response().Status),
+			styledDuration(c.Get("request_latency")),
+		)
+		LogWriter(line)
+		return err
+	}
+}
+
+func styledMethod(method string) string {
+	switch method {
+	case "GET": //nolint:goconst // HTTP method string used for readability
+		return methodGET.Render(method)
+	case "POST":
+		return methodPOST.Render(method)
+	case "PUT":
+		return methodPUT.Render(method)
+	case "DELETE":
+		return methodDELETE.Render(method)
+	default:
+		return mutedStyle.Render(method)
+	}
+}
+
+func styledStatus(code int) string {
+	text := fmt.Sprintf("%d", code)
+	switch {
+	case code >= 200 && code < 300:
+		return status2xx.Render(text)
+	case code >= 300 && code < 400:
+		return status3xx.Render(text)
+	case code >= 400 && code < 500:
+		return status4xx.Render(text)
+	case code >= 500:
+		return status5xx.Render(text)
+	default:
+		return mutedStyle.Render(text)
+	}
+}
+
+func styledURI(req *http.Request) string {
+	uri := req.RequestURI
+	scheme := "http"
+	if req.TLS != nil {
+		scheme = "https"
+	}
+	host := req.Host
+	if host == "" {
+		host = "localhost"
+	}
+	fullURL := fmt.Sprintf("%s://%s%s", scheme, host, uri)
+
+	text := uri
+	if len(uri) > 60 {
+		text = uri[:57] + "..."
+	}
+	return fmt.Sprintf("\x1b]8;;%s\x1b\\%s\x1b]8;;\x1b\\", fullURL, mutedStyle.Render(text))
+}
+
+func styledDuration(latency interface{}) string {
+	if latency == nil {
+		return mutedStyle.Render("-")
+	}
+	dur, ok := latency.(time.Duration)
+	if !ok {
+		return mutedStyle.Render(fmt.Sprintf("%v", latency))
+	}
+
+	ms := dur.Milliseconds()
+	var durStyle lipgloss.Style
+	switch {
+	case ms < 50:
+		durStyle = status2xx
+	case ms < 200:
+		durStyle = status3xx
+	case ms < 500:
+		durStyle = status4xx
+	default:
+		durStyle = status5xx
+	}
+	if ms < 1000 {
+		return durStyle.Render(fmt.Sprintf("%dms", ms))
+	}
+	return durStyle.Render(fmt.Sprintf("%.2fs", dur.Seconds()))
+}
+
+func mountTemplates(e *echo.Echo, templateFS fs.FS, devMode bool) error {
+	tmpl, err := template.New("").Funcs(templateFuncs).ParseFS(templateFS, "*.html.tmpl")
 	if err != nil {
-		return nil, err
+		return err
 	}
-	renderer := &TemplateRenderer{
+	e.Renderer = &TemplateRenderer{
 		templates: tmpl,
-		fs:        cfg.TemplateFS,
-		devMode:   cfg.DevMode,
+		fs:        templateFS,
+		devMode:   devMode,
 	}
-	e.Renderer = renderer
+	return nil
+}
 
-	// In dev mode, set dev mode flag on context and disable caching for all responses
-	if cfg.DevMode {
-		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-			return func(c echo.Context) error {
-				// Set dev mode flag on context for routes to check
-				c.Set("_dev_mode", true)
+func devNoCache(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		c.Set("_dev_mode", true)
 
-				// Disable caching for all responses in dev mode (routes may override)
-				c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, private")
-				c.Response().Header().Set("Pragma", "no-cache")
-				c.Response().Header().Set("Expires", "0")
-				// Add Vary header to prevent proxy caching
-				c.Response().Header().Set("Vary", "*")
-				return next(c)
-			}
-		})
+		h := c.Response().Header()
+		h.Set("Cache-Control", "no-cache, no-store, must-revalidate, private")
+		h.Set("Pragma", "no-cache")
+		h.Set("Expires", "0")
+		h.Set("Vary", "*")
+		return next(c)
 	}
+}
 
-	// handleIndex handles both GET and HEAD requests for the index route
+func mountPublic(e *echo.Echo, live *store.Store) {
+	mountCanyon(e, live, "/", "LCC")
+	mountCanyon(e, live, "/.json", "LCC")
+	mountCanyon(e, live, "/lcc", "LCC")
+	mountCanyon(e, live, "/lcc.json", "LCC")
+	mountCanyon(e, live, "/bcc", "BCC")
+	mountCanyon(e, live, "/bcc.json", "BCC")
 
-	e.GET("/", CanyonRoute(cfg.Store, "LCC"))
-	e.HEAD("/", CanyonRoute(cfg.Store, "LCC"))
-	e.GET("/.json", CanyonRoute(cfg.Store, "LCC"))
-	e.HEAD("/.json", CanyonRoute(cfg.Store, "LCC"))
+	e.GET("/image/:id", ImageRoute(live))
+	e.HEAD("/image/:id", ImageRoute(live))
 
-	e.GET("/lcc", CanyonRoute(cfg.Store, "LCC"))
-	e.HEAD("/lcc", CanyonRoute(cfg.Store, "LCC"))
-	e.GET("/lcc.json", CanyonRoute(cfg.Store, "LCC"))
-	e.HEAD("/lcc.json", CanyonRoute(cfg.Store, "LCC"))
+	e.GET("/camera/*", CameraRoute(live))
+	e.HEAD("/camera/*", CameraRoute(live))
 
-	e.GET("/bcc", CanyonRoute(cfg.Store, "BCC"))
-	e.HEAD("/bcc", CanyonRoute(cfg.Store, "BCC"))
-	e.GET("/bcc.json", CanyonRoute(cfg.Store, "BCC"))
-	e.HEAD("/bcc.json", CanyonRoute(cfg.Store, "BCC"))
+	e.GET("/api/canyon/:canyon/udot", UDOTRoute(live))
+	e.GET("/healthcheck", HealthCheckRoute(live))
+}
 
-	e.GET("/image/:id", ImageRoute(cfg.Store))
-	e.HEAD("/image/:id", ImageRoute(cfg.Store))
+func mountCanyon(e *echo.Echo, live *store.Store, path, id string) {
+	e.GET(path, CanyonRoute(live, id))
+	e.HEAD(path, CanyonRoute(live, id))
+}
 
-	e.GET("/camera/*", CameraRoute(cfg.Store))
-	e.HEAD("/camera/*", CameraRoute(cfg.Store))
-
-	e.GET("/api/canyon/:canyon/udot", UDOTRoute(cfg.Store))
-
-	e.GET("/healthcheck", HealthCheckRoute(cfg.Store))
-
-	// Internal/admin endpoints under /_/
-	// These endpoints should never be cached
+func mountInternal(e *echo.Echo) {
 	internal := e.Group("/_")
-	internal.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			// Prevent any caching of internal endpoints
-			c.Response().Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, private, max-age=0")
-			c.Response().Header().Set("Pragma", "no-cache")
-			c.Response().Header().Set("Expires", "0")
-			return next(c)
-		}
-	})
+	internal.Use(noStore)
 	internal.GET("/version", VersionRoute())
 	internal.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
+}
 
-	return e, nil
+func noStore(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		h := c.Response().Header()
+		h.Set("Cache-Control", "no-store, no-cache, must-revalidate, private, max-age=0")
+		h.Set("Pragma", "no-cache")
+		h.Set("Expires", "0")
+		return next(c)
+	}
 }
