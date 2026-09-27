@@ -25,6 +25,27 @@ func NewPoller(client *Client, s *store.Store, interval time.Duration) *Poller {
 	}
 }
 
+// unchanged is a 304. A nil body means the store already has this feed.
+func unchanged[T any](items []T) bool {
+	return items == nil
+}
+
+func (p *Poller) pollNowAndEvery(ctx context.Context, poll func(context.Context)) error {
+	ticker := time.NewTicker(p.interval)
+	defer ticker.Stop()
+
+	poll(ctx)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			poll(ctx)
+		}
+	}
+}
+
 // seedDevRoadConditions injects sample chips so local UI work is visible without a UDOT key.
 func (p *Poller) seedDevRoadConditions() {
 	now := time.Now().Unix()
@@ -94,20 +115,7 @@ func (p *Poller) StartRoadConditions(ctx context.Context) error {
 		return nil
 	}
 
-	ticker := time.NewTicker(p.interval)
-	defer ticker.Stop()
-
-	// Fetch immediately on startup
-	p.pollRoadConditions(ctx)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-			p.pollRoadConditions(ctx)
-		}
-	}
+	return p.pollNowAndEvery(ctx, p.pollRoadConditions)
 }
 
 // seedDevWeatherStations injects fresh sample temps for known data.json station IDs
@@ -136,20 +144,7 @@ func (p *Poller) StartWeatherStations(ctx context.Context) error {
 		return nil
 	}
 
-	ticker := time.NewTicker(p.interval)
-	defer ticker.Stop()
-
-	// Fetch immediately on startup
-	p.pollWeatherStations(ctx)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-			p.pollWeatherStations(ctx)
-		}
-	}
+	return p.pollNowAndEvery(ctx, p.pollWeatherStations)
 }
 
 // StartEvents starts polling traffic events
@@ -162,20 +157,7 @@ func (p *Poller) StartEvents(ctx context.Context) error {
 		return nil
 	}
 
-	ticker := time.NewTicker(p.interval)
-	defer ticker.Stop()
-
-	// Fetch immediately on startup
-	p.pollEvents(ctx)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-			p.pollEvents(ctx)
-		}
-	}
+	return p.pollNowAndEvery(ctx, p.pollEvents)
 }
 
 func (p *Poller) pollRoadConditions(ctx context.Context) {
@@ -185,8 +167,7 @@ func (p *Poller) pollRoadConditions(ctx context.Context) {
 		return
 	}
 
-	// If conditions is nil, it means we got a 304 Not Modified - data hasn't changed
-	if conditions == nil {
+	if unchanged(conditions) {
 		logger.Muted("Road conditions unchanged (304 Not Modified)")
 		return
 	}
@@ -204,8 +185,7 @@ func (p *Poller) pollWeatherStations(ctx context.Context) {
 		return
 	}
 
-	// If stations is nil, it means we got a 304 Not Modified - data hasn't changed
-	if stations == nil {
+	if unchanged(stations) {
 		logger.Muted("Weather stations unchanged (304 Not Modified)")
 		return
 	}
@@ -220,8 +200,7 @@ func (p *Poller) pollEvents(ctx context.Context) {
 		return
 	}
 
-	// If events is nil, it means we got a 304 Not Modified - data hasn't changed
-	if events == nil {
+	if unchanged(events) {
 		logger.Muted("Events unchanged (304 Not Modified)")
 		return
 	}
