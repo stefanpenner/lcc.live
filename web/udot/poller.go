@@ -123,8 +123,11 @@ func (p *Poller) seedDevWeatherStations() {
 		{Id: 1650226, StationName: "SR-210 @ White Pine", AirTemperature: str("68.1"), WindSpeedAvg: str("6.0"), WindDirection: str("W"), Source: "dev", LastUpdated: now},
 		{Id: 1650160, StationName: "Alta - Mt Baldy", AirTemperature: str("51.0"), WindSpeedAvg: str("12.0"), WindDirection: str("NW"), Source: "dev", LastUpdated: now},
 		{Id: 1650231, StationName: "Alta - Collins", AirTemperature: str("48.5"), WindSpeedAvg: str("3.1"), WindDirection: str("N"), Source: "dev", LastUpdated: now},
-		{Id: 1650091, StationName: "Alta - Base", AirTemperature: str("55.2"), WindSpeedAvg: str("2.0"), WindDirection: str("SE"), Source: "dev", LastUpdated: now},
+		{Id: 1844865, StationName: "SR-210 @ Alta", AirTemperature: str("51.4"), WindSpeedAvg: str("1.8"), WindDirection: str("W"), Source: "dev", LastUpdated: now},
 		{Id: 1650085, StationName: "SR-190 @ S-Turns", AirTemperature: str("74.0"), WindSpeedAvg: str("5.5"), WindDirection: str("S"), Source: "dev", LastUpdated: now},
+		{Id: 1650218, StationName: "SR-190 @ Cardiff", AirTemperature: str("48.7"), WindSpeedAvg: str("0.0"), WindDirection: str("N"), Source: "dev", LastUpdated: now},
+		{Id: 1650159, StationName: "Spruces", AirTemperature: str("47.5"), WindSpeedAvg: str("0.1"), WindDirection: str("N"), Source: "dev", LastUpdated: now},
+		{Id: 1650206, StationName: "SR-190 @ Brighton", AirTemperature: str("48.5"), WindSpeedAvg: str("1.9"), WindDirection: str("W"), Source: "dev", LastUpdated: now},
 	})
 	logger.Warn("UDOT_API_KEY not set — seeded dev weather stations for UI")
 }

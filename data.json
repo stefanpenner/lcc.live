@@ -18,6 +18,18 @@
         },
         {
           "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/159216",
+          "alt": "Wasatch Blvd @ Bengal",
+          "weatherStationId": 1650225
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/159180",
+          "alt": "Wasatch Blvd @ LCC",
+          "weatherStationId": 1650225
+        },
+        {
+          "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/141829",
           "alt": "Mouth of LCC",
           "weatherStationId": 1650225
@@ -36,6 +48,12 @@
         },
         {
           "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/157724",
+          "alt": "Lisa Falls",
+          "weatherStationId": 1650225
+        },
+        {
+          "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/136332",
           "alt": "Seven Turns",
           "weatherStationId": 1650225
@@ -48,8 +66,14 @@
         },
         {
           "kind": "img",
-          "src": "https://udottraffic.utah.gov/map/Cctv/142232",
+          "src": "https://udottraffic.utah.gov/map/Cctv/157695",
           "alt": "White Pine",
+          "weatherStationId": 1650226
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/142232",
+          "alt": "White Pine Parking",
           "weatherStationId": 1650226
         },
         {
@@ -62,14 +86,14 @@
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/142061",
           "alt": "Alta Bypass",
-          "weatherStationId": 1650091,
+          "weatherStationId": 1844865,
           "synopticStid": "AGD"
         },
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/137940",
           "alt": "Alta",
-          "weatherStationId": 1650091,
+          "weatherStationId": 1844865,
           "synopticStid": "ATB"
         },
         {
@@ -104,14 +128,14 @@
           "kind": "img",
           "src": "https://app.prismcam.com/public/helpers/realtime_preview.php?c=65&s=720",
           "alt": "Albion Basin",
-          "weatherStationId": 1650091,
+          "weatherStationId": 1844865,
           "synopticStid": "ATB"
         },
         {
           "kind": "img",
           "src": "https://alta-webcams.sfo3.cdn.digitaloceanspaces.com/Greeley.jpg",
           "alt": "East Greeley",
-          "weatherStationId": 1650091,
+          "weatherStationId": 1844865,
           "synopticStid": "CLN"
         },
         {
@@ -180,22 +204,42 @@
         },
         {
           "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/157647",
+          "alt": "Butler Fork",
+          "weatherStationId": 1650218
+        },
+        {
+          "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/140718",
           "alt": "Cardiff Fork",
-          "weatherStationId": 1650085,
+          "weatherStationId": 1650218,
           "synopticStid": "MLDU1"
         },
         {
           "kind": "img",
           "src": "https://udottraffic.utah.gov/map/Cctv/140719",
           "alt": "Silver Fork",
-          "weatherStationId": 1650085,
+          "weatherStationId": 1650159,
           "synopticStid": "MLDU1"
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158486",
+          "alt": "Solitude",
+          "synopticStid": "REY"
+        },
+        {
+          "kind": "img",
+          "src": "https://udottraffic.utah.gov/map/Cctv/158055",
+          "alt": "Brighton",
+          "weatherStationId": 1650206,
+          "synopticStid": "BRIU1"
         },
         {
           "kind": "img",
           "src": "https://manage.hdrelay.com/snapshot/68eec5b81434e653f179d7f6",
           "alt": "Brighton Snow Stake",
+          "weatherStationId": 1650206,
           "synopticStid": "BRIU1"
         },
         {
@@ -226,12 +270,14 @@
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/ta-4QZbfMXc?autoplay=1&mute=1&controls=0",
           "alt": "Moonbeam Parking Lot",
+          "weatherStationId": 1650206,
           "synopticStid": "BRIU1"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/NSiItCGabfo?autoplay=1&mute=1&controls=0",
           "alt": "Moonbeam Lift Line",
+          "weatherStationId": 1650206,
           "synopticStid": "BRIU1"
         },
         {
@@ -250,6 +296,7 @@
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/Yx3QmuKfwjY?autoplay=1&mute=1&controls=0",
           "alt": "Link Lift Line",
+          "weatherStationId": 1650206,
           "synopticStid": "BRIU1"
         },
         {
@@ -262,18 +309,21 @@
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/XLzKPufaAts?autoplay=1&mute=1&controls=0",
           "alt": "Bottom of Majestic Lift",
+          "weatherStationId": 1650206,
           "synopticStid": "BRIU1"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/4a-3iEM7bHk?autoplay=1&mute=1&controls=0",
           "alt": "Brighton Lot",
+          "weatherStationId": 1650206,
           "synopticStid": "BRIU1"
         },
         {
           "kind": "iframe",
           "src": "https://www.youtube.com/embed/HD1S-bdI1AA?autoplay=1&mute=1&controls=0",
           "alt": "Molly Greens",
+          "weatherStationId": 1650206,
           "synopticStid": "BRIU1"
         },
         {
