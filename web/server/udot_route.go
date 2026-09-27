@@ -82,10 +82,9 @@ func UDOTRoute(s *store.Store) func(c echo.Context) error {
 		// Check if dev mode is enabled
 		devMode := c.Get("_dev_mode") != nil
 
-		// Build cache config - pass the data itself as the component
 		config := CacheConfig{
-			Components: []interface{}{data},
-			DevMode:    devMode,
+			Hash:    []any{data},
+			DevMode: devMode,
 		}
 
 		// Set cache headers and check for 304

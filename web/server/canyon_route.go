@@ -71,8 +71,8 @@ func cacheCanyon(c echo.Context, page CanyonPageData) (bool, error) {
 	c.Response().Header().Set("Content-Type", contentType)
 
 	_, notModified, err := SetCacheHeaders(c, CacheConfig{
-		Components: []interface{}{
-			page.Canyon,
+		ETag: page.ETag,
+		Hash: []any{
 			page.RoadConditions,
 			page.WeatherStations,
 			page.Events,

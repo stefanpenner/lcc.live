@@ -97,8 +97,8 @@ func cacheCamera(c echo.Context, image *store.Image) (bool, error) {
 	c.Response().Header().Set("Content-Type", contentType)
 
 	_, notModified, err := SetCacheHeaders(c, CacheConfig{
-		Components: []interface{}{image.ETag},
-		DevMode:    c.Get("_dev_mode") != nil,
+		Hash:    []any{image.ETag},
+		DevMode: c.Get("_dev_mode") != nil,
 	})
 	return notModified, err
 }

@@ -7,106 +7,71 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// ETagger is an interface for types that have their own ETag
-type ETagger interface {
-	GetETag() string
-}
-
-// CacheConfig holds configuration for cache headers and ETag generation
+// CacheConfig is the cache key for one response.
+// ETag is used as-is. Each Hash value is reduced with StableJSONHash.
 type CacheConfig struct {
-	// Components are all the data components to include in the ETag
-	// Components can be:
-	// - Objects implementing ETagger interface - will call ETag() method
-	// - Other objects - will be hashed using StableJSONHash
-	Components []interface{}
-
-	// DevMode disables caching when true
+	ETag    string
+	Hash    []any
 	DevMode bool
 }
 
-// SetCacheHeaders sets consistent cache headers and ETag based on the config
-// Returns the generated ETag and whether the request should return 304 Not Modified
-// Returns an error if Content-Type is not already set
+// SetCacheHeaders writes cache headers and reports whether to return 304.
+// Content-Type must already be set.
 func SetCacheHeaders(c echo.Context, config CacheConfig) (string, bool, error) {
-	// Ensure Content-Type is already set
 	if c.Response().Header().Get("Content-Type") == "" {
 		return "", false, errors.New("Content-Type must be set before calling SetCacheHeaders")
 	}
 
-	// Determine format from request path
-	isJSON := strings.HasSuffix(c.Request().URL.Path, ".json")
-	formatSuffix := "html"
-	if isJSON {
-		formatSuffix = "json"
+	format := "html"
+	if strings.HasSuffix(c.Request().URL.Path, ".json") {
+		format = "json"
 	}
 
-	// Build composite ETag from all components
-	etag := buildCompositeETag(config, formatSuffix)
+	etag := compositeETag(config.ETag, config.Hash, format)
 
-	// In dev mode, disable caching completely
 	if config.DevMode {
-		c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, private")
-		c.Response().Header().Set("Pragma", "no-cache")
-		c.Response().Header().Set("Expires", "0")
-		c.Response().Header().Set("Vary", "*")
+		h := c.Response().Header()
+		h.Set("Cache-Control", "no-cache, no-store, must-revalidate, private")
+		h.Set("Pragma", "no-cache")
+		h.Set("Expires", "0")
+		h.Set("Vary", "*")
 		return etag, false, nil
 	}
 
-	// Set standard cache headers
-	c.Response().Header().Set("Cache-Control", "public, max-age=30, stale-while-revalidate=120, must-revalidate")
-	c.Response().Header().Set("ETag", etag)
-	c.Response().Header().Set("Vary", "Accept")
+	h := c.Response().Header()
+	h.Set("Cache-Control", "public, max-age=30, stale-while-revalidate=120, must-revalidate")
+	h.Set("ETag", etag)
+	h.Set("Vary", "Accept")
 
-	// Check if client has matching ETag
-	if ifNoneMatch := c.Request().Header.Get("If-None-Match"); ifNoneMatch != "" {
-		if ifNoneMatch == etag {
-			return etag, true, nil // Return 304 Not Modified
-		}
+	if match := c.Request().Header.Get("If-None-Match"); match != "" && match == etag {
+		return etag, true, nil
 	}
-
 	return etag, false, nil
 }
 
-// buildCompositeETag builds a composite ETag from version + all components
-func buildCompositeETag(config CacheConfig, formatSuffix string) string {
-	version := GetVersionString()
-
-	// Start with version
-	parts := []string{version}
-
-	// Add hash/ETag of each component
-	for _, component := range config.Components {
-		if component == nil {
-			continue
-		}
-
-		var hashValue string
-
-		// Check if component implements ETagger interface
-		if etagger, ok := component.(ETagger); ok {
-			hashValue = strings.Trim(etagger.GetETag(), "\"")
-		} else {
-			// Fall back to StableJSONHash
-			hash, err := StableJSONHash(component)
-			if err == nil {
-				hashValue = strings.Trim(hash, "\"")
-			} else {
-				continue // Skip component if hashing fails
-			}
-		}
-
-		if hashValue != "" {
-			parts = append(parts, hashValue)
+func compositeETag(ready string, values []any, format string) string {
+	parts := []string{GetVersionString()}
+	if token := strings.Trim(ready, `"`); token != "" {
+		parts = append(parts, token)
+	}
+	for _, v := range values {
+		if token := hashPart(v); token != "" {
+			parts = append(parts, token)
 		}
 	}
-
-	// Add format suffix if specified
-	if formatSuffix != "" {
-		parts = append(parts, formatSuffix)
+	if format != "" {
+		parts = append(parts, format)
 	}
-
-	// Join all parts with hyphens
-	return "\"" + strings.Join(parts, "-") + "\""
+	return `"` + strings.Join(parts, "-") + `"`
 }
 
-
+func hashPart(v any) string {
+	if v == nil {
+		return ""
+	}
+	hash, err := StableJSONHash(v)
+	if err != nil {
+		return ""
+	}
+	return strings.Trim(hash, `"`)
+}
