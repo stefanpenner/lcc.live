@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNotifierSendsOnlyAVBH(t *testing.T) {
+func TestNotifierSendsOnClose(t *testing.T) {
 	dir := t.TempDir()
 	book, err := Open(filepath.Join(dir, "push.json"))
 	require.NoError(t, err)
@@ -39,24 +39,27 @@ func TestNotifierSendsOnlyAVBH(t *testing.T) {
 
 	s.UpdateRoadConditions("LCC", []store.RoadCondition{{RoadwayName: "SR-210", Restriction: "none", RoadCondition: "Dry"}})
 	n.Check(context.Background(), s)
-	assert.Empty(t, got, "LCC is not an alert drive")
+	require.Len(t, got, 1)
+	assert.Contains(t, got[0], "https://push.example/lcc:")
+	assert.Contains(t, got[0], "Little Cottonwood Canyon is open")
+	assert.Contains(t, got[0], `"url":"/"`)
 
+	got = nil
 	s.UpdateRoadConditions("AVBH", []store.RoadCondition{{RoadwayName: "SR-143", Restriction: "none", RoadCondition: "Dry"}})
 	n.Check(context.Background(), s)
 	require.Len(t, got, 1)
 	assert.Contains(t, got[0], "https://push.example/avbh:")
-	assert.NotContains(t, got[0], "push.example/lcc")
 	assert.Contains(t, got[0], "is open")
 	assert.Contains(t, got[0], `"url":"/av-bh"`)
 
 	got = nil
-	assert.Equal(t, 0, n.SendTest(context.Background(), "LCC"))
-	assert.Equal(t, 1, n.SendTest(context.Background(), "AVBH"))
+	assert.Equal(t, 1, n.SendTest(context.Background(), "LCC"))
 	require.Len(t, got, 1)
-	assert.Contains(t, got[0], "Apple Valley to Brian Head is closed")
+	assert.Contains(t, got[0], "Little Cottonwood Canyon is closed")
 	assert.Contains(t, got[0], "The road is closed.")
-	assert.Contains(t, got[0], `"tag":"lcc-road-AVBH"`)
+	assert.Contains(t, got[0], `"tag":"lcc-road-LCC"`)
 	assert.NotContains(t, got[0], "test")
+	assert.Equal(t, 0, n.SendTest(context.Background(), "BCC"))
 }
 
 func TestSendTestDropsExpiredSubscription(t *testing.T) {

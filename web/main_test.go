@@ -175,7 +175,7 @@ func TestFilesystemLoading(t *testing.T) {
 	})
 }
 
-func TestRoadAlertsOnlyAVBH(t *testing.T) {
+func TestRoadAlertsOnEveryPage(t *testing.T) {
 	imageServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/jpeg")
 		if r.Method == http.MethodGet {
@@ -218,13 +218,20 @@ func TestRoadAlertsOnlyAVBH(t *testing.T) {
 		require.Equal(t, http.StatusOK, rec.Code, path)
 		return rec.Body.String()
 	}
-	for _, path := range []string{"/", "/bcc", "/parleys", "/afc", "/provo"} {
-		assert.NotContains(t, body(path), `id="road-alerts"`)
+	pages := []struct{ path, id, title string }{
+		{"/", "LCC", "Little Cottonwood Canyon"},
+		{"/bcc", "BCC", "Big Cottonwood Canyon"},
+		{"/parleys", "Parleys", "Parleys Canyon"},
+		{"/afc", "AFC", "American Fork Canyon"},
+		{"/provo", "Provo", "Provo Canyon"},
+		{"/av-bh", "AVBH", "Apple Valley to Brian Head"},
 	}
-	av := body("/av-bh")
-	assert.Contains(t, av, `id="road-alerts" class="alert-bell"`)
-	assert.Contains(t, av, `data-canyon="AVBH" data-label="Apple Valley to Brian Head"`)
-	assert.Contains(t, av, "A notice if Apple Valley to Brian Head closes, needs traction, or opens.")
+	for _, page := range pages {
+		html := body(page.path)
+		assert.Contains(t, html, `id="road-alerts" class="alert-bell"`, page.path)
+		assert.Contains(t, html, `data-canyon="`+page.id+`" data-label="`+page.title+`"`, page.path)
+		assert.Contains(t, html, "A notice if "+page.title+" closes, needs traction, or opens.", page.path)
+	}
 
 	post := func(canyon string) int {
 		t.Helper()
@@ -236,12 +243,11 @@ func TestRoadAlertsOnlyAVBH(t *testing.T) {
 		app.ServeHTTP(rec, req)
 		return rec.Code
 	}
-	assert.Equal(t, http.StatusNoContent, post("AVBH"))
-	for _, canyon := range []string{"LCC", "BCC", "Parleys", "AFC", "Provo"} {
-		assert.Equal(t, http.StatusBadRequest, post(canyon), canyon)
+	for _, page := range pages {
+		assert.Equal(t, http.StatusNoContent, post(page.id), page.id)
+		assert.Len(t, book.For(page.id), 1, page.id)
 	}
-	assert.Len(t, book.For("AVBH"), 1)
-	assert.Empty(t, book.For("LCC"))
+	assert.Equal(t, http.StatusBadRequest, post("nope"))
 }
 
 // Benchmark config loading

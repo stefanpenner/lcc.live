@@ -25,15 +25,13 @@ const webManifest = `{
   ]
 }`
 
-// PushCanyons is the drive a road alert can name. Only Apple Valley to Brian Head.
+// PushCanyons is the canyon id, title, and path used in a road alert.
 func PushCanyons() map[string]push.Canyon {
-	link, ok := canyonLink(push.AlertCanyon)
-	if !ok {
-		return map[string]push.Canyon{}
+	out := make(map[string]push.Canyon, len(canyonCatalog()))
+	for _, link := range canyonCatalog() {
+		out[link.ID] = push.Canyon{Title: link.Title, Path: link.Path}
 	}
-	return map[string]push.Canyon{
-		link.ID: {Title: link.Title, Path: link.Path},
-	}
+	return out
 }
 
 func mountPush(e *echo.Echo, n *push.Notifier, dev bool) {
@@ -57,7 +55,7 @@ func mountPush(e *echo.Echo, n *push.Notifier, dev bool) {
 		if err := c.Bind(&sub); err != nil {
 			return c.NoContent(http.StatusBadRequest)
 		}
-		if sub.Canyon != push.AlertCanyon || sub.Endpoint == "" || sub.P256dh == "" || sub.Auth == "" {
+		if _, ok := canyonLink(sub.Canyon); !ok || sub.Endpoint == "" || sub.P256dh == "" || sub.Auth == "" {
 			return c.NoContent(http.StatusBadRequest)
 		}
 		if err := n.Save(sub); err != nil {
@@ -87,7 +85,7 @@ func mountPush(e *echo.Echo, n *push.Notifier, dev bool) {
 		if err := c.Bind(&body); err != nil {
 			return c.NoContent(http.StatusBadRequest)
 		}
-		if body.Canyon != push.AlertCanyon {
+		if _, ok := canyonLink(body.Canyon); !ok {
 			return c.NoContent(http.StatusBadRequest)
 		}
 		if n.SendTest(c.Request().Context(), body.Canyon) == 0 {

@@ -9,16 +9,13 @@ import (
 	"github.com/stefanpenner/lcc-live/web/store"
 )
 
-// AlertCanyon is the only drive that sends a road notice.
-const AlertCanyon = "AVBH"
-
 // Canyon is where a notice links.
 type Canyon struct {
 	Title string
 	Path  string
 }
 
-// Notifier sends a browser push when the Apple Valley to Brian Head road closes or opens.
+// Notifier sends a browser push when a canyon road closes or opens.
 type Notifier struct {
 	book    *Book
 	pub     string
@@ -69,7 +66,7 @@ func (n *Notifier) Remove(endpoint string) error {
 // SendTest pushes one sample notice to the browsers subscribed to canyon.
 // It does not change the saved road state. The count is how many were sent.
 func (n *Notifier) SendTest(ctx context.Context, canyon string) int {
-	if !n.Enabled() || canyon != AlertCanyon {
+	if !n.Enabled() {
 		return 0
 	}
 	body, err := json.Marshal(n.payload(canyon, "closed", ""))
@@ -85,9 +82,6 @@ func (n *Notifier) Check(ctx context.Context, s *store.Store) {
 		return
 	}
 	for _, id := range s.CanyonIDs() {
-		if id != AlertCanyon {
-			continue
-		}
 		closed, label := Closed(s.GetRoadConditions(id), s.GetEvents(id))
 		kind, subs := n.book.Note(id, closed)
 		if kind == "" || len(subs) == 0 {
